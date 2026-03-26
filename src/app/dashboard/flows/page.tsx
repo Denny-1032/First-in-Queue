@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,12 @@ const mockFlows: Flow[] = [
   { id: "6", name: "Feedback Collection", trigger: "feedback", steps: 3, active: true, runs: 134 },
 ];
 
+interface FlowStep {
+  id: string;
+  type: "message" | "question" | "action" | "condition" | "handoff";
+  content?: string;
+}
+
 const stepTypeIcons = {
   message: MessageSquare,
   question: HelpCircle,
@@ -59,6 +65,38 @@ export default function FlowsPage() {
   const { toast } = useToast();
   const [flows, setFlows] = useState(mockFlows);
   const [selectedFlow, setSelectedFlow] = useState<string | null>("1");
+  const [tenantFlowSteps, setTenantFlowSteps] = useState<Record<string, FlowStep[]>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadFlows() {
+      try {
+        const res = await fetch("/api/tenants");
+        if (!res.ok) return;
+        const tenants = await res.json();
+        if (tenants.length > 0 && tenants[0].config?.flows?.length) {
+          const configFlows = tenants[0].config.flows;
+          const mapped: Flow[] = configFlows.map((f: { id: string; name: string; trigger: string; steps: FlowStep[] }, idx: number) => ({
+            id: f.id || String(idx),
+            name: f.name,
+            trigger: f.trigger,
+            steps: f.steps?.length || 0,
+            active: true,
+            runs: 0,
+          }));
+          const stepsMap: Record<string, FlowStep[]> = {};
+          configFlows.forEach((f: { id: string; steps: FlowStep[] }) => {
+            stepsMap[f.id] = f.steps || [];
+          });
+          setFlows(mapped);
+          setTenantFlowSteps(stepsMap);
+          setSelectedFlow(mapped[0]?.id || null);
+        }
+      } catch { /* use mock */ }
+      setLoading(false);
+    }
+    loadFlows();
+  }, []);
 
   const toggleFlow = (id: string) => {
     const flow = flows.find((f) => f.id === id);
@@ -71,7 +109,7 @@ export default function FlowsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Conversation Flows</h1>
-          <p className="text-gray-500 mt-1">Design multi-step conversation workflows for common scenarios</p>
+          <p className="text-gray-500 mt-1">Automated multi-step workflows</p>
         </div>
         <Button
           className="gap-2"
@@ -138,76 +176,99 @@ export default function FlowsPage() {
 
         {/* Flow Editor */}
         <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Order Tracking Flow</CardTitle>
-                  <CardDescription>Triggered when customer mentions &quot;track order&quot;</CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="gap-1.5">
-                    <Pencil className="h-3.5 w-3.5" />
-                    Edit
-                  </Button>
-                  <Button variant="outline" size="sm" className="gap-1.5 text-red-600 hover:bg-red-50">
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {exampleSteps.map((step, i) => {
-                  const Icon = stepTypeIcons[step.type];
-                  const colors = {
-                    message: "border-emerald-200 bg-emerald-50",
-                    question: "border-blue-200 bg-blue-50",
-                    action: "border-purple-200 bg-purple-50",
-                    condition: "border-amber-200 bg-amber-50",
-                    handoff: "border-rose-200 bg-rose-50",
-                  };
-                  const iconColors = {
-                    message: "text-emerald-600",
-                    question: "text-blue-600",
-                    action: "text-purple-600",
-                    condition: "text-amber-600",
-                    handoff: "text-rose-600",
-                  };
-                  return (
-                    <div key={step.id}>
-                      <div className={cn("rounded-xl border-2 p-4", colors[step.type])}>
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm">
-                            <Icon className={cn("h-4 w-4", iconColors[step.type])} />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-gray-400">STEP {i + 1}</span>
-                              <Badge variant="outline" className="text-[10px] capitalize">{step.type}</Badge>
-                            </div>
-                            <p className="text-sm font-medium text-gray-900 mt-0.5">{step.label}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">{step.content}</p>
-                          </div>
-                        </div>
-                      </div>
-                      {i < exampleSteps.length - 1 && (
-                        <div className="flex justify-center py-1">
-                          <ArrowRight className="h-4 w-4 text-gray-300 rotate-90" />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+          {(() => {
+            const activeFlow = flows.find((f) => f.id === selectedFlow);
+            const steps: Array<{ id: string; type: string; label: string; content: string }> =
+              tenantFlowSteps[selectedFlow || ""]?.map((s, i) => ({
+                id: s.id,
+                type: s.type,
+                label: `Step ${i + 1}`,
+                content: s.content || ({ message: "Send a message", question: "Ask a question", action: "Perform an action", condition: "Check a condition", handoff: "Transfer to human agent" }[s.type] || "Configure this step"),
+              })) || exampleSteps;
 
-              <Button variant="outline" className="w-full mt-4 gap-2 border-dashed">
-                <Plus className="h-4 w-4" />
-                Add Step
-              </Button>
-            </CardContent>
-          </Card>
+            return (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>{activeFlow?.name || "Select a flow"}</CardTitle>
+                      <CardDescription>Trigger: &quot;{activeFlow?.trigger || "—"}&quot;</CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="gap-1.5">
+                        <Pencil className="h-3.5 w-3.5" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-red-600 hover:bg-red-50"
+                        onClick={() => {
+                          if (!selectedFlow) return;
+                          setFlows((prev) => prev.filter((f) => f.id !== selectedFlow));
+                          setSelectedFlow(flows[0]?.id || null);
+                          toast("Flow deleted", "warning");
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {steps.map((step, i) => {
+                      const stepType = step.type as keyof typeof stepTypeIcons;
+                      const Icon = stepTypeIcons[stepType] || MessageSquare;
+                      const colors: Record<string, string> = {
+                        message: "border-emerald-200 bg-emerald-50",
+                        question: "border-blue-200 bg-blue-50",
+                        action: "border-purple-200 bg-purple-50",
+                        condition: "border-amber-200 bg-amber-50",
+                        handoff: "border-rose-200 bg-rose-50",
+                      };
+                      const iconColors: Record<string, string> = {
+                        message: "text-emerald-600",
+                        question: "text-blue-600",
+                        action: "text-purple-600",
+                        condition: "text-amber-600",
+                        handoff: "text-rose-600",
+                      };
+                      return (
+                        <div key={step.id}>
+                          <div className={cn("rounded-xl border-2 p-4", colors[stepType] || "border-gray-200 bg-gray-50")}>
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm">
+                                <Icon className={cn("h-4 w-4", iconColors[stepType] || "text-gray-600")} />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold text-gray-400">STEP {i + 1}</span>
+                                  <Badge variant="outline" className="text-[10px] capitalize">{stepType}</Badge>
+                                </div>
+                                <p className="text-sm text-gray-700 mt-0.5">{step.content}</p>
+                              </div>
+                            </div>
+                          </div>
+                          {i < steps.length - 1 && (
+                            <div className="flex justify-center py-1">
+                              <ArrowRight className="h-4 w-4 text-gray-300 rotate-90" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <Button variant="outline" className="w-full mt-4 gap-2 border-dashed">
+                    <Plus className="h-4 w-4" />
+                    Add Step
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })()}
         </div>
       </div>
     </div>

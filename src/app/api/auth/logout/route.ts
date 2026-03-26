@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export async function POST() {
   const response = NextResponse.json({ message: "Logged out" });
-  response.cookies.set("wavely-auth", "", {
+  response.cookies.set("fiq-auth", "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

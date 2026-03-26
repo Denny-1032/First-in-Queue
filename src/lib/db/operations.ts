@@ -195,12 +195,13 @@ export async function getAgents(tenantId: string): Promise<Agent[]> {
 }
 
 export async function getAvailableAgent(tenantId: string): Promise<Agent | null> {
+  // Find an online agent whose active_chats is below their own max_concurrent_chats
   const { data } = await getSupabaseAdmin()
     .from("agents")
     .select("*")
     .eq("tenant_id", tenantId)
     .eq("is_online", true)
-    .lt("active_chats", 5)
+    .filter("active_chats", "lt", "max_concurrent_chats")
     .order("active_chats", { ascending: true })
     .limit(1)
     .single();
@@ -244,24 +245,50 @@ export async function getAnalytics(tenantId: string) {
   ).length || 0;
   const totalResolved = resolvedConversations || 0;
 
-  // Build daily volume for last 7 days
-  const dailyVolume: { date: string; count: number }[] = [];
-  for (let i = 6; i >= 0; i--) {
+  // Build daily volume for last 7 days (parallelized)
+  const dayQueries = Array.from({ length: 7 }, (_, idx) => {
+    const i = 6 - idx;
     const dayStart = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(dayStart);
     dayEnd.setHours(23, 59, 59, 999);
-    const { count: dayCount } = await db
-      .from("messages")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .gte("created_at", dayStart.toISOString())
-      .lte("created_at", dayEnd.toISOString());
-    dailyVolume.push({
-      date: dayStart.toLocaleDateString("en-US", { weekday: "short" }),
-      count: dayCount || 0,
-    });
-  }
+    return { dayStart, dayEnd, label: dayStart.toLocaleDateString("en-US", { weekday: "short" }) };
+  });
+
+  const dayResults = await Promise.all(
+    dayQueries.map(({ dayStart, dayEnd }) =>
+      db.from("messages").select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .gte("created_at", dayStart.toISOString())
+        .lte("created_at", dayEnd.toISOString())
+    )
+  );
+
+  const dailyVolume = dayQueries.map((q, idx) => ({
+    date: q.label,
+    count: dayResults[idx].count || 0,
+  }));
+
+  // Build hourly volume for today (parallelized)
+  const hourQueries = Array.from({ length: 24 }, (_, hour) => {
+    const hourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour);
+    const hourEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, 59, 59, 999);
+    return { hour, hourStart, hourEnd };
+  });
+
+  const hourResults = await Promise.all(
+    hourQueries.map(({ hourStart, hourEnd }) =>
+      db.from("messages").select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .gte("created_at", hourStart.toISOString())
+        .lte("created_at", hourEnd.toISOString())
+    )
+  );
+
+  const hourlyVolume = hourQueries.map((q, idx) => ({
+    hour: q.hour,
+    count: hourResults[idx].count || 0,
+  }));
 
   return {
     total_conversations: totalConversations || 0,
@@ -275,7 +302,7 @@ export async function getAnalytics(tenantId: string) {
     messages_this_week: messagesThisWeek || 0,
     top_topics: [],
     sentiment_breakdown: sentimentBreakdown,
-    hourly_volume: [],
+    hourly_volume: hourlyVolume,
     daily_volume: dailyVolume,
   };
 }

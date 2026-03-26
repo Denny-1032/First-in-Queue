@@ -90,8 +90,43 @@ async function processIncomingMessage(
       return;
     }
 
+    // Check operating hours — if outside hours, send the outside-hours message
+    if (isOutsideOperatingHours(tenant)) {
+      const outsideMsg = tenant.config.operating_hours?.outside_hours_message
+        || "Thanks for reaching out! We're currently outside business hours. We'll get back to you as soon as possible.";
+      const waMessageId = await whatsapp.sendText(message.from, outsideMsg);
+      await saveMessage({
+        conversation_id: conversation.id,
+        tenant_id: tenant.id,
+        direction: "outbound",
+        sender_type: "bot",
+        message_type: "text",
+        content: { text: outsideMsg },
+        whatsapp_message_id: waMessageId,
+        status: "sent",
+      });
+      return;
+    }
+
+    // Check if this is a flow button reply (e.g. button ID = "flow_order_tracking")
+    const flowResponse = matchFlowTrigger(tenant, message, content);
+    if (flowResponse) {
+      const waMessageId = await whatsapp.sendText(message.from, flowResponse);
+      await saveMessage({
+        conversation_id: conversation.id,
+        tenant_id: tenant.id,
+        direction: "outbound",
+        sender_type: "bot",
+        message_type: "text",
+        content: { text: flowResponse },
+        whatsapp_message_id: waMessageId,
+        status: "sent",
+      });
+      return;
+    }
+
     // Check for quick replies first (instant, no AI needed)
-    const quickReply = matchQuickReply(tenant, content.text || "");
+    const quickReply = matchQuickReply(tenant, content.text || "", customerName);
     if (quickReply) {
       const waMessageId = await whatsapp.sendText(message.from, quickReply);
       await saveMessage({
@@ -316,25 +351,106 @@ function extractMessageContent(message: WhatsAppIncomingMessage): MessageContent
   }
 }
 
-function matchQuickReply(tenant: Tenant, text: string): string | null {
+function matchQuickReply(tenant: Tenant, text: string, customerName?: string): string | null {
   if (!text) return null;
   const normalizedText = text.toLowerCase().trim();
 
   for (const qr of tenant.config.quick_replies) {
     const trigger = qr.trigger.toLowerCase();
+    let matched = false;
     switch (qr.match_type) {
       case "exact":
-        if (normalizedText === trigger) return qr.response;
+        matched = normalizedText === trigger;
         break;
       case "contains":
-        if (normalizedText.includes(trigger)) return qr.response;
+        matched = normalizedText.includes(trigger);
         break;
       case "regex":
         try {
-          if (new RegExp(qr.trigger, "i").test(normalizedText)) return qr.response;
+          matched = new RegExp(qr.trigger, "i").test(normalizedText);
         } catch { /* invalid regex, skip */ }
         break;
     }
+    if (matched) {
+      return replaceTemplateVars(qr.response, tenant, customerName);
+    }
   }
+  return null;
+}
+
+function replaceTemplateVars(text: string, tenant: Tenant, customerName?: string): string {
+  return text
+    .replace(/\{customer_name\}/g, customerName || "there")
+    .replace(/\{business_name\}/g, tenant.config.business_name || tenant.name);
+}
+
+function isOutsideOperatingHours(tenant: Tenant): boolean {
+  const opHours = tenant.config.operating_hours;
+  if (!opHours?.schedule) return false;
+
+  const now = new Date();
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const today = dayNames[now.getDay()];
+
+  // Support both record format { Monday: {open,close} } and array format [{ day, open, close, enabled }]
+  const schedule = opHours.schedule as Record<string, unknown>;
+  let open: string | undefined;
+  let close: string | undefined;
+
+  if (Array.isArray(schedule)) {
+    // Array format from settings page: [{ day: "Monday", open: "09:00", close: "18:00", enabled: true }]
+    const dayEntry = schedule.find((d: { day: string; enabled?: boolean }) => d.day === today);
+    if (!dayEntry || dayEntry.enabled === false) return true;
+    open = dayEntry.open;
+    close = dayEntry.close;
+  } else {
+    // Record format from type definition: { Monday: { open: "09:00", close: "18:00" } | null }
+    const dayEntry = schedule[today] as { open: string; close: string } | null | undefined;
+    if (!dayEntry) return true;
+    open = dayEntry.open;
+    close = dayEntry.close;
+  }
+
+  if (!open || !close) return true;
+
+  const [openH, openM] = open.split(":").map(Number);
+  const [closeH, closeM] = close.split(":").map(Number);
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const openMinutes = openH * 60 + (openM || 0);
+  const closeMinutes = closeH * 60 + (closeM || 0);
+
+  return currentMinutes < openMinutes || currentMinutes > closeMinutes;
+}
+
+function matchFlowTrigger(
+  tenant: Tenant,
+  message: WhatsAppIncomingMessage,
+  content: MessageContent
+): string | null {
+  // Check for button reply with flow_ prefix
+  if (message.type === "interactive" && message.interactive?.type === "button_reply") {
+    const buttonId = message.interactive.button_reply?.id || "";
+    if (buttonId.startsWith("flow_")) {
+      const flowId = buttonId.replace("flow_", "");
+      const flow = tenant.config.flows.find((f) => f.id === flowId);
+      if (flow && flow.steps?.length > 0) {
+        const firstStep = flow.steps[0];
+        return firstStep.content || `Let me help you with ${flow.name}.`;
+      }
+    }
+  }
+
+  // Check for text-based flow trigger
+  const text = (content.text || "").toLowerCase().trim();
+  if (text) {
+    for (const flow of tenant.config.flows) {
+      if (flow.trigger && text.includes(flow.trigger.toLowerCase())) {
+        if (flow.steps?.length > 0) {
+          return flow.steps[0].content || `Let me help you with ${flow.name}.`;
+        }
+      }
+    }
+  }
+
   return null;
 }

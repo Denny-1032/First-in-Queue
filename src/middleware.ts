@@ -22,16 +22,32 @@ export function middleware(request: NextRequest) {
       );
     }
 
+    // Protect admin API routes with admin auth
+    if (pathname.startsWith("/api/admin") && !pathname.startsWith("/api/admin/auth")) {
+      const adminToken = request.cookies.get("fiq-admin-auth")?.value;
+      if (!adminToken) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    }
+
     const response = NextResponse.next();
     response.headers.set("X-RateLimit-Remaining", String(remaining));
     return response;
   }
 
-  // Protect dashboard routes — check for auth cookie
-  if (pathname.startsWith("/dashboard")) {
-    const authToken = request.cookies.get("wavely-auth")?.value;
+  // Protect admin dashboard routes — check for admin auth cookie
+  if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
+    const adminToken = request.cookies.get("fiq-admin-auth")?.value;
+    if (!adminToken) {
+      const loginUrl = new URL("/admin/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
 
-    // If no auth token, redirect to login
+  // Protect business dashboard routes — check for auth cookie
+  if (pathname.startsWith("/dashboard")) {
+    const authToken = request.cookies.get("fiq-auth")?.value;
     if (!authToken) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("redirect", pathname);
@@ -43,5 +59,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/api/:path*"],
+  matcher: ["/dashboard/:path*", "/admin/:path*", "/api/:path*"],
 };

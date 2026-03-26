@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Wavely — Intelligent WhatsApp Customer Care",
+  title: "First in Queue — AI-Powered WhatsApp Customer Care",
   description: "AI-powered WhatsApp chatbot platform for businesses. Instant, intelligent customer support that speaks your customers' language.",
 };
 

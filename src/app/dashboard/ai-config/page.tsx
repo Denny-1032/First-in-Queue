@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,13 @@ import {
   Trash2,
   Save,
   AlertCircle,
+  Send,
+  RotateCcw,
+  User,
+  FileText,
+  Upload,
+  Wand2,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -48,6 +55,9 @@ export default function AIConfigPage() {
   const [customInstructions, setCustomInstructions] = useState(
     "Always try to upsell related products when appropriate. Mention ongoing promotions if any."
   );
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [businessDescription, setBusinessDescription] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load config from API on mount
   useEffect(() => {
@@ -109,11 +119,11 @@ export default function AIConfigPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-8 w-full pb-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">AI Configuration</h1>
-          <p className="text-gray-500 mt-1">Customize how your AI assistant behaves and responds</p>
+          <p className="text-gray-500 mt-1">Configure your AI assistant</p>
         </div>
         <Button
           className="gap-2"
@@ -143,8 +153,7 @@ export default function AIConfigPage() {
                 toast("Failed to save configuration", "error");
               }
             } else {
-              await new Promise((r) => setTimeout(r, 500));
-              toast("AI configuration saved (demo mode)");
+              toast("Unable to save — no business account found. Please log out and sign up again.", "error");
             }
             setSaving(false);
           }}
@@ -165,7 +174,6 @@ export default function AIConfigPage() {
             <Bot className="h-5 w-5 text-emerald-600" />
             <CardTitle>Bot Personality</CardTitle>
           </div>
-          <CardDescription>Define your bot&apos;s character and communication style</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
@@ -176,7 +184,6 @@ export default function AIConfigPage() {
               placeholder="e.g., Alex, Maya, Support Bot"
               className="max-w-xs"
             />
-            <p className="text-xs text-gray-400 mt-1">This name will be used when the bot introduces itself</p>
           </div>
 
           <div>
@@ -251,14 +258,133 @@ export default function AIConfigPage() {
               <Brain className="h-5 w-5 text-purple-600" />
               <CardTitle>Knowledge Base</CardTitle>
             </div>
-            <Button variant="outline" size="sm" onClick={addKnowledgeEntry} className="gap-1.5">
-              <Plus className="h-3.5 w-3.5" />
-              Add Entry
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowBulkImport(!showBulkImport)} className="gap-1.5">
+                <Upload className="h-3.5 w-3.5" />
+                Quick Setup
+              </Button>
+              <Button variant="outline" size="sm" onClick={addKnowledgeEntry} className="gap-1.5">
+                <Plus className="h-3.5 w-3.5" />
+                Add Entry
+              </Button>
+            </div>
           </div>
-          <CardDescription>Add business information the AI should know about</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Quick Setup: Business Description */}
+          {showBulkImport && (
+            <div className="rounded-xl border-2 border-dashed border-purple-200 bg-purple-50/50 p-5 space-y-4">
+              <div className="flex items-center gap-2 text-purple-700">
+                <Wand2 className="h-4 w-4" />
+                <p className="text-sm font-semibold">Quick Knowledge Setup</p>
+              </div>
+              <p className="text-xs text-purple-600">
+                Paste a description or upload a file (.txt, .csv, .md) with your business info. We&apos;ll organize it into knowledge entries.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  Upload File
+                </Button>
+                <span className="text-xs text-purple-400">Supports .txt, .csv, .md files</span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".txt,.csv,.md,.text"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      const text = ev.target?.result as string;
+                      if (text) setBusinessDescription((prev) => prev ? prev + "\n\n" + text : text);
+                    };
+                    reader.readAsText(file);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+              <textarea
+                value={businessDescription}
+                onChange={(e) => setBusinessDescription(e.target.value)}
+                placeholder={`Example:\nWe are TechGadgets, an online electronics store.\n\nProducts: Laptops, phones, tablets, accessories.\nShipping: Free on orders over $50. Standard 3-5 days. Express 1-2 days for $9.99.\nReturns: 30-day return policy. Items must be unused.\nPayment: Visa, Mastercard, PayPal, Apple Pay.\nSupport hours: Mon-Fri 9AM-6PM.\nWarranty: 1-year manufacturer warranty on all electronics.\nContact: support@techgadgets.com or call 1-800-TECH`}
+                className="w-full rounded-lg border border-purple-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[160px] resize-y"
+              />
+              <div className="flex items-center gap-3">
+                <Button
+                  size="sm"
+                  className="gap-1.5 bg-purple-600 hover:bg-purple-700"
+                  disabled={!businessDescription.trim()}
+                  onClick={() => {
+                    const lines = businessDescription.split("\n").filter((l) => l.trim());
+                    const entries: KnowledgeEntry[] = [];
+                    let currentTopic = "";
+                    let currentContent = "";
+                    let currentKeywords: string[] = [];
+
+                    for (const line of lines) {
+                      const trimmed = line.trim();
+                      // Detect topic headers (lines ending with : or lines that are short labels)
+                      const topicMatch = trimmed.match(/^([A-Za-z\s&\/]+):\s*(.*)$/);
+                      if (topicMatch && topicMatch[1].length < 40) {
+                        if (currentTopic && currentContent) {
+                          entries.push({
+                            id: Date.now().toString() + entries.length,
+                            topic: currentTopic,
+                            content: currentContent.trim(),
+                            keywords: currentKeywords,
+                          });
+                        }
+                        currentTopic = topicMatch[1].trim();
+                        currentContent = topicMatch[2] || "";
+                        currentKeywords = currentTopic.toLowerCase().split(/[\s&\/]+/).filter((w) => w.length > 2);
+                      } else if (currentTopic) {
+                        currentContent += (currentContent ? " " : "") + trimmed;
+                      } else {
+                        // First line is usually business description
+                        entries.push({
+                          id: Date.now().toString() + entries.length,
+                          topic: "About Us",
+                          content: trimmed,
+                          keywords: ["about", "who", "company", "business"],
+                        });
+                      }
+                    }
+                    if (currentTopic && currentContent) {
+                      entries.push({
+                        id: Date.now().toString() + entries.length,
+                        topic: currentTopic,
+                        content: currentContent.trim(),
+                        keywords: currentKeywords,
+                      });
+                    }
+
+                    if (entries.length > 0) {
+                      setKnowledgeBase((prev) => [...prev, ...entries]);
+                      toast(`Added ${entries.length} knowledge entries from your description`);
+                      setBusinessDescription("");
+                      setShowBulkImport(false);
+                    } else {
+                      toast("Could not parse entries. Try using 'Topic: content' format.", "warning");
+                    }
+                  }}
+                >
+                  <Wand2 className="h-3.5 w-3.5" />
+                  Generate Entries
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowBulkImport(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
           {knowledgeBase.map((entry, i) => (
             <div key={entry.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -313,7 +439,6 @@ export default function AIConfigPage() {
               Add FAQ
             </Button>
           </div>
-          <CardDescription>Common questions and their answers for the AI to reference</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {faqs.map((faq, i) => (
@@ -355,7 +480,6 @@ export default function AIConfigPage() {
             <Sparkles className="h-5 w-5 text-amber-500" />
             <CardTitle>Custom Instructions</CardTitle>
           </div>
-          <CardDescription>Additional instructions for the AI to follow in every conversation</CardDescription>
         </CardHeader>
         <CardContent>
           <textarea
@@ -364,14 +488,312 @@ export default function AIConfigPage() {
             placeholder="e.g., Always mention our current promotion. Never discuss competitor products..."
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[120px] resize-y"
           />
-          <div className="flex items-start gap-2 mt-3 p-3 rounded-lg bg-amber-50 border border-amber-100">
-            <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-700">
-              These instructions are added to every AI conversation. Be specific and clear. Conflicting instructions may confuse the AI.
-            </p>
-          </div>
         </CardContent>
       </Card>
+
+      {/* Test Your Bot */}
+      <BotTestChat
+        personality={personality}
+        knowledgeBase={knowledgeBase}
+        faqs={faqs}
+        customInstructions={customInstructions}
+      />
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Bot Test Chat Widget                                                */
+/* ------------------------------------------------------------------ */
+interface ChatMsg {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+}
+
+function BotTestChat({
+  personality,
+  knowledgeBase,
+  faqs,
+  customInstructions,
+}: {
+  personality: BotPersonality;
+  knowledgeBase: KnowledgeEntry[];
+  faqs: FAQ[];
+  customInstructions: string;
+}) {
+  const [messages, setMessages] = useState<ChatMsg[]>([
+    {
+      id: "welcome",
+      role: "assistant",
+      text: `Hi! I'm ${personality.name}, your AI assistant. Send me a message to test how I'll respond to your customers.`,
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [thinking, setThinking] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const prevNameRef = useRef(personality.name);
+
+  // Update welcome message when bot name changes
+  useEffect(() => {
+    if (prevNameRef.current !== personality.name) {
+      prevNameRef.current = personality.name;
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === "welcome"
+            ? { ...msg, text: `Hi! I'm ${personality.name}, your AI assistant. Send me a message to test how I'll respond to your customers.` }
+            : msg
+        )
+      );
+    }
+  }, [personality.name]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, thinking]);
+
+  // Simulate AI response locally (no API call — uses current config state)
+  const simulateResponse = useCallback(
+    (userText: string): string => {
+      const lower = userText.toLowerCase().trim();
+      // Extract meaningful words (drop common stop words)
+      const stopWords = new Set(["i", "me", "my", "we", "our", "you", "your", "the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "can", "may", "might", "shall", "to", "of", "in", "for", "on", "with", "at", "by", "from", "as", "into", "about", "it", "its", "this", "that", "these", "those", "and", "but", "or", "so", "if", "then", "than", "too", "very", "just", "not", "no", "what", "how", "when", "where", "which", "who", "whom", "why", "hi", "hello", "hey", "thanks", "thank", "please", "help", "need", "want", "know", "tell", "me", "any", "some", "there", "here", "much", "many"]);
+      const userWords = lower.split(/\s+/).filter((w) => w.length > 1 && !stopWords.has(w));
+
+      // Check for escalation / human request first
+      const escalationPhrases = ["speak to a human", "talk to a person", "real person", "human agent", "speak to someone", "talk to agent", "transfer me", "escalate", "manager", "supervisor", "real agent", "human help"];
+      if (escalationPhrases.some((p) => lower.includes(p))) {
+        return `I understand you'd like to speak with a human agent. Let me connect you right away. 🤝\n\nA team member will be with you shortly. Your conversation history will be shared so you won't need to repeat yourself.`;
+      }
+
+      // Check FAQs — fuzzy word overlap matching
+      let bestFaqScore = 0;
+      let bestFaqAnswer = "";
+      for (const faq of faqs) {
+        if (!faq.question || !faq.answer) continue;
+        const faqWords = faq.question.toLowerCase().split(/\s+/).filter((w) => w.length > 1 && !stopWords.has(w));
+        const overlap = userWords.filter((w) => faqWords.some((fw) => fw.includes(w) || w.includes(fw))).length;
+        const score = faqWords.length > 0 ? overlap / Math.max(faqWords.length, 1) : 0;
+        if (score > bestFaqScore && score >= 0.4) {
+          bestFaqScore = score;
+          bestFaqAnswer = faq.answer;
+        }
+      }
+      if (bestFaqAnswer) return bestFaqAnswer;
+
+      // Score each knowledge base entry by word overlap with topic, keywords, AND content
+      const scored: { entry: KnowledgeEntry; score: number }[] = [];
+      for (const kb of knowledgeBase) {
+        let score = 0;
+        const topicWords = (kb.topic || "").toLowerCase().split(/\s+/);
+        const keywordList = (kb.keywords || []).map((k) => k.toLowerCase());
+        const contentWords = (kb.content || "").toLowerCase().split(/\s+/);
+
+        for (const w of userWords) {
+          // Topic match (high weight)
+          if (topicWords.some((tw) => tw.includes(w) || w.includes(tw))) score += 3;
+          // Keyword match (high weight)
+          if (keywordList.some((kw) => kw.includes(w) || w.includes(kw))) score += 3;
+          // Content word match (lower weight)
+          if (contentWords.some((cw) => cw === w || (cw.length > 3 && cw.includes(w)))) score += 1;
+        }
+        if (score > 0) scored.push({ entry: kb, score });
+      }
+
+      // Sort by score descending
+      scored.sort((a, b) => b.score - a.score);
+
+      const tonePrefix =
+        personality.tone === "friendly" ? "Great question! " :
+        personality.tone === "casual" ? "Sure thing! " :
+        personality.tone === "formal" ? "Thank you for your inquiry. " : "";
+
+      const emojiSuffix = personality.emoji_usage === "heavy" ? " 😊" : personality.emoji_usage === "moderate" ? " 🙂" : "";
+
+      // If we have high-confidence match(es), return them
+      if (scored.length > 0 && scored[0].score >= 2) {
+        // Combine top matches (up to 2) if they're both relevant
+        const top = scored.slice(0, scored[1]?.score >= 2 ? 2 : 1);
+        const combined = top.map((s) => s.entry.content).join("\n\n");
+        return `${tonePrefix}${combined}${emojiSuffix}`;
+      }
+
+      // Low-confidence partial match — still try to answer
+      if (scored.length > 0 && scored[0].score >= 1) {
+        return `${tonePrefix}Based on what I know, ${scored[0].entry.content}${emojiSuffix}\n\nWould you like to know more about this?`;
+      }
+
+      // Greeting detection
+      if (/^(hi|hello|hey|howdy|good\s*(morning|afternoon|evening))/.test(lower)) {
+        const greetings: Record<string, string> = {
+          professional: `Hello! I'm ${personality.name}. How may I assist you today?`,
+          friendly: `Hey there! 👋 I'm ${personality.name}. How can I help you today?`,
+          casual: `Hey! I'm ${personality.name} 😊 What can I do for you?`,
+          formal: `Good day. I am ${personality.name}. How may I be of service?`,
+        };
+        return greetings[personality.tone] || greetings.friendly;
+      }
+
+      // If knowledge base has entries, list available topics as guidance
+      if (knowledgeBase.length > 0) {
+        const topics = knowledgeBase.slice(0, 5).map((kb) => kb.topic).filter(Boolean).join(", ");
+        const noMatch: Record<string, string> = {
+          professional: `I'd be happy to help! I can assist with: ${topics}. Which topic would you like to know more about?`,
+          friendly: `I'd love to help! 😊 I know about: ${topics}. What would you like to know?`,
+          casual: `Hmm, let me see... I can help with: ${topics}. What are you looking for?`,
+          formal: `I would be pleased to assist. My areas of knowledge include: ${topics}. How may I help?`,
+        };
+        return noMatch[personality.tone] || noMatch.friendly;
+      }
+
+      // Truly empty knowledge base — generic fallback
+      const generic: Record<string, string> = {
+        professional: "Thank you for reaching out. I don't have specific information on that yet, but our team can help. Would you like me to connect you with someone?",
+        friendly: "Hmm, I don't have info on that yet — my knowledge base is still being set up! Want me to connect you with a team member? 😊",
+        casual: "Oops, I don't know about that yet! My brain is still loading 😅 Want to talk to a human instead?",
+        formal: "I regret that I do not yet have information pertaining to that matter. Shall I arrange for a team member to assist you?",
+      };
+
+      return generic[personality.tone] || generic.friendly;
+    },
+    [personality, knowledgeBase, faqs]
+  );
+
+  const handleSend = () => {
+    const text = input.trim();
+    if (!text || thinking) return;
+    const userMsg: ChatMsg = { id: Date.now().toString(), role: "user", text };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setThinking(true);
+
+    // Simulate typing delay
+    setTimeout(() => {
+      const reply = simulateResponse(text);
+      setMessages((prev) => [
+        ...prev,
+        { id: (Date.now() + 1).toString(), role: "assistant", text: reply },
+      ]);
+      setThinking(false);
+    }, 600 + Math.random() * 800);
+  };
+
+  const resetChat = () => {
+    prevNameRef.current = personality.name;
+    setMessages([
+      {
+        id: "welcome",
+        role: "assistant",
+        text: `Hi! I'm ${personality.name}, your AI assistant. Send me a message to test how I'll respond to your customers.`,
+      },
+    ]);
+    setInput("");
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-emerald-600" />
+            <CardTitle>Test Your Bot</CardTitle>
+          </div>
+          <Button variant="outline" size="sm" onClick={resetChat} className="gap-1.5">
+            <RotateCcw className="h-3.5 w-3.5" />
+            Reset
+          </Button>
+        </div>
+        <CardDescription>Preview how your bot responds using the current configuration above</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="rounded-xl border border-gray-200 bg-gradient-to-b from-gray-50 to-white overflow-hidden">
+          {/* Chat header */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-emerald-600 text-white">
+            <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold">
+              {personality.name.charAt(0)}
+            </div>
+            <div>
+              <p className="text-sm font-medium">{personality.name}</p>
+              <p className="text-[10px] text-emerald-100">Online — Test Mode</p>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div ref={scrollRef} className="h-80 overflow-y-auto p-4 space-y-3">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={cn(
+                  "flex gap-2 max-w-[85%]",
+                  msg.role === "user" ? "ml-auto flex-row-reverse" : ""
+                )}
+              >
+                <div
+                  className={cn(
+                    "h-6 w-6 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                    msg.role === "user" ? "bg-blue-100" : "bg-emerald-100"
+                  )}
+                >
+                  {msg.role === "user" ? (
+                    <User className="h-3 w-3 text-blue-600" />
+                  ) : (
+                    <Bot className="h-3 w-3 text-emerald-600" />
+                  )}
+                </div>
+                <div
+                  className={cn(
+                    "rounded-2xl px-3 py-2 text-sm",
+                    msg.role === "user"
+                      ? "bg-emerald-600 text-white rounded-br-md"
+                      : "bg-white border border-gray-200 text-gray-800 rounded-bl-md shadow-sm"
+                  )}
+                >
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+            {thinking && (
+              <div className="flex gap-2 max-w-[85%]">
+                <div className="h-6 w-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <Bot className="h-3 w-3 text-emerald-600" />
+                </div>
+                <div className="rounded-2xl rounded-bl-md px-4 py-2.5 bg-white border border-gray-200 shadow-sm">
+                  <div className="flex gap-1">
+                    <div className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <div className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <div className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input */}
+          <div className="flex items-center gap-2 p-3 border-t border-gray-100 bg-white">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+              placeholder="Type a test message..."
+              className="flex-1"
+            />
+            <Button
+              size="icon"
+              onClick={handleSend}
+              disabled={!input.trim() || thinking}
+              className="bg-emerald-600 hover:bg-emerald-700 h-9 w-9"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <p className="text-xs text-gray-400 mt-3 flex items-center gap-1.5">
+          <AlertCircle className="h-3 w-3" />
+          This is a local preview using your current settings. Live responses use OpenAI for more natural conversations.
+        </p>
+      </CardContent>
+    </Card>
   );
 }

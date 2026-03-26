@@ -21,6 +21,7 @@ import {
   Meh,
   Frown,
   ArrowLeftRight,
+  ArrowLeft,
   CheckCircle2,
   XCircle,
   MessageSquare,
@@ -30,54 +31,6 @@ import { timeAgo, truncate } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import type { Conversation, Message, ConversationStatus } from "@/types";
 
-// Mock data for demo
-const mockConversations: Conversation[] = [
-  {
-    id: "1", tenant_id: "t1", customer_phone: "+1234567890", customer_name: "Sarah Johnson",
-    status: "active", ai_enabled: true, sentiment: "positive", tags: ["vip"], metadata: {},
-    last_message_at: new Date(Date.now() - 120000).toISOString(), created_at: new Date(Date.now() - 3600000).toISOString(), updated_at: new Date().toISOString(),
-  },
-  {
-    id: "2", tenant_id: "t1", customer_phone: "+1987654321", customer_name: "Marcus Chen",
-    status: "handoff", assigned_agent_id: "a1", ai_enabled: false, sentiment: "negative", tags: ["complaint"], metadata: {},
-    last_message_at: new Date(Date.now() - 300000).toISOString(), created_at: new Date(Date.now() - 7200000).toISOString(), updated_at: new Date().toISOString(),
-  },
-  {
-    id: "3", tenant_id: "t1", customer_phone: "+1555000111", customer_name: "Emily Davis",
-    status: "active", ai_enabled: true, sentiment: "neutral", tags: [], metadata: {},
-    last_message_at: new Date(Date.now() - 600000).toISOString(), created_at: new Date(Date.now() - 1800000).toISOString(), updated_at: new Date().toISOString(),
-  },
-  {
-    id: "4", tenant_id: "t1", customer_phone: "+1555000222", customer_name: "James Wilson",
-    status: "waiting", ai_enabled: true, sentiment: "negative", tags: ["urgent"], metadata: {},
-    last_message_at: new Date(Date.now() - 900000).toISOString(), created_at: new Date(Date.now() - 5400000).toISOString(), updated_at: new Date().toISOString(),
-  },
-  {
-    id: "5", tenant_id: "t1", customer_phone: "+1555000333", customer_name: "Aisha Patel",
-    status: "resolved", ai_enabled: true, sentiment: "positive", tags: [], metadata: {},
-    last_message_at: new Date(Date.now() - 1800000).toISOString(), created_at: new Date(Date.now() - 86400000).toISOString(), updated_at: new Date().toISOString(),
-  },
-  {
-    id: "6", tenant_id: "t1", customer_phone: "+1555000444", customer_name: "David Kim",
-    status: "active", ai_enabled: true, sentiment: "positive", tags: ["returning"], metadata: {},
-    last_message_at: new Date(Date.now() - 2400000).toISOString(), created_at: new Date(Date.now() - 3600000).toISOString(), updated_at: new Date().toISOString(),
-  },
-];
-
-const mockMessages: Record<string, Message[]> = {
-  "1": [
-    { id: "m1", conversation_id: "1", tenant_id: "t1", direction: "inbound", sender_type: "customer", message_type: "text", content: { text: "Hi! I placed an order yesterday and was wondering about the delivery status." }, status: "read", created_at: new Date(Date.now() - 3600000).toISOString() },
-    { id: "m2", conversation_id: "1", tenant_id: "t1", direction: "outbound", sender_type: "bot", message_type: "text", content: { text: "Hello Sarah! 👋 Thanks for reaching out. I'd be happy to help you track your order. Could you please share your order number?" }, status: "read", created_at: new Date(Date.now() - 3540000).toISOString() },
-    { id: "m3", conversation_id: "1", tenant_id: "t1", direction: "inbound", sender_type: "customer", message_type: "text", content: { text: "Sure! It's #ORD-2024-8847" }, status: "read", created_at: new Date(Date.now() - 3000000).toISOString() },
-    { id: "m4", conversation_id: "1", tenant_id: "t1", direction: "outbound", sender_type: "bot", message_type: "text", content: { text: "I found your order #ORD-2024-8847! 📦\n\nHere's the status:\n✅ Order confirmed\n✅ Payment processed\n✅ Packed & shipped\n🚚 In transit — Expected delivery: Tomorrow by 5 PM\n\nYour tracking number is: TRK-99281746\n\nIs there anything else I can help with?" }, status: "read", created_at: new Date(Date.now() - 2940000).toISOString() },
-    { id: "m5", conversation_id: "1", tenant_id: "t1", direction: "inbound", sender_type: "customer", message_type: "text", content: { text: "That's great, thank you so much! Can I also change the delivery address?" }, status: "read", created_at: new Date(Date.now() - 120000).toISOString() },
-  ],
-  "2": [
-    { id: "m6", conversation_id: "2", tenant_id: "t1", direction: "inbound", sender_type: "customer", message_type: "text", content: { text: "I received a damaged product and I want a refund immediately!" }, status: "read", created_at: new Date(Date.now() - 7200000).toISOString() },
-    { id: "m7", conversation_id: "2", tenant_id: "t1", direction: "outbound", sender_type: "bot", message_type: "text", content: { text: "I'm really sorry to hear about the damaged product, Marcus. That's definitely not the experience we want you to have. Let me connect you with a team member who can process your refund right away." }, status: "read", created_at: new Date(Date.now() - 7140000).toISOString() },
-    { id: "m8", conversation_id: "2", tenant_id: "t1", direction: "outbound", sender_type: "agent", message_type: "text", content: { text: "Hi Marcus, this is Alex from our support team. I can see your order and I'm sorry about the damage. I've initiated a full refund which will be processed within 3-5 business days. We're also sending a replacement at no extra cost. Would you like to share a photo of the damage for our records?" }, status: "delivered", created_at: new Date(Date.now() - 300000).toISOString() },
-  ],
-};
 
 const statusConfig: Record<ConversationStatus, { label: string; color: string; icon: React.ElementType }> = {
   active: { label: "Active", color: "bg-emerald-100 text-emerald-700", icon: Bot },
@@ -103,7 +56,7 @@ type FilterStatus = "all" | ConversationStatus;
 
 export default function ConversationsPage() {
   const { toast } = useToast();
-  const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -113,7 +66,6 @@ export default function ConversationsPage() {
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [usingMock, setUsingMock] = useState(false);
 
   // Fetch conversations from API
   useEffect(() => {
@@ -123,19 +75,15 @@ export default function ConversationsPage() {
         const res = await fetch("/api/conversations");
         if (res.ok) {
           const data = await res.json();
-          if (data.conversations && data.conversations.length > 0) {
-            setConversations(data.conversations);
-            setSelectedId(data.conversations[0].id);
-            setUsingMock(false);
-            setLoadingConvos(false);
-            return;
-          }
+          const convos = data.conversations || [];
+          setConversations(convos);
+          if (convos.length > 0) setSelectedId(convos[0].id);
         }
-      } catch { /* fallback to mock */ }
-      setConversations(mockConversations);
-      setSelectedId("1");
-      setUsingMock(true);
-      setLoadingConvos(false);
+      } catch (e) {
+        console.error("Failed to load conversations:", e);
+      } finally {
+        setLoadingConvos(false);
+      }
     }
     fetchConversations();
   }, []);
@@ -144,10 +92,6 @@ export default function ConversationsPage() {
   useEffect(() => {
     if (!selectedId) { setMessages([]); return; }
     const id = selectedId;
-    if (usingMock) {
-      setMessages(mockMessages[id] || []);
-      return;
-    }
     async function fetchMessages() {
       setLoadingMsgs(true);
       try {
@@ -155,15 +99,16 @@ export default function ConversationsPage() {
         if (res.ok) {
           const data = await res.json();
           setMessages(Array.isArray(data) ? data : []);
-          setLoadingMsgs(false);
-          return;
         }
-      } catch { /* fallback */ }
-      setMessages(mockMessages[id] || []);
-      setLoadingMsgs(false);
+      } catch (e) {
+        console.error("Failed to load messages:", e);
+        setMessages([]);
+      } finally {
+        setLoadingMsgs(false);
+      }
     }
     fetchMessages();
-  }, [selectedId, usingMock]);
+  }, [selectedId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -199,32 +144,30 @@ export default function ConversationsPage() {
     };
     setMessages((prev) => [...prev, optimisticMsg]);
 
-    if (!usingMock) {
-      try {
-        const res = await fetch(`/api/conversations/${selectedId}/messages`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
-        });
-        if (res.ok) {
-          const saved = await res.json();
-          setMessages((prev) => prev.map((m) => m.id === optimisticMsg.id ? saved : m));
-        } else {
-          toast("Failed to send message via WhatsApp", "error");
-        }
-      } catch {
-        toast("Failed to send message", "error");
+    try {
+      const res = await fetch(`/api/conversations/${selectedId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        setMessages((prev) => prev.map((m) => m.id === optimisticMsg.id ? saved : m));
+      } else {
+        toast("Failed to send message via WhatsApp", "error");
       }
-
-      // Update conversation status to handoff
-      try {
-        await fetch(`/api/conversations/${selectedId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "handoff", ai_enabled: false }),
-        });
-      } catch { /* best effort */ }
+    } catch {
+      toast("Failed to send message", "error");
     }
+
+    // Update conversation status to handoff
+    try {
+      await fetch(`/api/conversations/${selectedId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "handoff", ai_enabled: false }),
+      });
+    } catch { /* best effort */ }
 
     setConversations((prev) =>
       prev.map((c) => c.id === selectedId && c.status === "active" ? { ...c, status: "handoff" as ConversationStatus, ai_enabled: false } : c)
@@ -238,11 +181,6 @@ export default function ConversationsPage() {
   };
 
   const getLastMessage = (convoId: string) => {
-    if (usingMock) {
-      const msgs = mockMessages[convoId];
-      if (!msgs || msgs.length === 0) return "No messages yet";
-      return truncate(msgs[msgs.length - 1].content.text || "[media]", 50);
-    }
     if (convoId === selectedId && messages.length > 0) {
       return truncate(messages[messages.length - 1].content.text || "[media]", 50);
     }
@@ -256,9 +194,9 @@ export default function ConversationsPage() {
         <p className="text-gray-500 mt-1">Manage customer conversations and handoffs</p>
       </div>
 
-      <div className="flex gap-6 h-[calc(100vh-12rem)]">
+      <div className="flex gap-4 lg:gap-6 h-[calc(100vh-12rem)] lg:h-[calc(100vh-10rem)]">
         {/* Conversation List */}
-        <Card className="w-96 flex flex-col shrink-0">
+        <Card className={cn("w-full md:w-96 flex flex-col shrink-0", selectedId ? "hidden md:flex" : "flex")}>
           {/* Search & Filter */}
           <div className="p-4 border-b border-gray-100 space-y-3">
             <div className="relative">
@@ -354,12 +292,19 @@ export default function ConversationsPage() {
         </Card>
 
         {/* Chat Area */}
-        <Card className="flex-1 flex flex-col">
+        <Card className={cn("flex-1 flex flex-col", !selectedId ? "hidden md:flex" : "flex")}>
           {selectedConvo ? (
             <>
               {/* Chat Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setSelectedId(null)}
+                    className="md:hidden p-1 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                    aria-label="Back to conversations"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
                   <Avatar>
                     <AvatarFallback>{getInitials(selectedConvo.customer_name)}</AvatarFallback>
                   </Avatar>
@@ -383,7 +328,7 @@ export default function ConversationsPage() {
                         setConversations((prev) =>
                           prev.map((c) => c.id === selectedId ? { ...c, status: "handoff" as ConversationStatus, ai_enabled: false } : c)
                         );
-                        if (!usingMock && selectedId) {
+                        if (selectedId) {
                           try {
                             await fetch(`/api/conversations/${selectedId}`, {
                               method: "PATCH",
@@ -408,7 +353,7 @@ export default function ConversationsPage() {
                         setConversations((prev) =>
                           prev.map((c) => c.id === selectedId ? { ...c, status: "resolved" as ConversationStatus } : c)
                         );
-                        if (!usingMock && selectedId) {
+                        if (selectedId) {
                           try {
                             await fetch(`/api/conversations/${selectedId}`, {
                               method: "PATCH",
@@ -432,46 +377,52 @@ export default function ConversationsPage() {
 
               {/* Messages */}
               <ScrollArea className="flex-1 px-6 py-4">
-                <div className="space-y-4">
-                  {messages.map((msg) => {
-                    const isInbound = msg.direction === "inbound";
-                    return (
-                      <div key={msg.id} className={cn("flex", isInbound ? "justify-start" : "justify-end")}>
-                        <div className={cn("max-w-[70%] space-y-1")}>
-                          {/* Sender label */}
-                          <div className={cn("flex items-center gap-1.5 text-[10px]", isInbound ? "" : "justify-end")}>
-                            {msg.sender_type === "bot" && <Bot className="h-3 w-3 text-emerald-500" />}
-                            {msg.sender_type === "agent" && <UserCheck className="h-3 w-3 text-blue-500" />}
-                            {msg.sender_type === "customer" && <User className="h-3 w-3 text-gray-400" />}
-                            <span className="text-gray-400">
-                              {msg.sender_type === "bot" ? "AI Bot" : msg.sender_type === "agent" ? "Agent" : selectedConvo.customer_name || "Customer"}
-                            </span>
-                          </div>
-                          {/* Message bubble */}
-                          <div
-                            className={cn(
-                              "rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap leading-relaxed",
-                              isInbound
-                                ? "bg-gray-100 text-gray-900 rounded-tl-sm"
-                                : msg.sender_type === "bot"
-                                ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-tr-sm"
-                                : "bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-tr-sm"
-                            )}
-                          >
-                            {msg.content.text}
-                          </div>
-                          {/* Timestamp & status */}
-                          <div className={cn("flex items-center gap-1 text-[10px] text-gray-400", !isInbound && "justify-end")}>
-                            <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                            {!isInbound && msg.status === "read" && <CheckCheck className="h-3 w-3 text-blue-500" />}
-                            {!isInbound && msg.status === "delivered" && <CheckCheck className="h-3 w-3 text-gray-400" />}
+                {loadingMsgs ? (
+                  <div className="flex items-center justify-center h-full py-12">
+                    <div className="h-6 w-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {messages.map((msg) => {
+                      const isInbound = msg.direction === "inbound";
+                      return (
+                        <div key={msg.id} className={cn("flex", isInbound ? "justify-start" : "justify-end")}>
+                          <div className={cn("max-w-[70%] space-y-1")}>
+                            {/* Sender label */}
+                            <div className={cn("flex items-center gap-1.5 text-[10px]", isInbound ? "" : "justify-end")}>
+                              {msg.sender_type === "bot" && <Bot className="h-3 w-3 text-emerald-500" />}
+                              {msg.sender_type === "agent" && <UserCheck className="h-3 w-3 text-blue-500" />}
+                              {msg.sender_type === "customer" && <User className="h-3 w-3 text-gray-400" />}
+                              <span className="text-gray-400">
+                                {msg.sender_type === "bot" ? "AI Bot" : msg.sender_type === "agent" ? "Agent" : selectedConvo.customer_name || "Customer"}
+                              </span>
+                            </div>
+                            {/* Message bubble */}
+                            <div
+                              className={cn(
+                                "rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap leading-relaxed",
+                                isInbound
+                                  ? "bg-gray-100 text-gray-900 rounded-tl-sm"
+                                  : msg.sender_type === "bot"
+                                  ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-tr-sm"
+                                  : "bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-tr-sm"
+                              )}
+                            >
+                              {msg.content.text}
+                            </div>
+                            {/* Timestamp & status */}
+                            <div className={cn("flex items-center gap-1 text-[10px] text-gray-400", !isInbound && "justify-end")}>
+                              <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                              {!isInbound && msg.status === "read" && <CheckCheck className="h-3 w-3 text-blue-500" />}
+                              {!isInbound && msg.status === "delivered" && <CheckCheck className="h-3 w-3 text-gray-400" />}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                  <div ref={messagesEndRef} />
-                </div>
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
               </ScrollArea>
 
               {/* Message Input */}

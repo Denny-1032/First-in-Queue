@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { verifyPassword, generateAuthToken } from "@/lib/auth/password";
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,18 +10,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
-    // TODO: Replace with real Supabase auth
-    // For now, accept any valid-looking credentials for demo
-    if (password.length < 6) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    const db = getSupabaseAdmin();
+
+    // Look up user by email
+    const { data: user, error } = await db
+      .from("users")
+      .select("id, name, email, password_hash, tenant_id, role")
+      .eq("email", email.toLowerCase())
+      .single();
+
+    if (error || !user) {
+      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
+    // Verify password
+    if (!verifyPassword(password, user.password_hash)) {
+      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+    }
+
+    const token = generateAuthToken(user.id, user.email);
     const response = NextResponse.json({
-      user: { email, name: email.split("@")[0] },
+      user: { id: user.id, email: user.email, name: user.name, tenant_id: user.tenant_id },
       message: "Login successful",
     });
 
-    response.cookies.set("wavely-auth", "demo-token", {
+    response.cookies.set("fiq-auth", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

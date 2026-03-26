@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,31 @@ const integrations: Integration[] = [
 export default function IntegrationsPage() {
   const { toast } = useToast();
   const [items, setItems] = useState(integrations);
+
+  // Detect real connection status from tenant data
+  useEffect(() => {
+    async function detectConnections() {
+      try {
+        const res = await fetch("/api/tenants");
+        if (!res.ok) return;
+        const tenants = await res.json();
+        if (tenants.length > 0) {
+          const tenant = tenants[0];
+          const whatsappConnected = !!tenant.whatsapp_phone_number_id;
+          const openaiConnected = !!tenant.openai_api_key;
+          setItems((prev) =>
+            prev.map((it) => {
+              if (it.name === "WhatsApp Cloud API") return { ...it, connected: whatsappConnected };
+              if (it.name === "OpenAI") return { ...it, connected: openaiConnected };
+              return it;
+            })
+          );
+        }
+      } catch { /* keep defaults */ }
+    }
+    detectConnections();
+  }, []);
+
   const connectedCount = items.filter((i) => i.connected).length;
   const categories = [...new Set(items.map((i) => i.category))];
 
@@ -47,66 +72,89 @@ export default function IntegrationsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Integrations</h1>
-        <p className="text-gray-500 mt-1">
-          Connect Wavely with your existing tools — {connectedCount} of {integrations.length} connected
-        </p>
+        <p className="text-gray-500 mt-1">{connectedCount} of {integrations.length} connected</p>
       </div>
 
-      {categories.map((category) => (
-        <div key={category}>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{category}</h2>
+      {/* Connected integrations */}
+      {items.some((i) => i.connected) && (
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Connected</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items
-              .filter((i) => i.category === category)
-              .map((integration) => (
-                <Card key={integration.id} className={cn("hover:shadow-md transition-shadow", integration.connected && "ring-1 ring-emerald-200")}>
-                  <CardContent className="p-5">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{integration.icon}</span>
-                        <div>
-                          <h3 className="text-sm font-semibold text-gray-900">{integration.name}</h3>
-                          <p className="text-xs text-gray-500 mt-0.5">{integration.description}</p>
-                        </div>
-                      </div>
+            {items.filter((i) => i.connected).map((integration) => (
+              <Card key={integration.id} className="ring-1 ring-emerald-200 hover:shadow-md transition-shadow">
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-2xl">{integration.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-semibold text-gray-900">{integration.name}</h3>
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">{integration.description}</p>
                     </div>
-                    <div className="flex items-center justify-between mt-4">
-                      {integration.connected ? (
-                        <div className="flex items-center gap-1.5 text-xs text-emerald-600">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Connected
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                          <Circle className="h-3.5 w-3.5" />
-                          Not connected
-                        </div>
-                      )}
-                      <Button
-                        variant={integration.connected ? "outline" : "default"}
-                        size="sm"
-                        className="gap-1.5 text-xs"
-                        onClick={() => {
-                          if (integration.connected) {
-                            toast(`${integration.name} configuration opened`, "info");
-                          } else {
-                            setItems((prev) =>
-                              prev.map((it) => it.id === integration.id ? { ...it, connected: true } : it)
-                            );
-                            toast(`${integration.name} connected successfully`);
-                          }
-                        }}
-                      >
-                        {integration.connected ? "Configure" : "Connect"}
-                        <ExternalLink className="h-3 w-3" />
-                      </Button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Connected
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={() => toast(`${integration.name} configuration opened`, "info")}
+                    >
+                      Configure
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
-      ))}
+      )}
+
+      {/* Available integrations */}
+      {items.some((i) => !i.connected) && (
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Available</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {items.filter((i) => !i.connected).map((integration) => (
+              <Card key={integration.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-2xl">{integration.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-gray-900">{integration.name}</h3>
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{integration.category}</Badge>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">{integration.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                      <Circle className="h-3.5 w-3.5" />
+                      Not connected
+                    </div>
+                    <Button
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={() => {
+                        setItems((prev) =>
+                          prev.map((it) => it.id === integration.id ? { ...it, connected: true } : it)
+                        );
+                        toast(`${integration.name} connected successfully`);
+                      }}
+                    >
+                      Connect
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

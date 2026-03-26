@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   MessageSquare,
   Bot,
@@ -14,18 +15,17 @@ import {
   Clock,
   Sparkles,
 } from "lucide-react";
+import { MobileNav } from "@/components/landing/mobile-nav";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold text-lg">
-              W
-            </div>
-            <span className="text-xl font-bold text-gray-900">Wavely</span>
+          <div className="flex items-center gap-2">
+            <Image src="/fiq-logo.png?v=2" alt="First in Queue" width={200} height={200} className="h-9 w-9 object-contain" priority />
+            <span className="text-xl font-bold text-gray-900">First in Queue</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Features</a>
@@ -33,7 +33,7 @@ export default function Home() {
             <a href="#industries" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Industries</a>
             <a href="#pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Pricing</a>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3">
             <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
               Login
             </Link>
@@ -45,6 +45,7 @@ export default function Home() {
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
+          <MobileNav />
         </div>
       </nav>
 
@@ -55,16 +56,14 @@ export default function Home() {
             <Sparkles className="h-4 w-4" />
             AI-Powered WhatsApp Customer Care
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold text-gray-900 tracking-tight leading-[1.1] max-w-4xl mx-auto">
-            Your customers deserve{" "}
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-gray-900 tracking-tight leading-[1.1] max-w-4xl mx-auto">
+            Your customers are{" "}
             <span className="bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
-              instant, intelligent
-            </span>{" "}
-            support
+              always first
+            </span>
           </h1>
-          <p className="text-xl text-gray-500 mt-6 max-w-2xl mx-auto leading-relaxed">
-            Wavely turns WhatsApp into your smartest support channel. AI that understands your business,
-            speaks your customers&apos; language, and knows when to bring in a human.
+          <p className="text-lg text-gray-500 mt-6 max-w-xl mx-auto">
+            AI-powered WhatsApp customer care that ensures nobody waits. Set up in minutes, serve thousands instantly.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
             <Link
@@ -81,17 +80,17 @@ export default function Home() {
               See How It Works
             </a>
           </div>
-          <div className="flex items-center justify-center gap-8 mt-12 text-sm text-gray-500">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 mt-12 text-sm text-gray-500">
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
               No credit card required
             </div>
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
               5-minute setup
             </div>
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
               WhatsApp-compliant
             </div>
           </div>
@@ -104,11 +103,9 @@ export default function Home() {
           <div className="rounded-2xl border border-gray-200 bg-gradient-to-b from-gray-50 to-white shadow-2xl shadow-gray-200/50 overflow-hidden">
             {/* Phone mockup header */}
             <div className="bg-emerald-600 px-6 py-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white font-bold">
-                W
-              </div>
+              <Image src="/fiq-logo.png?v=2" alt="First in Queue" width={200} height={200} className="h-9 w-9 object-contain rounded-full bg-white/10 p-0.5" />
               <div>
-                <p className="text-white font-medium text-sm">Wavely Bot</p>
+                <p className="text-white font-medium text-sm">FiQ Assistant</p>
                 <p className="text-emerald-200 text-xs">online</p>
               </div>
             </div>
@@ -168,22 +165,19 @@ export default function Home() {
       <section id="features" className="py-20 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Everything you need for world-class support</h2>
-            <p className="text-lg text-gray-500 mt-4 max-w-2xl mx-auto">
-              Wavely combines AI intelligence with human empathy to deliver customer care that feels personal at scale.
-            </p>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Everything you need</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              { icon: Bot, title: "AI-Powered Responses", desc: "GPT-4o understands context, sentiment, and your business knowledge to give accurate, on-brand responses.", color: "bg-emerald-100 text-emerald-600" },
-              { icon: Globe, title: "Multi-Language", desc: "Auto-detects customer language and responds naturally in 40+ languages. No manual translation needed.", color: "bg-blue-100 text-blue-600" },
-              { icon: Users, title: "Smart Handoff", desc: "Seamlessly escalates to human agents when needed, with full context transfer. No customer has to repeat themselves.", color: "bg-purple-100 text-purple-600" },
-              { icon: Workflow, title: "Conversation Flows", desc: "Build multi-step workflows for order tracking, bookings, returns, and more — no code required.", color: "bg-amber-100 text-amber-600" },
-              { icon: BarChart3, title: "Rich Analytics", desc: "Track sentiment, resolution rates, peak hours, and agent performance with beautiful, actionable dashboards.", color: "bg-rose-100 text-rose-600" },
-              { icon: Shield, title: "WhatsApp Compliant", desc: "Fully compliant with Meta's Business API policies. Built for business customer service, not general chatbots.", color: "bg-teal-100 text-teal-600" },
-              { icon: Zap, title: "5-Minute Setup", desc: "Connect your WhatsApp Business account, configure your business profile, and go live in minutes.", color: "bg-orange-100 text-orange-600" },
-              { icon: MessageSquare, title: "Rich Media", desc: "Send and receive images, documents, locations, interactive buttons, and list menus.", color: "bg-indigo-100 text-indigo-600" },
-              { icon: Clock, title: "24/7 Availability", desc: "Your AI assistant never sleeps. Provide instant support around the clock, even outside business hours.", color: "bg-cyan-100 text-cyan-600" },
+              { icon: Bot, title: "AI Responses", desc: "GPT-4o powered, context-aware, on-brand replies.", color: "bg-emerald-100 text-emerald-600" },
+              { icon: Globe, title: "40+ Languages", desc: "Auto-detects and replies in the customer's language.", color: "bg-blue-100 text-blue-600" },
+              { icon: Users, title: "Smart Handoff", desc: "Escalates to humans with full context when needed.", color: "bg-purple-100 text-purple-600" },
+              { icon: Workflow, title: "Flows", desc: "No-code workflows for orders, bookings, returns.", color: "bg-amber-100 text-amber-600" },
+              { icon: BarChart3, title: "Analytics", desc: "Sentiment, resolution rates, and agent performance.", color: "bg-rose-100 text-rose-600" },
+              { icon: Shield, title: "Compliant", desc: "Meta Business API compliant out of the box.", color: "bg-teal-100 text-teal-600" },
+              { icon: Zap, title: "5-Min Setup", desc: "Tell us about your business — we handle the rest.", color: "bg-orange-100 text-orange-600" },
+              { icon: MessageSquare, title: "Rich Media", desc: "Images, docs, buttons, lists, locations.", color: "bg-indigo-100 text-indigo-600" },
+              { icon: Clock, title: "24/7", desc: "Always on, even outside business hours.", color: "bg-cyan-100 text-cyan-600" },
             ].map((feature) => (
               <div key={feature.title} className="group rounded-2xl border border-gray-200 p-6 hover:shadow-lg hover:border-gray-300 transition-all">
                 <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl ${feature.color} mb-4`}>
@@ -201,14 +195,13 @@ export default function Home() {
       <section id="how-it-works" className="py-20 px-6 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Up and running in 3 steps</h2>
-            <p className="text-lg text-gray-500 mt-4">From zero to AI-powered customer care in minutes, not months.</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">3 steps to go live</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { step: "01", title: "Connect WhatsApp", desc: "Link your WhatsApp Business account through Meta's Cloud API. We guide you through every step.", color: "from-emerald-500 to-teal-600" },
-              { step: "02", title: "Configure Your Business", desc: "Choose an industry template or customize from scratch. Add your FAQs, knowledge base, and brand personality.", color: "from-blue-500 to-indigo-600" },
-              { step: "03", title: "Go Live", desc: "Your AI assistant is ready. It learns your business, speaks your customers' language, and handles support 24/7.", color: "from-purple-500 to-violet-600" },
+              { step: "01", title: "Tell Us About Your Business", desc: "Share your business name, industry, and key info. That's all we need.", color: "from-emerald-500 to-teal-600" },
+              { step: "02", title: "We Set Everything Up", desc: "Our team configures WhatsApp, AI, and your bot — zero technical effort from you.", color: "from-blue-500 to-indigo-600" },
+              { step: "03", title: "Go Live", desc: "Your AI handles support 24/7 in 40+ languages. Fine-tune anytime from your dashboard.", color: "from-purple-500 to-violet-600" },
             ].map((item) => (
               <div key={item.step} className="relative rounded-2xl bg-white border border-gray-200 p-8 shadow-sm">
                 <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${item.color} text-white font-bold text-lg mb-6`}>
@@ -227,7 +220,6 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Built for every industry</h2>
-            <p className="text-lg text-gray-500 mt-4">Pre-built templates with industry-specific knowledge, flows, and best practices.</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
@@ -254,8 +246,7 @@ export default function Home() {
       <section id="pricing" className="py-20 px-6 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Simple, transparent pricing</h2>
-            <p className="text-lg text-gray-500 mt-4">Start free. Scale as you grow. No hidden fees.</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Simple pricing</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {[
@@ -263,7 +254,7 @@ export default function Home() {
                 name: "Starter",
                 price: "$0",
                 period: "/month",
-                desc: "Perfect for trying Wavely out",
+                desc: "Perfect for trying First in Queue",
                 features: ["500 messages/month", "1 WhatsApp number", "AI-powered responses", "Basic analytics", "Email support"],
                 cta: "Start Free",
                 highlight: false,
@@ -339,10 +330,7 @@ export default function Home() {
       <section className="py-20 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <div className="rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 p-12 md:p-16 text-white">
-            <h2 className="text-3xl md:text-4xl font-bold">Ready to transform your customer care?</h2>
-            <p className="text-emerald-100 text-lg mt-4 max-w-xl mx-auto">
-              Join thousands of businesses delivering exceptional support on WhatsApp with Wavely.
-            </p>
+            <h2 className="text-3xl md:text-4xl font-bold">Ready to get started?</h2>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
               <Link
                 href="/login"
@@ -359,15 +347,13 @@ export default function Home() {
       {/* Footer */}
       <footer className="py-12 px-6 border-t border-gray-100">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold">
-                  W
-                </div>
-                <span className="text-lg font-bold text-gray-900">Wavely</span>
+                <Image src="/fiq-logo.png?v=2" alt="First in Queue" width={200} height={200} className="h-8 w-8 object-contain" />
+                <span className="text-lg font-bold text-gray-900">First in Queue</span>
               </div>
-              <p className="text-sm text-gray-500">Intelligent WhatsApp customer care for modern businesses.</p>
+              <p className="text-sm text-gray-500">Nobody waits. Everyone&apos;s first.</p>
             </div>
             <div>
               <h4 className="text-sm font-semibold text-gray-900 mb-3">Product</h4>
@@ -398,7 +384,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row items-center justify-between text-sm text-gray-400">
-            <p>&copy; {new Date().getFullYear()} Wavely. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} First in Queue. All rights reserved.</p>
             <p className="mt-2 md:mt-0">Built with Next.js, Supabase & OpenAI</p>
           </div>
         </div>

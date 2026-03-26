@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 interface UseApiOptions<T> {
   url: string;
@@ -19,6 +19,8 @@ export function useApi<T>({ url, fallback, enabled = true }: UseApiOptions<T>): 
   const [data, setData] = useState<T>(fallback);
   const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
+  const fallbackRef = useRef(fallback);
+  fallbackRef.current = fallback;
 
   const fetchData = useCallback(async () => {
     if (!enabled) return;
@@ -31,12 +33,12 @@ export function useApi<T>({ url, fallback, enabled = true }: UseApiOptions<T>): 
       setData(json);
     } catch (err) {
       console.warn(`[useApi] Falling back to mock data for ${url}:`, err);
-      setData(fallback);
+      setData(fallbackRef.current);
       setError(null); // Silently use fallback
     } finally {
       setLoading(false);
     }
-  }, [url, enabled, fallback]);
+  }, [url, enabled]);
 
   useEffect(() => {
     fetchData();

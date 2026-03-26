@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { OnboardingWizard } from "@/components/dashboard/onboarding-wizard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -65,33 +66,20 @@ function StatCard({
   );
 }
 
-const mockAnalytics: AnalyticsData = {
-  total_conversations: 1284,
-  active_conversations: 47,
-  resolved_conversations: 1189,
-  avg_response_time_seconds: 12,
-  avg_resolution_time_seconds: 340,
-  ai_resolution_rate: 78.5,
-  customer_satisfaction: 4.6,
-  messages_today: 342,
-  messages_this_week: 2156,
-  top_topics: [
-    { topic: "Order Status", count: 234 },
-    { topic: "Returns & Refunds", count: 189 },
-    { topic: "Product Inquiry", count: 156 },
-    { topic: "Shipping", count: 134 },
-    { topic: "Account Issues", count: 98 },
-  ],
-  sentiment_breakdown: { positive: 62, neutral: 28, negative: 10 },
-  hourly_volume: Array.from({ length: 24 }, (_, i) => ({
-    hour: i,
-    count: Math.floor(Math.random() * 30) + 5,
-  })),
-  daily_volume: Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    return { date: d.toISOString().slice(0, 10), count: Math.floor(Math.random() * 400) + 200 };
-  }),
+const emptyAnalytics: AnalyticsData = {
+  total_conversations: 0,
+  active_conversations: 0,
+  resolved_conversations: 0,
+  avg_response_time_seconds: 0,
+  avg_resolution_time_seconds: 0,
+  ai_resolution_rate: 0,
+  customer_satisfaction: 0,
+  messages_today: 0,
+  messages_this_week: 0,
+  top_topics: [],
+  sentiment_breakdown: { positive: 0, neutral: 0, negative: 0 },
+  hourly_volume: [],
+  daily_volume: [],
 };
 
 export default function DashboardPage() {
@@ -99,6 +87,18 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Check if first-time user
+  useEffect(() => {
+    const completed = localStorage.getItem("fiq-onboarding-complete");
+    if (!completed) setShowOnboarding(true);
+  }, []);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem("fiq-onboarding-complete", "true");
+    setShowOnboarding(false);
+  };
 
   const fetchAnalytics = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -113,9 +113,9 @@ export default function DashboardPage() {
         }
       }
     } catch {
-      // API unavailable, use mock data
+      // API unavailable — show empty state
     }
-    setAnalytics(mockAnalytics);
+    setAnalytics((prev) => prev || emptyAnalytics);
     setLastUpdated(new Date());
     if (isRefresh) setRefreshing(false);
   }, []);
@@ -123,6 +123,10 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchAnalytics().finally(() => setLoading(false));
   }, [fetchAnalytics]);
+
+  if (showOnboarding) {
+    return <OnboardingWizard onComplete={handleOnboardingComplete} />;
+  }
 
   if (loading || !analytics) {
     return (
@@ -263,6 +267,13 @@ export default function DashboardPage() {
             <CardTitle className="text-base">Top Topics</CardTitle>
           </CardHeader>
           <CardContent>
+            {analytics.top_topics.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <MessageSquare className="h-8 w-8 text-gray-300 mb-2" />
+                <p className="text-sm text-gray-400">No topics yet</p>
+                <p className="text-xs text-gray-300 mt-1">Topics will appear as conversations come in</p>
+              </div>
+            ) : (
             <div className="space-y-3">
               {analytics.top_topics.map((topic, i) => (
                 <div key={topic.topic} className="flex items-center justify-between">
@@ -276,6 +287,7 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
+            )}
           </CardContent>
         </Card>
 
@@ -327,6 +339,13 @@ export default function DashboardPage() {
           <CardTitle className="text-base">Weekly Message Volume</CardTitle>
         </CardHeader>
         <CardContent>
+          {analytics.daily_volume.every((d) => d.count === 0) ? (
+            <div className="flex flex-col items-center justify-center h-40 text-center">
+              <TrendingUp className="h-8 w-8 text-gray-300 mb-2" />
+              <p className="text-sm text-gray-400">No messages this week</p>
+              <p className="text-xs text-gray-300 mt-1">The chart will populate as messages flow in</p>
+            </div>
+          ) : (
           <div className="flex items-end gap-2 h-40">
             {analytics.daily_volume.map((day, idx) => {
               const maxCount = Math.max(...analytics.daily_volume.map((d) => d.count), 1);
@@ -345,6 +364,7 @@ export default function DashboardPage() {
               );
             })}
           </div>
+          )}
         </CardContent>
       </Card>
     </div>

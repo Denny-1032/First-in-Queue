@@ -14,9 +14,7 @@ import {
   Shield,
   Clock,
   Save,
-  Copy,
   CheckCircle2,
-  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -31,8 +29,6 @@ export default function SettingsPage() {
   const [fallbackMessage, setFallbackMessage] = useState("Sorry, something went wrong. Please try again or email support@mystore.com");
   const [outsideHoursMsg, setOutsideHoursMsg] = useState("Thanks for reaching out! We're currently closed. Our hours are Mon-Fri 9AM-6PM. We'll get back to you first thing!");
   const [languages, setLanguages] = useState(["en", "es"]);
-  const [webhookUrl] = useState(typeof window !== "undefined" ? `${window.location.origin}/api/webhook` : "https://your-domain.com/api/webhook");
-  const [copied, setCopied] = useState(false);
   const [whatsappConnected, setWhatsappConnected] = useState(false);
 
   const defaultSchedule = [
@@ -73,22 +69,16 @@ export default function SettingsPage() {
     loadConfig();
   }, []);
 
-  const copyWebhook = () => {
-    navigator.clipboard.writeText(webhookUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const updateScheduleDay = (index: number, field: string, value: string | boolean) => {
     setSchedule((prev) => prev.map((d, i) => i === index ? { ...d, [field]: value } : d));
   };
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-8 w-full">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-500 mt-1">Configure your Wavely instance</p>
+          <p className="text-gray-500 mt-1">Configure your First in Queue instance</p>
         </div>
         <Button
           className="gap-2"
@@ -121,8 +111,7 @@ export default function SettingsPage() {
                 toast("Failed to save settings", "error");
               }
             } else {
-              await new Promise((r) => setTimeout(r, 500));
-              toast("Settings saved (demo mode)");
+              toast("Unable to save — no business account found. Please log out and sign up again.", "error");
             }
             setSaving(false);
           }}
@@ -178,7 +167,6 @@ export default function SettingsPage() {
             <Bell className="h-5 w-5 text-blue-600" />
             <CardTitle>Messages</CardTitle>
           </div>
-          <CardDescription>Customize automated messages sent to customers</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -188,7 +176,6 @@ export default function SettingsPage() {
               onChange={(e) => setWelcomeMessage(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[80px] resize-y"
             />
-            <p className="text-xs text-gray-400 mt-1">Variables: {"{customer_name}"}, {"{business_name}"}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1.5 block">Fallback Message</label>
@@ -216,7 +203,6 @@ export default function SettingsPage() {
             <Clock className="h-5 w-5 text-amber-600" />
             <CardTitle>Operating Hours</CardTitle>
           </div>
-          <CardDescription>Set when your business is available. Outside these hours, the outside-hours message is sent.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -257,7 +243,6 @@ export default function SettingsPage() {
             <Globe className="h-5 w-5 text-emerald-600" />
             <CardTitle>Languages</CardTitle>
           </div>
-          <CardDescription>The bot auto-detects and responds in the customer&apos;s language</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2 flex-wrap">
@@ -294,7 +279,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* WhatsApp Connection */}
+      {/* WhatsApp Connection — Managed by FiQ */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -307,57 +292,66 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
               <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-emerald-800">Connected</p>
-                <p className="text-xs text-emerald-600">WhatsApp Business API configured via environment variables</p>
+                <p className="text-sm font-medium text-emerald-800">Connected & Active</p>
+                <p className="text-xs text-emerald-600">Managed by First in Queue — your WhatsApp Business API is live</p>
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-100">
-              <Clock className="h-5 w-5 text-amber-600 shrink-0" />
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
+              <Clock className="h-5 w-5 text-blue-600 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-amber-800">Not Connected</p>
-                <p className="text-xs text-amber-600">Set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID in your .env file</p>
+                <p className="text-sm font-medium text-blue-800">Setup In Progress</p>
+                <p className="text-xs text-blue-600">Our team is configuring your WhatsApp Business API connection. You&apos;ll receive an email once it&apos;s live.</p>
               </div>
             </div>
           )}
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Webhook URL</label>
-            <div className="flex gap-2">
-              <Input value={webhookUrl} readOnly className="flex-1 font-mono text-xs" />
-              <Button variant="outline" size="icon" onClick={copyWebhook}>
-                {copied ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-              </Button>
+          <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
+            <div className="flex items-start gap-3">
+              <Shield className="h-5 w-5 text-gray-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-gray-700">Fully managed infrastructure</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  WhatsApp Business API, AI engine, and hosting are all managed by First in Queue.
+                  No API keys or technical setup required on your end.
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
-              Set this as your webhook URL in the{" "}
-              <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline inline-flex items-center gap-0.5">
-                Meta Developer Console <ExternalLink className="h-3 w-3" />
-              </a>
-            </p>
           </div>
+          <p className="text-xs text-gray-400">
+            Need help? Contact us at <span className="text-emerald-600 font-medium">support@firstinqueue.com</span>
+          </p>
         </CardContent>
       </Card>
 
-      {/* API Keys */}
+      {/* Plan & Usage */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Key className="h-5 w-5 text-amber-600" />
-            <CardTitle>API Keys</CardTitle>
+            <Key className="h-5 w-5 text-emerald-600" />
+            <CardTitle>Plan & Usage</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">WhatsApp Access Token</label>
-            <Input type="password" value="EAABsbCS..." readOnly className="max-w-md font-mono text-xs" />
+          <div className="flex items-center justify-between py-3 border-b border-gray-100">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Current Plan</p>
+              <p className="text-xs text-gray-500">First in Queue Growth</p>
+            </div>
+            <Badge>Active</Badge>
           </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">OpenAI API Key</label>
-            <Input type="password" value="sk-proj-..." readOnly className="max-w-md font-mono text-xs" />
+          <div className="flex items-center justify-between py-3 border-b border-gray-100">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Messages This Month</p>
+              <p className="text-xs text-gray-500">AI-powered responses sent</p>
+            </div>
+            <span className="text-sm font-semibold text-gray-900">247 / 10,000</span>
           </div>
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-100">
-            <Shield className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-700">API keys are encrypted at rest and never exposed in the dashboard. Update them via environment variables.</p>
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-medium text-gray-700">AI Engine</p>
+              <p className="text-xs text-gray-500">Powered by GPT-4o</p>
+            </div>
+            <Badge variant="secondary">Managed by FiQ</Badge>
           </div>
         </CardContent>
       </Card>

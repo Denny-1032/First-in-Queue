@@ -4,8 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  TrendingUp,
-  TrendingDown,
   MessageSquare,
   Bot,
   Users,
@@ -17,36 +15,6 @@ import {
 } from "lucide-react";
 import type { AnalyticsData } from "@/types";
 
-const mockWeeklyData = [
-  { day: "Mon", messages: 312, resolved: 298, escalated: 14 },
-  { day: "Tue", messages: 287, resolved: 271, escalated: 16 },
-  { day: "Wed", messages: 356, resolved: 340, escalated: 16 },
-  { day: "Thu", messages: 401, resolved: 389, escalated: 12 },
-  { day: "Fri", messages: 378, resolved: 361, escalated: 17 },
-  { day: "Sat", messages: 198, resolved: 192, escalated: 6 },
-  { day: "Sun", messages: 156, resolved: 149, escalated: 7 },
-];
-
-const languageData = [
-  { language: "English", percentage: 68, count: 872 },
-  { language: "Spanish", percentage: 18, count: 231 },
-  { language: "Portuguese", percentage: 8, count: 103 },
-  { language: "French", percentage: 4, count: 51 },
-  { language: "Other", percentage: 2, count: 27 },
-];
-
-const mockPeakHours = [
-  { hour: "9 AM", volume: 45 },
-  { hour: "10 AM", volume: 67 },
-  { hour: "11 AM", volume: 82 },
-  { hour: "12 PM", volume: 71 },
-  { hour: "1 PM", volume: 58 },
-  { hour: "2 PM", volume: 89 },
-  { hour: "3 PM", volume: 94 },
-  { hour: "4 PM", volume: 76 },
-  { hour: "5 PM", volume: 63 },
-  { hour: "6 PM", volume: 41 },
-];
 
 export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
@@ -64,8 +32,7 @@ export default function AnalyticsPage() {
           return;
         }
       }
-    } catch { /* fallback to mock */ }
-    setAnalytics(null);
+    } catch { /* API unavailable */ }
   }, []);
 
   useEffect(() => {
@@ -78,11 +45,11 @@ export default function AnalyticsPage() {
         const dayName = isNaN(parsed.getTime()) ? d.date : parsed.toLocaleDateString("en", { weekday: "short" });
         return { day: dayName, messages: d.count, resolved: Math.round(d.count * 0.95), escalated: Math.round(d.count * 0.05) };
       })
-    : mockWeeklyData;
+    : [];
 
   const peakHours = analytics?.hourly_volume?.length
     ? analytics.hourly_volume.map((h) => ({ hour: `${h.hour % 12 || 12} ${h.hour < 12 ? "AM" : "PM"}`, volume: h.count }))
-    : mockPeakHours;
+    : [];
 
   const maxVolume = Math.max(...peakHours.map((h) => h.volume), 1);
   const maxMessages = Math.max(...weeklyData.map((d) => d.messages), 1);
@@ -115,24 +82,16 @@ export default function AnalyticsPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: "Total Messages", value: analytics ? analytics.messages_this_week.toLocaleString() : "2,088", change: "+12.5%", up: true, icon: MessageSquare, color: "text-blue-600" },
-          { label: "AI Resolution", value: analytics ? `${analytics.ai_resolution_rate.toFixed(1)}%` : "78.5%", change: "+8.3%", up: true, icon: Bot, color: "text-emerald-600" },
-          { label: "Active Convos", value: analytics ? String(analytics.active_conversations) : "47", change: "-4.1%", up: false, icon: Users, color: "text-purple-600" },
-          { label: "Avg First Reply", value: analytics ? `${analytics.avg_response_time_seconds}s` : "8s", change: "-23%", up: true, icon: Zap, color: "text-amber-600" },
-          { label: "Resolved", value: analytics ? analytics.resolved_conversations.toLocaleString() : "1,189", change: "+1.8%", up: true, icon: CheckCircle2, color: "text-emerald-600" },
+          { label: "Total Messages", value: analytics ? analytics.messages_this_week.toLocaleString() : "0", icon: MessageSquare, color: "text-blue-600" },
+          { label: "AI Resolution", value: analytics ? `${analytics.ai_resolution_rate.toFixed(1)}%` : "0%", icon: Bot, color: "text-emerald-600" },
+          { label: "Active Convos", value: analytics ? String(analytics.active_conversations) : "0", icon: Users, color: "text-purple-600" },
+          { label: "Avg First Reply", value: analytics ? `${analytics.avg_response_time_seconds}s` : "0s", icon: Zap, color: "text-amber-600" },
+          { label: "Resolved", value: analytics ? analytics.resolved_conversations.toLocaleString() : "0", icon: CheckCircle2, color: "text-emerald-600" },
         ].map((kpi) => (
           <Card key={kpi.label}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
-                <div className="flex items-center gap-0.5 text-xs">
-                  {kpi.up ? (
-                    <TrendingUp className="h-3 w-3 text-emerald-500" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 text-emerald-500" />
-                  )}
-                  <span className="text-emerald-600">{kpi.change}</span>
-                </div>
               </div>
               <p className="text-2xl font-bold text-gray-900">{kpi.value}</p>
               <p className="text-xs text-gray-500 mt-0.5">{kpi.label}</p>
@@ -185,22 +144,35 @@ export default function AnalyticsPage() {
             <CardTitle className="text-base">Peak Hours (Today)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-end gap-1.5 h-48">
-              {peakHours.map((h) => {
+            {peakHours.every((h) => h.volume === 0) ? (
+              <div className="flex flex-col items-center justify-center h-48 text-center">
+                <Clock className="h-8 w-8 text-gray-300 mb-2" />
+                <p className="text-sm text-gray-400">No activity today</p>
+                <p className="text-xs text-gray-300 mt-1">Hourly data will appear as messages arrive</p>
+              </div>
+            ) : (
+            <div className="flex items-end gap-1 h-48">
+              {peakHours.map((h, idx) => {
                 const height = (h.volume / maxVolume) * 100;
                 const isPeak = h.volume === maxVolume;
+                const showLabel = idx % 3 === 0;
                 return (
-                  <div key={h.hour} className="flex-1 flex flex-col items-center gap-1">
-                    <span className="text-[10px] text-gray-500 font-medium">{h.volume}</span>
+                  <div key={h.hour} className="flex-1 flex flex-col items-center gap-1 group relative">
+                    <span className="text-[10px] text-gray-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">{h.volume}</span>
                     <div
-                      className={`w-full rounded-t transition-all ${isPeak ? "bg-emerald-500" : "bg-emerald-200"}`}
-                      style={{ height: `${height}%` }}
+                      className={`w-full rounded-t transition-all group-hover:opacity-80 ${isPeak ? "bg-emerald-500" : "bg-emerald-200"}`}
+                      style={{ height: `${Math.max(height, 2)}%` }}
                     />
-                    <span className="text-[10px] text-gray-400 whitespace-nowrap">{h.hour}</span>
+                    {showLabel ? (
+                      <span className="text-[10px] text-gray-400 whitespace-nowrap">{h.hour}</span>
+                    ) : (
+                      <span className="text-[10px] text-transparent">&nbsp;</span>
+                    )}
                   </div>
                 );
               })}
             </div>
+            )}
           </CardContent>
         </Card>
 
@@ -214,20 +186,27 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {languageData.map((lang) => (
-                <div key={lang.language} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-700">{lang.language}</span>
-                    <span className="text-gray-500">{lang.count} chats ({lang.percentage}%)</span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-500"
-                      style={{ width: `${lang.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+              {analytics?.top_topics?.length ? (
+                analytics.top_topics.map((topic) => {
+                  const maxCount = Math.max(...analytics.top_topics.map((t) => t.count), 1);
+                  return (
+                    <div key={topic.topic} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-700">{topic.topic}</span>
+                        <span className="text-gray-500">{topic.count} chats</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-500"
+                          style={{ width: `${(topic.count / maxCount) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-gray-400 text-center py-4">No topic data yet. Start conversations to see insights.</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -243,11 +222,11 @@ export default function AnalyticsPage() {
           <CardContent>
             <div className="space-y-4">
               {[
-                { label: "Queries Handled Autonomously", value: analytics ? `${analytics.ai_resolution_rate.toFixed(1)}%` : "78.5%", description: "Without human intervention" },
-                { label: "Correct Response Rate", value: "94.2%", description: "Based on customer feedback" },
-                { label: "Average Confidence Score", value: "0.89", description: "AI response confidence" },
-                { label: "Knowledge Base Coverage", value: "86%", description: "Questions answerable from KB" },
-                { label: "Escalation Rate", value: analytics ? `${(100 - analytics.ai_resolution_rate).toFixed(1)}%` : "6.8%", description: "Conversations sent to agents" },
+                { label: "Queries Handled Autonomously", value: analytics ? `${analytics.ai_resolution_rate.toFixed(1)}%` : "0%", description: "Without human intervention" },
+                { label: "Total Conversations", value: analytics ? String(analytics.total_conversations) : "0", description: "All-time conversations" },
+                { label: "Avg Resolution Time", value: analytics ? `${Math.round(analytics.avg_resolution_time_seconds / 60)}m` : "0m", description: "Time to resolve" },
+                { label: "Customer Satisfaction", value: analytics ? `${analytics.customer_satisfaction}/5` : "0/5", description: "Based on customer feedback" },
+                { label: "Escalation Rate", value: analytics ? `${(100 - analytics.ai_resolution_rate).toFixed(1)}%` : "0%", description: "Conversations sent to agents" },
               ].map((metric) => (
                 <div key={metric.label} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                   <div>

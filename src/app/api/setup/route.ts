@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     const { error: agentError } = await db.from("agents").insert({
       tenant_id: tenant.id,
       name: "Admin",
-      email: "admin@wavely.app",
+      email: "admin@firstinq.com",
       role: "admin",
       is_online: true,
       max_concurrent_chats: 10,

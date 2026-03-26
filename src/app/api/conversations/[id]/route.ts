@@ -25,7 +25,15 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const updated = await updateConversation(id, body);
+    const allowedFields = ["status", "ai_enabled", "assigned_agent_id", "sentiment", "tags", "metadata"];
+    const sanitized: Record<string, unknown> = {};
+    for (const key of allowedFields) {
+      if (key in body) sanitized[key] = body[key];
+    }
+    if (Object.keys(sanitized).length === 0) {
+      return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+    }
+    const updated = await updateConversation(id, sanitized);
     if (!updated) {
       return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
     }

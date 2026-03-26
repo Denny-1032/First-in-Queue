@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   MessageSquare,
   BarChart3,
@@ -14,6 +16,8 @@ import {
   Bot,
   Workflow,
   LogOut,
+  Menu,
+  X,
 } from "lucide-react";
 
 const navItems = [
@@ -30,23 +34,42 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
-    document.cookie = "wavely-auth=; path=/; max-age=0";
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Clear cookie client-side as fallback
+      document.cookie = "fiq-auth=; path=/; max-age=0";
+    }
     router.push("/login");
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-gray-200 bg-white">
+    <>
+    {/* Mobile toggle button */}
+    <button
+      onClick={() => setMobileOpen(!mobileOpen)}
+      className="fixed top-4 left-4 z-50 lg:hidden flex h-10 w-10 items-center justify-center rounded-lg bg-white border border-gray-200 shadow-sm"
+    >
+      {mobileOpen ? <X className="h-5 w-5 text-gray-600" /> : <Menu className="h-5 w-5 text-gray-600" />}
+    </button>
+    {/* Backdrop for mobile */}
+    {mobileOpen && (
+      <div className="fixed inset-0 z-30 bg-black/20 lg:hidden" onClick={() => setMobileOpen(false)} />
+    )}
+    <aside className={cn(
+      "fixed left-0 top-0 z-40 h-screen w-64 border-r border-gray-200 bg-white transition-transform lg:translate-x-0",
+      mobileOpen ? "translate-x-0" : "-translate-x-full"
+    )}>
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 border-b border-gray-200 px-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold text-lg">
-            W
-          </div>
+          <Image src="/fiq-logo.png?v=2" alt="First in Queue" width={200} height={200} className="h-8 w-8 object-contain" />
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Wavely</h1>
-            <p className="text-[10px] text-gray-400 -mt-0.5 tracking-wider uppercase">Customer Care AI</p>
+            <h1 className="font-bold text-gray-900">First in Queue</h1>
+            <p className="text-xs text-gray-500">Nobody waits. Everyone&apos;s first.</p>
           </div>
         </div>
 
@@ -58,6 +81,7 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setMobileOpen(false)}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
@@ -94,5 +118,6 @@ export function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }
