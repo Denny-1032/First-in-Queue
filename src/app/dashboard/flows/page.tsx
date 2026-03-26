@@ -1,0 +1,215 @@
+"use client";
+
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Workflow,
+  Plus,
+  Play,
+  Pause,
+  Pencil,
+  Trash2,
+  ArrowRight,
+  MessageSquare,
+  HelpCircle,
+  Zap,
+  GitBranch,
+  UserCheck,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
+
+interface Flow {
+  id: string;
+  name: string;
+  trigger: string;
+  steps: number;
+  active: boolean;
+  runs: number;
+}
+
+const mockFlows: Flow[] = [
+  { id: "1", name: "Order Tracking", trigger: "track order", steps: 3, active: true, runs: 456 },
+  { id: "2", name: "Product Inquiry", trigger: "product", steps: 2, active: true, runs: 312 },
+  { id: "3", name: "Return Request", trigger: "return", steps: 5, active: true, runs: 189 },
+  { id: "4", name: "Book Appointment", trigger: "appointment", steps: 4, active: false, runs: 78 },
+  { id: "5", name: "Get Support", trigger: "support", steps: 2, active: true, runs: 267 },
+  { id: "6", name: "Feedback Collection", trigger: "feedback", steps: 3, active: true, runs: 134 },
+];
+
+const stepTypeIcons = {
+  message: MessageSquare,
+  question: HelpCircle,
+  action: Zap,
+  condition: GitBranch,
+  handoff: UserCheck,
+};
+
+const exampleSteps = [
+  { id: "1", type: "message" as const, label: "Greeting", content: "I'd be happy to help track your order!" },
+  { id: "2", type: "question" as const, label: "Ask Order #", content: "Please share your order number" },
+  { id: "3", type: "action" as const, label: "Lookup Order", content: "API: GET /orders/{order_id}" },
+  { id: "4", type: "condition" as const, label: "Order Found?", content: "If order exists → show status, else → apologize" },
+  { id: "5", type: "message" as const, label: "Show Status", content: "Here's your order status: {status}" },
+];
+
+export default function FlowsPage() {
+  const { toast } = useToast();
+  const [flows, setFlows] = useState(mockFlows);
+  const [selectedFlow, setSelectedFlow] = useState<string | null>("1");
+
+  const toggleFlow = (id: string) => {
+    const flow = flows.find((f) => f.id === id);
+    setFlows(flows.map((f) => (f.id === id ? { ...f, active: !f.active } : f)));
+    if (flow) toast(`Flow "${flow.name}" ${flow.active ? "paused" : "activated"}`, flow.active ? "warning" : "success");
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Conversation Flows</h1>
+          <p className="text-gray-500 mt-1">Design multi-step conversation workflows for common scenarios</p>
+        </div>
+        <Button
+          className="gap-2"
+          onClick={() => {
+            const id = Date.now().toString();
+            const newFlow = { id, name: "New Flow", trigger: "custom", steps: 0, active: false, runs: 0 };
+            setFlows((prev) => [...prev, newFlow]);
+            setSelectedFlow(id);
+            toast("New flow created. Configure its steps to get started.", "info");
+          }}
+        >
+          <Plus className="h-4 w-4" />
+          Create Flow
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Flow List */}
+        <div className="space-y-3">
+          {flows.map((flow) => (
+            <Card
+              key={flow.id}
+              className={cn(
+                "cursor-pointer transition-all hover:shadow-md",
+                selectedFlow === flow.id && "ring-2 ring-emerald-500"
+              )}
+              onClick={() => setSelectedFlow(flow.id)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Workflow className="h-4 w-4 text-gray-400" />
+                      <h3 className="text-sm font-semibold text-gray-900">{flow.name}</h3>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Trigger: &quot;{flow.trigger}&quot;
+                    </p>
+                    <div className="flex items-center gap-3 mt-2">
+                      <Badge variant={flow.active ? "default" : "secondary"}>
+                        {flow.active ? "Active" : "Paused"}
+                      </Badge>
+                      <span className="text-[10px] text-gray-400">{flow.steps} steps</span>
+                      <span className="text-[10px] text-gray-400">{flow.runs} runs</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleFlow(flow.id); }}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      {flow.active ? (
+                        <Pause className="h-3.5 w-3.5 text-gray-400" />
+                      ) : (
+                        <Play className="h-3.5 w-3.5 text-emerald-500" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Flow Editor */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Order Tracking Flow</CardTitle>
+                  <CardDescription>Triggered when customer mentions &quot;track order&quot;</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-1.5 text-red-600 hover:bg-red-50">
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {exampleSteps.map((step, i) => {
+                  const Icon = stepTypeIcons[step.type];
+                  const colors = {
+                    message: "border-emerald-200 bg-emerald-50",
+                    question: "border-blue-200 bg-blue-50",
+                    action: "border-purple-200 bg-purple-50",
+                    condition: "border-amber-200 bg-amber-50",
+                    handoff: "border-rose-200 bg-rose-50",
+                  };
+                  const iconColors = {
+                    message: "text-emerald-600",
+                    question: "text-blue-600",
+                    action: "text-purple-600",
+                    condition: "text-amber-600",
+                    handoff: "text-rose-600",
+                  };
+                  return (
+                    <div key={step.id}>
+                      <div className={cn("rounded-xl border-2 p-4", colors[step.type])}>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm">
+                            <Icon className={cn("h-4 w-4", iconColors[step.type])} />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-gray-400">STEP {i + 1}</span>
+                              <Badge variant="outline" className="text-[10px] capitalize">{step.type}</Badge>
+                            </div>
+                            <p className="text-sm font-medium text-gray-900 mt-0.5">{step.label}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{step.content}</p>
+                          </div>
+                        </div>
+                      </div>
+                      {i < exampleSteps.length - 1 && (
+                        <div className="flex justify-center py-1">
+                          <ArrowRight className="h-4 w-4 text-gray-300 rotate-90" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <Button variant="outline" className="w-full mt-4 gap-2 border-dashed">
+                <Plus className="h-4 w-4" />
+                Add Step
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
