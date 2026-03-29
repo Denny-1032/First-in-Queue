@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
       city,
       address,
       zip,
+      billingInterval, // "monthly" | "yearly"
     } = body;
 
     // Validate required fields
@@ -54,8 +55,10 @@ export async function POST(request: NextRequest) {
     }
 
     const referenceId = generateReferenceId();
-    const amount = plan.priceZMW;
-    const narration = `First in Queue - ${plan.name} Plan Subscription`;
+    const isYearly = billingInterval === "yearly";
+    const amount = isYearly ? plan.yearlyPriceZMW : plan.priceZMW;
+    const intervalLabel = isYearly ? "Yearly" : "Monthly";
+    const narration = `First in Queue - ${plan.name} Plan (${intervalLabel})`;
 
     // Create pending payment record
     const supabase = getSupabaseAdmin();

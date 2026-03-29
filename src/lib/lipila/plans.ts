@@ -7,6 +7,9 @@ export interface PlanDefinition {
   name: string;
   priceZMW: number;
   priceLabel: string;
+  yearlyPriceZMW: number;
+  yearlyPriceLabel: string;
+  yearlyMonthlyLabel: string;
   messagesPerMonth: number;
   messagesLabel: string;
   whatsappNumbers: number;
@@ -26,6 +29,9 @@ export const PLANS: PlanDefinition[] = [
     name: "Starter",
     priceZMW: 499,
     priceLabel: "K499",
+    yearlyPriceZMW: 4790,
+    yearlyPriceLabel: "K4,790",
+    yearlyMonthlyLabel: "K399",
     messagesPerMonth: 1000,
     messagesLabel: "1,000 messages/mo",
     whatsappNumbers: 1,
@@ -46,6 +52,9 @@ export const PLANS: PlanDefinition[] = [
     name: "Growth",
     priceZMW: 1299,
     priceLabel: "K1,299",
+    yearlyPriceZMW: 12470,
+    yearlyPriceLabel: "K12,470",
+    yearlyMonthlyLabel: "K1,039",
     messagesPerMonth: 5000,
     messagesLabel: "5,000 messages/mo",
     whatsappNumbers: 2,
@@ -64,6 +73,9 @@ export const PLANS: PlanDefinition[] = [
     name: "Enterprise",
     priceZMW: 0,
     priceLabel: "Custom",
+    yearlyPriceZMW: 0,
+    yearlyPriceLabel: "Custom",
+    yearlyMonthlyLabel: "Custom",
     messagesPerMonth: 999999,
     messagesLabel: "Unlimited messages",
     whatsappNumbers: 99,

@@ -16,6 +16,7 @@ interface CheckoutModalProps {
   onClose: () => void;
   planId: string;
   tenantId: string;
+  billingInterval?: "monthly" | "yearly";
 }
 
 type Step = "method" | "details" | "processing" | "success" | "error";
@@ -25,6 +26,7 @@ export function CheckoutModal({
   onClose,
   planId,
   tenantId,
+  billingInterval = "monthly",
 }: CheckoutModalProps) {
   const [step, setStep] = useState<Step>("method");
   const [paymentMethod, setPaymentMethod] = useState<"mobile_money" | "card">(
@@ -110,6 +112,7 @@ export function CheckoutModal({
         planId,
         paymentMethod,
         email,
+        billingInterval,
       };
 
       if (phoneNumber) body.phoneNumber = phoneNumber;
@@ -179,7 +182,7 @@ export function CheckoutModal({
             </h2>
             {step === "method" || step === "details" ? (
               <p className="text-sm text-gray-500">
-                {plan.priceLabel}/month &middot; {plan.messagesLabel}
+                {billingInterval === "yearly" ? `${plan.yearlyMonthlyLabel}/mo (billed yearly)` : `${plan.priceLabel}/month`} &middot; {plan.messagesLabel}
               </p>
             ) : null}
           </div>
@@ -336,9 +339,10 @@ export function CheckoutModal({
 
               <div className="rounded-xl bg-gray-50 p-4 mt-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">{plan.name} Plan</span>
+                  <span className="text-gray-600">{plan.name} Plan ({billingInterval === "yearly" ? "Yearly" : "Monthly"})</span>
                   <span className="font-bold text-gray-900">
-                    {plan.priceLabel}/mo
+                    {billingInterval === "yearly" ? plan.yearlyPriceLabel : plan.priceLabel}
+                    {billingInterval === "yearly" ? "/yr" : "/mo"}
                   </span>
                 </div>
               </div>
@@ -358,7 +362,7 @@ export function CheckoutModal({
                     Processing...
                   </>
                 ) : (
-                  `Pay ${plan.priceLabel}`
+                  `Pay ${billingInterval === "yearly" ? plan.yearlyPriceLabel : plan.priceLabel}`
                 )}
               </button>
 

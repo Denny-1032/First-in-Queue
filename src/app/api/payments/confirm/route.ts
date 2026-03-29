@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 
       // Activate subscription using shared helper
       await activateSubscription(payment.tenant_id, payment.id, payment.amount);
-      const planId = resolvePlanFromAmount(payment.amount);
+      const { planId } = resolvePlanFromAmount(payment.amount);
 
       return NextResponse.redirect(`${appUrl}/dashboard?payment=success&plan=${planId}`);
     } else if (lipilaStatus.status === "Failed") {

@@ -2,17 +2,27 @@ import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { PLANS } from "./plans";
 
 /**
- * Resolve plan ID from a payment amount.
- * Matches against PLANS definitions to avoid hardcoded price thresholds.
+ * Resolve plan ID and billing interval from a payment amount.
+ * Checks both monthly and yearly prices across all PLANS.
  */
-export function resolvePlanFromAmount(amount: number): string {
-  // Sort paid plans descending by price, find first match
-  const match = PLANS
+export function resolvePlanFromAmount(amount: number): { planId: string; interval: "monthly" | "yearly" } {
+  // Check yearly prices first (higher amounts)
+  const yearlyMatch = PLANS
+    .filter((p) => p.yearlyPriceZMW > 0)
+    .sort((a, b) => b.yearlyPriceZMW - a.yearlyPriceZMW)
+    .find((p) => amount >= p.yearlyPriceZMW);
+
+  if (yearlyMatch && amount >= yearlyMatch.yearlyPriceZMW) {
+    return { planId: yearlyMatch.id, interval: "yearly" };
+  }
+
+  // Check monthly prices
+  const monthlyMatch = PLANS
     .filter((p) => p.priceZMW > 0)
     .sort((a, b) => b.priceZMW - a.priceZMW)
     .find((p) => amount >= p.priceZMW);
 
-  return match?.id || "starter";
+  return { planId: monthlyMatch?.id || "starter", interval: "monthly" };
 }
 
 /**
@@ -25,11 +35,11 @@ export async function activateSubscription(
   amount: number
 ) {
   const supabase = getSupabaseAdmin();
-  const planId = resolvePlanFromAmount(amount);
+  const { planId, interval } = resolvePlanFromAmount(amount);
 
   const now = new Date();
   const periodEnd = new Date(now);
-  periodEnd.setDate(periodEnd.getDate() + 30);
+  periodEnd.setDate(periodEnd.getDate() + (interval === "yearly" ? 365 : 30));
 
   // Cancel any existing active/trialing subscription
   await supabase
@@ -63,6 +73,6 @@ export async function activateSubscription(
     .update({ subscription_id: sub.id })
     .eq("id", paymentId);
 
-  console.log(`[Subscription] Activated: ${planId} for tenant ${tenantId}`);
+  console.log(`[Subscription] Activated: ${planId} (${interval}) for tenant ${tenantId}`);
   return sub;
 }

@@ -1,14 +1,11 @@
-import type { Metadata } from "next";
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Star, HelpCircle, Smartphone, CreditCard, Shield } from "lucide-react";
+import { ArrowRight, CheckCircle2, Star, HelpCircle, ShieldCheck } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 import { PLANS } from "@/lib/lipila/plans";
-
-export const metadata: Metadata = {
-  title: "Pricing",
-  description: "Simple, transparent pricing in Zambian Kwacha. 7-day free trial. 30-day money-back guarantee.",
-};
 
 const faqs = [
   {
@@ -21,11 +18,11 @@ const faqs = [
   },
   {
     question: "What counts as a message?",
-    answer: "Each AI-generated response counts as one message. Inbound customer messages and system messages (read receipts, etc.) don't count.",
+    answer: "Each AI-generated response counts as one message. Inbound customer messages and system messages don't count.",
   },
   {
     question: "Which payment methods do you accept?",
-    answer: "Airtel Money, MTN Money, Zamtel Kwacha, and Visa/Mastercard via Lipila. All prices in ZMW.",
+    answer: "Airtel Money, MTN Money, Zamtel Kwacha, and Visa/Mastercard. All prices in ZMW.",
   },
   {
     question: "Can I switch plans?",
@@ -36,12 +33,8 @@ const faqs = [
     answer: "No. Setup takes 5 minutes. Our team handles WhatsApp API configuration for you.",
   },
   {
-    question: "What if the AI can't answer?",
-    answer: "It escalates to a human agent on your team with full conversation context.",
-  },
-  {
     question: "Which languages are supported?",
-    answer: "40+ languages including English, Bemba, Nyanja, Tonga, and Lozi. Auto-detected.",
+    answer: "40+ languages including English, Bemba, Nyanja, Tonga, Lozi, French, Portuguese, and more. Auto-detected from each message.",
   },
   {
     question: "What if I exceed my message limit?",
@@ -50,12 +43,15 @@ const faqs = [
 ];
 
 export default function PricingPage() {
+  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
+  const isYearly = billing === "yearly";
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
 
       {/* Hero */}
-      <section className="pt-32 pb-16 px-6">
+      <section className="pt-32 pb-12 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">
             Plans that grow{" "}
@@ -64,116 +60,115 @@ export default function PricingPage() {
             </span>
           </h1>
           <p className="text-lg text-gray-500 mt-6 max-w-2xl mx-auto">
-            7-day free trial on every plan. 30-day money-back guarantee. Pay with Mobile Money or Card.
+            7-day free trial on every plan. Pay with Mobile Money or Card.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-8 text-sm text-gray-500">
-            <div className="flex items-center gap-1.5">
-              <Smartphone className="h-4 w-4 text-emerald-500 shrink-0" />
-              Airtel, MTN & Zamtel
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CreditCard className="h-4 w-4 text-emerald-500 shrink-0" />
-              Visa & Mastercard
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Shield className="h-4 w-4 text-emerald-500 shrink-0" />
-              Secure via Lipila
-            </div>
+
+          {/* 30-day guarantee banner */}
+          <div className="inline-flex items-center gap-2.5 mt-8 rounded-full bg-emerald-50 border border-emerald-200 px-6 py-3">
+            <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0" />
+            <span className="text-sm font-semibold text-emerald-800">
+              30-day money-back guarantee — no questions asked
+            </span>
+          </div>
+
+          {/* Billing toggle */}
+          <div className="flex items-center justify-center gap-3 mt-8">
+            <span className={`text-sm font-medium ${!isYearly ? "text-gray-900" : "text-gray-400"}`}>Monthly</span>
+            <button
+              onClick={() => setBilling(isYearly ? "monthly" : "yearly")}
+              className={`relative w-14 h-7 rounded-full transition-colors ${isYearly ? "bg-emerald-500" : "bg-gray-200"}`}
+            >
+              <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${isYearly ? "translate-x-7" : "translate-x-0.5"}`} />
+            </button>
+            <span className={`text-sm font-medium ${isYearly ? "text-gray-900" : "text-gray-400"}`}>
+              Yearly
+            </span>
+            {isYearly && (
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-100 rounded-full px-2.5 py-0.5">
+                Save 20%
+              </span>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Plans */}
+      {/* Plans — centered grid for 3 cards */}
       <section className="py-12 px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-          {PLANS.map((plan) => (
-            <div
-              key={plan.id}
-              className={`rounded-2xl border-2 p-7 flex flex-col ${
-                plan.highlight
-                  ? "border-emerald-500 bg-white shadow-xl shadow-emerald-500/10 relative"
-                  : "border-gray-200 bg-white"
-              }`}
-            >
-              {plan.badge && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-1 text-xs font-semibold text-white whitespace-nowrap">
-                    <Star className="h-3 w-3" />
-                    {plan.badge}
-                  </span>
-                </div>
-              )}
-              <div className="text-center mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
-                <div className="mt-3">
-                  {plan.id === "enterprise" ? (
-                    <span className="text-3xl font-bold text-gray-900">Custom</span>
-                  ) : (
-                    <>
-                      <span className="text-3xl font-bold text-gray-900">{plan.priceLabel}</span>
-                      <span className="text-gray-500">/mo</span>
-                    </>
-                  )}
-                </div>
-                <p className="text-xs text-gray-400 mt-1">{plan.messagesLabel}</p>
-              </div>
-              <ul className="space-y-2.5 mb-8 flex-1">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href={plan.id === "enterprise" ? "/contact" : "/login"}
-                className={`block w-full text-center rounded-xl py-3 text-sm font-semibold transition-all ${
+        <div className="flex justify-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl">
+            {PLANS.map((plan) => (
+              <div
+                key={plan.id}
+                className={`rounded-2xl border-2 p-7 flex flex-col ${
                   plan.highlight
-                    ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/25"
-                    : "border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                    ? "border-emerald-500 bg-white shadow-xl shadow-emerald-500/10 relative"
+                    : "border-gray-200 bg-white"
                 }`}
               >
-                {plan.cta}
-              </Link>
-            </div>
-          ))}
+                {plan.badge && (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-1 text-xs font-semibold text-white whitespace-nowrap">
+                      <Star className="h-3 w-3" />
+                      {plan.badge}
+                    </span>
+                  </div>
+                )}
+                <div className="text-center mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+                  <div className="mt-3">
+                    {plan.id === "enterprise" ? (
+                      <span className="text-3xl font-bold text-gray-900">Custom</span>
+                    ) : isYearly ? (
+                      <>
+                        <span className="text-3xl font-bold text-gray-900">{plan.yearlyMonthlyLabel}</span>
+                        <span className="text-gray-500">/mo</span>
+                        <p className="text-xs text-emerald-600 font-medium mt-1">
+                          {plan.yearlyPriceLabel}/year &middot; Save 20%
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-3xl font-bold text-gray-900">{plan.priceLabel}</span>
+                        <span className="text-gray-500">/mo</span>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">{plan.messagesLabel}</p>
+                </div>
+                <ul className="space-y-2.5 mb-8 flex-1">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={plan.id === "enterprise" ? "/contact" : "/login"}
+                  className={`block w-full text-center rounded-xl py-3 text-sm font-semibold transition-all ${
+                    plan.highlight
+                      ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/25"
+                      : "border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  {plan.cta}
+                </Link>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Value Props for Zambia */}
-      <section className="py-16 px-6">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center mb-12">
-            Why Zambian businesses choose First in Queue
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 mb-4">
-                <span className="text-2xl">🇿🇲</span>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Built for Zambia</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                Kwacha pricing, local payment methods, and AI that speaks Bemba, Nyanja, and more.
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 mb-4">
-                <span className="text-2xl">💬</span>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">WhatsApp-native</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                4M+ Zambians on WhatsApp daily. Meet customers where they are.
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 mb-4">
-                <span className="text-2xl">⚡</span>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Risk-free</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                7-day free trial. 30-day money-back guarantee. Cancel anytime.
-              </p>
-            </div>
+      {/* Money-back guarantee callout */}
+      <section className="py-12 px-6">
+        <div className="max-w-3xl mx-auto">
+          <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-8 md:p-10 text-center">
+            <ShieldCheck className="h-10 w-10 text-emerald-600 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-gray-900 mb-2">30-Day Money-Back Guarantee</h3>
+            <p className="text-sm text-gray-600 max-w-lg mx-auto">
+              Try any plan risk-free. If you&apos;re not completely satisfied within 30 days
+              of your first payment, we&apos;ll refund every Kwacha — no questions asked.
+            </p>
           </div>
         </div>
       </section>
@@ -206,7 +201,7 @@ export default function PricingPage() {
           <div className="rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 p-12 md:p-16 text-white">
             <h2 className="text-3xl md:text-4xl font-bold">Start your free trial</h2>
             <p className="text-emerald-100 mt-4 max-w-lg mx-auto">
-              7-day free trial. 30-day money-back guarantee.
+              7 days free. 30-day money-back guarantee.
             </p>
             <Link
               href="/login"

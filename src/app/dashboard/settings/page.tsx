@@ -39,6 +39,7 @@ export default function SettingsPage() {
   const [periodEnd, setPeriodEnd] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutPlanId, setCheckoutPlanId] = useState("starter");
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
 
   const defaultSchedule = [
     { day: "Monday", open: "09:00", close: "18:00", enabled: true },
@@ -423,13 +424,31 @@ export default function SettingsPage() {
                   </span>
                 </div>
               )}
-              <div className="flex items-center justify-between py-3">
+              <div className="flex items-center justify-between py-3 border-b border-gray-100">
                 <div>
                   <p className="text-sm font-medium text-gray-700">AI Engine</p>
                   <p className="text-xs text-gray-500">Powered by GPT-4o</p>
                 </div>
                 <Badge variant="secondary">Managed by FiQ</Badge>
               </div>
+              {(subscriptionStatus === "trialing" || currentPlanId !== "enterprise") && (
+                <div className="flex items-center justify-between py-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Billing Cycle</p>
+                    <p className="text-xs text-gray-500">{billingInterval === "yearly" ? "Save 20% with annual billing" : "Switch to yearly to save 20%"}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={cn("text-xs font-medium", billingInterval === "monthly" ? "text-gray-900" : "text-gray-400")}>Monthly</span>
+                    <button
+                      onClick={() => setBillingInterval(billingInterval === "monthly" ? "yearly" : "monthly")}
+                      className={cn("relative w-11 h-6 rounded-full transition-colors", billingInterval === "yearly" ? "bg-emerald-500" : "bg-gray-200")}
+                    >
+                      <div className={cn("absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform", billingInterval === "yearly" ? "translate-x-5" : "translate-x-0.5")} />
+                    </button>
+                    <span className={cn("text-xs font-medium", billingInterval === "yearly" ? "text-gray-900" : "text-gray-400")}>Yearly</span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         );
@@ -442,6 +461,7 @@ export default function SettingsPage() {
           onClose={() => setCheckoutOpen(false)}
           planId={checkoutPlanId}
           tenantId={tenantId}
+          billingInterval={billingInterval}
         />
       )}
     </div>
