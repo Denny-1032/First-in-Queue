@@ -1,5 +1,15 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import type { Conversation, Message, Tenant, Agent, ConversationStatus } from "@/types";
+import type {
+  Conversation,
+  Message,
+  Tenant,
+  Agent,
+  ConversationStatus,
+  ScheduledMessage,
+  Booking,
+  BookingStatus,
+  LeadScore,
+} from "@/types";
 
 // --- Tenant Operations ---
 export async function getTenantByPhoneNumberId(phoneNumberId: string): Promise<Tenant | null> {
@@ -171,17 +181,50 @@ export async function getRecentMessageHistory(
 ): Promise<Array<{ role: "user" | "assistant"; content: string }>> {
   const { data } = await getSupabaseAdmin()
     .from("messages")
-    .select("direction, sender_type, content")
+    .select("direction, sender_type, content, message_type")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true })
     .limit(limit);
 
   if (!data) return [];
 
-  return data.map((msg) => ({
-    role: (msg.direction === "inbound" ? "user" : "assistant") as "user" | "assistant",
-    content: msg.content?.text || "[media]",
-  }));
+  return data.map((msg) => {
+    const c = msg.content as Record<string, unknown> | null;
+    let text = c?.text as string || "";
+
+    // Provide media context so AI knows what the customer sent
+    if (!text && msg.direction === "inbound") {
+      const msgType = (msg as { message_type?: string }).message_type;
+      const caption = c?.caption as string || "";
+      switch (msgType) {
+        case "image":
+          text = caption ? `[Customer sent an image with caption: "${caption}"]` : "[Customer sent an image]";
+          break;
+        case "audio":
+          text = "[Customer sent a voice message]";
+          break;
+        case "video":
+          text = caption ? `[Customer sent a video with caption: "${caption}"]` : "[Customer sent a video]";
+          break;
+        case "document":
+          text = caption ? `[Customer sent a document: "${caption}"]` : "[Customer sent a document]";
+          break;
+        case "location":
+          text = "[Customer shared their location]";
+          break;
+        case "sticker":
+          text = "[Customer sent a sticker]";
+          break;
+        default:
+          text = "[media]";
+      }
+    }
+
+    return {
+      role: (msg.direction === "inbound" ? "user" : "assistant") as "user" | "assistant",
+      content: text || "[media]",
+    };
+  });
 }
 
 // --- Agent Operations ---
@@ -305,4 +348,274 @@ export async function getAnalytics(tenantId: string) {
     hourly_volume: hourlyVolume,
     daily_volume: dailyVolume,
   };
+}
+
+// --- Scheduled Message Operations ---
+
+export async function createScheduledMessage(
+  message: Omit<ScheduledMessage, "id" | "created_at" | "updated_at" | "retry_count" | "sent_at" | "error_message">
+): Promise<ScheduledMessage> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("scheduled_messages")
+    .insert(message)
+    .select()
+    .single();
+  if (error) throw new Error(`Failed to create scheduled message: ${error.message}`);
+  return data as ScheduledMessage;
+}
+
+export async function getPendingScheduledMessages(
+  beforeTime?: string
+): Promise<ScheduledMessage[]> {
+  const cutoff = beforeTime || new Date().toISOString();
+  const { data } = await getSupabaseAdmin()
+    .from("scheduled_messages")
+    .select("*")
+    .eq("status", "pending")
+    .lte("scheduled_at", cutoff)
+    .order("scheduled_at", { ascending: true })
+    .limit(50);
+  return (data || []) as ScheduledMessage[];
+}
+
+export async function getScheduledMessages(
+  tenantId: string,
+  status?: string,
+  limit = 50
+): Promise<ScheduledMessage[]> {
+  let query = getSupabaseAdmin()
+    .from("scheduled_messages")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("scheduled_at", { ascending: true })
+    .limit(limit);
+  if (status) query = query.eq("status", status);
+  const { data } = await query;
+  return (data || []) as ScheduledMessage[];
+}
+
+export async function updateScheduledMessage(
+  id: string,
+  updates: Partial<ScheduledMessage>
+): Promise<ScheduledMessage | null> {
+  const { data } = await getSupabaseAdmin()
+    .from("scheduled_messages")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+  return data as ScheduledMessage | null;
+}
+
+export async function cancelScheduledMessage(id: string): Promise<void> {
+  await getSupabaseAdmin()
+    .from("scheduled_messages")
+    .update({ status: "cancelled", updated_at: new Date().toISOString() })
+    .eq("id", id);
+}
+
+// --- Booking Operations ---
+
+export async function createBooking(
+  booking: Omit<Booking, "id" | "created_at" | "updated_at" | "reminder_sent" | "confirmed_at" | "cancelled_at">
+): Promise<Booking> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("bookings")
+    .insert(booking)
+    .select()
+    .single();
+  if (error) throw new Error(`Failed to create booking: ${error.message}`);
+  return data as Booking;
+}
+
+export async function getBooking(id: string): Promise<Booking | null> {
+  const { data } = await getSupabaseAdmin()
+    .from("bookings")
+    .select("*")
+    .eq("id", id)
+    .single();
+  return data as Booking | null;
+}
+
+export async function getBookings(
+  tenantId: string,
+  filters?: { status?: BookingStatus; date?: string; customer_phone?: string },
+  limit = 50
+): Promise<Booking[]> {
+  let query = getSupabaseAdmin()
+    .from("bookings")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("scheduled_date", { ascending: true })
+    .limit(limit);
+
+  if (filters?.status) query = query.eq("status", filters.status);
+  if (filters?.date) query = query.eq("scheduled_date", filters.date);
+  if (filters?.customer_phone) query = query.eq("customer_phone", filters.customer_phone);
+
+  const { data } = await query;
+  return (data || []) as Booking[];
+}
+
+export async function getUpcomingBookings(
+  tenantId: string,
+  limit = 20
+): Promise<Booking[]> {
+  const today = new Date().toISOString().split("T")[0];
+  const { data } = await getSupabaseAdmin()
+    .from("bookings")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .in("status", ["pending", "confirmed"])
+    .gte("scheduled_date", today)
+    .order("scheduled_date", { ascending: true })
+    .order("scheduled_time", { ascending: true })
+    .limit(limit);
+  return (data || []) as Booking[];
+}
+
+export async function updateBooking(
+  id: string,
+  updates: Partial<Booking>
+): Promise<Booking | null> {
+  const { data } = await getSupabaseAdmin()
+    .from("bookings")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+  return data as Booking | null;
+}
+
+export async function cancelBooking(id: string, reason?: string): Promise<Booking | null> {
+  return updateBooking(id, {
+    status: "cancelled",
+    cancelled_at: new Date().toISOString(),
+    cancellation_reason: reason,
+  });
+}
+
+export async function getBookingsNeedingReminders(
+  hoursAhead = 24
+): Promise<Booking[]> {
+  const now = new Date();
+  const reminderCutoff = new Date(now.getTime() + hoursAhead * 60 * 60 * 1000);
+  const today = now.toISOString().split("T")[0];
+  const cutoffDate = reminderCutoff.toISOString().split("T")[0];
+
+  const { data } = await getSupabaseAdmin()
+    .from("bookings")
+    .select("*")
+    .eq("reminder_sent", false)
+    .in("status", ["pending", "confirmed"])
+    .gte("scheduled_date", today)
+    .lte("scheduled_date", cutoffDate)
+    .limit(50);
+  return (data || []) as Booking[];
+}
+
+// --- Lead Score Operations ---
+
+export async function createOrUpdateLeadScore(
+  lead: Omit<LeadScore, "id" | "created_at" | "updated_at">
+): Promise<LeadScore> {
+  // Check if lead already exists for this conversation
+  const { data: existing } = await getSupabaseAdmin()
+    .from("lead_scores")
+    .select("id")
+    .eq("conversation_id", lead.conversation_id)
+    .single();
+
+  if (existing) {
+    const { data, error } = await getSupabaseAdmin()
+      .from("lead_scores")
+      .update({ ...lead, updated_at: new Date().toISOString() })
+      .eq("id", existing.id)
+      .select()
+      .single();
+    if (error) throw new Error(`Failed to update lead score: ${error.message}`);
+    return data as LeadScore;
+  }
+
+  const { data, error } = await getSupabaseAdmin()
+    .from("lead_scores")
+    .insert(lead)
+    .select()
+    .single();
+  if (error) throw new Error(`Failed to create lead score: ${error.message}`);
+  return data as LeadScore;
+}
+
+export async function getLeadScore(conversationId: string): Promise<LeadScore | null> {
+  const { data } = await getSupabaseAdmin()
+    .from("lead_scores")
+    .select("*")
+    .eq("conversation_id", conversationId)
+    .single();
+  return data as LeadScore | null;
+}
+
+export async function getLeads(
+  tenantId: string,
+  filters?: { temperature?: string; converted?: boolean },
+  limit = 50
+): Promise<LeadScore[]> {
+  let query = getSupabaseAdmin()
+    .from("lead_scores")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("score", { ascending: false })
+    .limit(limit);
+
+  if (filters?.temperature) query = query.eq("temperature", filters.temperature);
+  if (filters?.converted !== undefined) query = query.eq("converted", filters.converted);
+
+  const { data } = await query;
+  return (data || []) as LeadScore[];
+}
+
+export async function getHotLeads(tenantId: string): Promise<LeadScore[]> {
+  const { data } = await getSupabaseAdmin()
+    .from("lead_scores")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("temperature", "hot")
+    .eq("converted", false)
+    .order("score", { ascending: false })
+    .limit(20);
+  return (data || []) as LeadScore[];
+}
+
+export async function getLeadsNeedingFollowUp(tenantId: string): Promise<LeadScore[]> {
+  const now = new Date().toISOString();
+  const { data } = await getSupabaseAdmin()
+    .from("lead_scores")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("converted", false)
+    .not("next_follow_up_at", "is", null)
+    .lte("next_follow_up_at", now)
+    .order("next_follow_up_at", { ascending: true })
+    .limit(50);
+  return (data || []) as LeadScore[];
+}
+
+export async function updateLeadScore(
+  id: string,
+  updates: Partial<LeadScore>
+): Promise<LeadScore | null> {
+  const { data } = await getSupabaseAdmin()
+    .from("lead_scores")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+  return data as LeadScore | null;
+}
+
+export async function convertLead(id: string): Promise<LeadScore | null> {
+  return updateLeadScore(id, {
+    converted: true,
+    converted_at: new Date().toISOString(),
+  });
 }

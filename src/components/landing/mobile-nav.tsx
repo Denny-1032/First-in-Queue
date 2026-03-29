@@ -22,34 +22,34 @@ export function MobileNav() {
           <div className="fixed inset-0 top-16 z-40 bg-black/20 backdrop-blur-sm" onClick={() => setOpen(false)} />
           <div className="absolute top-16 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-lg">
             <div className="flex flex-col p-4 space-y-1">
-              <a
-                href="#features"
-                onClick={() => setOpen(false)}
-                className="px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Features
-              </a>
-              <a
-                href="#how-it-works"
+              <Link
+                href="/how-it-works"
                 onClick={() => setOpen(false)}
                 className="px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 How It Works
-              </a>
-              <a
-                href="#industries"
+              </Link>
+              <Link
+                href="/industries"
                 onClick={() => setOpen(false)}
                 className="px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Industries
-              </a>
-              <a
-                href="#pricing"
+              </Link>
+              <Link
+                href="/pricing"
                 onClick={() => setOpen(false)}
                 className="px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Pricing
-              </a>
+              </Link>
+              <Link
+                href="/contact"
+                onClick={() => setOpen(false)}
+                className="px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Contact
+              </Link>
               <hr className="my-2 border-gray-100" />
               <Link
                 href="/login"
@@ -63,7 +63,7 @@ export function MobileNav() {
                 onClick={() => setOpen(false)}
                 className="mx-4 mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-3 text-sm font-medium text-white"
               >
-                Get Started
+                Start Trial
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

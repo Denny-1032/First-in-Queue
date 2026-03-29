@@ -181,7 +181,7 @@ export default function AnalyticsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Globe className="h-5 w-5 text-gray-400" />
-              <CardTitle className="text-base">Language Distribution</CardTitle>
+              <CardTitle className="text-base">Topic Insights</CardTitle>
             </div>
           </CardHeader>
           <CardContent>

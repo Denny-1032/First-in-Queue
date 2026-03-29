@@ -15,9 +15,12 @@ import {
   Clock,
   Save,
   CheckCircle2,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { CheckoutModal } from "@/components/dashboard/checkout-modal";
+import { PLANS } from "@/lib/lipila/plans";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -30,6 +33,12 @@ export default function SettingsPage() {
   const [outsideHoursMsg, setOutsideHoursMsg] = useState("Thanks for reaching out! We're currently closed. Our hours are Mon-Fri 9AM-6PM. We'll get back to you first thing!");
   const [languages, setLanguages] = useState(["en", "es"]);
   const [whatsappConnected, setWhatsappConnected] = useState(false);
+  const [currentPlanId, setCurrentPlanId] = useState("starter");
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>("trialing");
+  const [messagesUsed, setMessagesUsed] = useState(0);
+  const [periodEnd, setPeriodEnd] = useState<string | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutPlanId, setCheckoutPlanId] = useState("starter");
 
   const defaultSchedule = [
     { day: "Monday", open: "09:00", close: "18:00", enabled: true },
@@ -68,6 +77,26 @@ export default function SettingsPage() {
     }
     loadConfig();
   }, []);
+
+  // Load subscription once tenantId is available
+  useEffect(() => {
+    if (!tenantId) return;
+    async function loadSubscription() {
+      try {
+        const res = await fetch(`/api/subscriptions?tenantId=${tenantId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.subscription) {
+            setCurrentPlanId(data.subscription.plan_id);
+            setMessagesUsed(data.subscription.messages_used);
+            setPeriodEnd(data.subscription.current_period_end);
+            setSubscriptionStatus(data.subscription.status);
+          }
+        }
+      } catch { /* use defaults */ }
+    }
+    loadSubscription();
+  }, [tenantId]);
 
   const updateScheduleDay = (index: number, field: string, value: string | boolean) => {
     setSchedule((prev) => prev.map((d, i) => i === index ? { ...d, [field]: value } : d));
@@ -324,37 +353,97 @@ export default function SettingsPage() {
       </Card>
 
       {/* Plan & Usage */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Key className="h-5 w-5 text-emerald-600" />
-            <CardTitle>Plan & Usage</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between py-3 border-b border-gray-100">
-            <div>
-              <p className="text-sm font-medium text-gray-700">Current Plan</p>
-              <p className="text-xs text-gray-500">First in Queue Growth</p>
-            </div>
-            <Badge>Active</Badge>
-          </div>
-          <div className="flex items-center justify-between py-3 border-b border-gray-100">
-            <div>
-              <p className="text-sm font-medium text-gray-700">Messages This Month</p>
-              <p className="text-xs text-gray-500">AI-powered responses sent</p>
-            </div>
-            <span className="text-sm font-semibold text-gray-900">247 / 10,000</span>
-          </div>
-          <div className="flex items-center justify-between py-3">
-            <div>
-              <p className="text-sm font-medium text-gray-700">AI Engine</p>
-              <p className="text-xs text-gray-500">Powered by GPT-4o</p>
-            </div>
-            <Badge variant="secondary">Managed by FiQ</Badge>
-          </div>
-        </CardContent>
-      </Card>
+      {(() => {
+        const currentPlan = PLANS.find((p) => p.id === currentPlanId) || PLANS[0];
+        const messagesLimit = currentPlan.messagesPerMonth;
+        const usagePercent = messagesLimit > 0 ? Math.min((messagesUsed / messagesLimit) * 100, 100) : 0;
+        return (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Key className="h-5 w-5 text-emerald-600" />
+                  <CardTitle>Plan & Usage</CardTitle>
+                </div>
+                {(subscriptionStatus === "trialing" || (currentPlanId !== "growth" && currentPlanId !== "enterprise")) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                    onClick={() => {
+                      const nextPlan = currentPlanId === "starter" ? "starter" : "growth";
+                      setCheckoutPlanId(nextPlan);
+                      setCheckoutOpen(true);
+                    }}
+                  >
+                    <CreditCard className="h-3.5 w-3.5" />
+                    {subscriptionStatus === "trialing" ? "Subscribe" : "Upgrade"}
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Current Plan</p>
+                  <p className="text-xs text-gray-500">First in Queue {currentPlan.name}</p>
+                </div>
+                <Badge variant={subscriptionStatus === "trialing" ? "secondary" : "default"}>
+                  {subscriptionStatus === "trialing" ? "Trial" : "Active"}
+                </Badge>
+              </div>
+              <div className="py-3 border-b border-gray-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Messages This Month</p>
+                    <p className="text-xs text-gray-500">AI-powered responses sent</p>
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {messagesUsed.toLocaleString()} / {messagesLimit.toLocaleString()}
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all",
+                      usagePercent > 80 ? "bg-red-500" : usagePercent > 60 ? "bg-amber-500" : "bg-emerald-500"
+                    )}
+                    style={{ width: `${usagePercent}%` }}
+                  />
+                </div>
+              </div>
+              {periodEnd && (
+                <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Current Period Ends</p>
+                    <p className="text-xs text-gray-500">{subscriptionStatus === "trialing" ? "Trial ends on this date" : "Billing cycle renews on this date"}</p>
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {new Date(periodEnd).toLocaleDateString("en-ZM", { day: "numeric", month: "short", year: "numeric" })}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">AI Engine</p>
+                  <p className="text-xs text-gray-500">Powered by GPT-4o</p>
+                </div>
+                <Badge variant="secondary">Managed by FiQ</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
+      {/* Checkout Modal */}
+      {tenantId && (
+        <CheckoutModal
+          isOpen={checkoutOpen}
+          onClose={() => setCheckoutOpen(false)}
+          planId={checkoutPlanId}
+          tenantId={tenantId}
+        />
+      )}
     </div>
   );
 }

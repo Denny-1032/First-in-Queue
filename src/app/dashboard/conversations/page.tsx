@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,12 @@ import {
   CheckCircle2,
   XCircle,
   MessageSquare,
+  Image,
+  FileText,
+  Mic,
+  Video,
+  MapPin,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { timeAgo, truncate } from "@/lib/utils";
@@ -65,50 +71,74 @@ export default function ConversationsPage() {
   const [loadingConvos, setLoadingConvos] = useState(true);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [sending, setSending] = useState(false);
+  const [showCanned, setShowCanned] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const initialLoadDone = useRef(false);
+
+  // Canned responses for agents
+  const cannedResponses = [
+    { label: "Greeting", text: "Hi there! Thanks for reaching out. How can I help you today?" },
+    { label: "Please wait", text: "Thank you for your patience. Let me look into this for you." },
+    { label: "Need more info", text: "Could you provide more details so I can assist you better?" },
+    { label: "Escalating", text: "I'm going to connect you with a specialist who can help further." },
+    { label: "Resolved", text: "Glad I could help! Is there anything else you need?" },
+    { label: "Follow up", text: "Just following up — were you able to resolve the issue?" },
+  ];
 
   // Fetch conversations from API
-  useEffect(() => {
-    async function fetchConversations() {
-      setLoadingConvos(true);
-      try {
-        const res = await fetch("/api/conversations");
-        if (res.ok) {
-          const data = await res.json();
-          const convos = data.conversations || [];
-          setConversations(convos);
-          if (convos.length > 0) setSelectedId(convos[0].id);
+  const fetchConversations = useCallback(async (isPolling = false) => {
+    if (!isPolling) setLoadingConvos(true);
+    try {
+      const res = await fetch("/api/conversations");
+      if (res.ok) {
+        const data = await res.json();
+        const convos = data.conversations || [];
+        setConversations(convos);
+        if (!initialLoadDone.current && convos.length > 0) {
+          setSelectedId(convos[0].id);
+          initialLoadDone.current = true;
         }
-      } catch (e) {
-        console.error("Failed to load conversations:", e);
-      } finally {
-        setLoadingConvos(false);
       }
+    } catch (e) {
+      if (!isPolling) console.error("Failed to load conversations:", e);
+    } finally {
+      if (!isPolling) setLoadingConvos(false);
     }
-    fetchConversations();
   }, []);
 
-  // Fetch messages when conversation is selected
   useEffect(() => {
-    if (!selectedId) { setMessages([]); return; }
-    const id = selectedId;
-    async function fetchMessages() {
-      setLoadingMsgs(true);
-      try {
-        const res = await fetch(`/api/conversations/${id}/messages`);
-        if (res.ok) {
-          const data = await res.json();
-          setMessages(Array.isArray(data) ? data : []);
-        }
-      } catch (e) {
+    fetchConversations();
+    // Poll for new conversations every 8 seconds
+    const interval = setInterval(() => fetchConversations(true), 8000);
+    return () => clearInterval(interval);
+  }, [fetchConversations]);
+
+  // Fetch messages when conversation is selected + poll
+  const fetchMessages = useCallback(async (id: string, isPolling = false) => {
+    if (!isPolling) setLoadingMsgs(true);
+    try {
+      const res = await fetch(`/api/conversations/${id}/messages`);
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      if (!isPolling) {
         console.error("Failed to load messages:", e);
         setMessages([]);
-      } finally {
-        setLoadingMsgs(false);
       }
+    } finally {
+      if (!isPolling) setLoadingMsgs(false);
     }
-    fetchMessages();
-  }, [selectedId]);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedId) { setMessages([]); return; }
+    fetchMessages(selectedId);
+    // Poll for new messages every 5 seconds
+    const interval = setInterval(() => fetchMessages(selectedId, true), 5000);
+    return () => clearInterval(interval);
+  }, [selectedId, fetchMessages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -319,7 +349,7 @@ export default function ConversationsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {selectedConvo.status !== "handoff" && (
+                  {selectedConvo.status !== "handoff" && selectedConvo.status !== "resolved" && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -342,6 +372,31 @@ export default function ConversationsPage() {
                     >
                       <ArrowLeftRight className="h-3.5 w-3.5" />
                       Take Over
+                    </Button>
+                  )}
+                  {selectedConvo.status === "handoff" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                      onClick={async () => {
+                        setConversations((prev) =>
+                          prev.map((c) => c.id === selectedId ? { ...c, status: "active" as ConversationStatus, ai_enabled: true } : c)
+                        );
+                        if (selectedId) {
+                          try {
+                            await fetch(`/api/conversations/${selectedId}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ status: "active", ai_enabled: true }),
+                            });
+                          } catch { /* best effort */ }
+                        }
+                        toast("AI is back in control of this conversation.", "success");
+                      }}
+                    >
+                      <Bot className="h-3.5 w-3.5" />
+                      Return to AI
                     </Button>
                   )}
                   {selectedConvo.status !== "resolved" && (
@@ -408,7 +463,7 @@ export default function ConversationsPage() {
                                   : "bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-tr-sm"
                               )}
                             >
-                              {msg.content.text}
+                              <MessageBubbleContent msg={msg} isInbound={isInbound} />
                             </div>
                             {/* Timestamp & status */}
                             <div className={cn("flex items-center gap-1 text-[10px] text-gray-400", !isInbound && "justify-end")}>
@@ -425,9 +480,35 @@ export default function ConversationsPage() {
                 )}
               </ScrollArea>
 
+              {/* Canned Responses */}
+              {showCanned && (
+                <div className="px-6 py-2 border-t border-gray-100 bg-gray-50">
+                  <div className="flex flex-wrap gap-1.5">
+                    {cannedResponses.map((cr) => (
+                      <button
+                        key={cr.label}
+                        onClick={() => { setNewMessage(cr.text); setShowCanned(false); }}
+                        className="px-2.5 py-1 rounded-full text-xs bg-white border border-gray-200 text-gray-700 hover:bg-emerald-50 hover:border-emerald-200 transition-colors"
+                      >
+                        {cr.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Message Input */}
               <div className="px-6 py-4 border-t border-gray-100">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => setShowCanned(!showCanned)}
+                    title="Quick responses"
+                  >
+                    <Zap className="h-4 w-4 text-amber-500" />
+                  </Button>
                   <Input
                     placeholder={
                       selectedConvo.status === "handoff"
@@ -439,7 +520,7 @@ export default function ConversationsPage() {
                     onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
                     className="flex-1"
                   />
-                  <Button onClick={handleSend} disabled={!newMessage.trim()} size="icon">
+                  <Button onClick={handleSend} disabled={!newMessage.trim() || sending} size="icon">
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
@@ -462,5 +543,154 @@ export default function ConversationsPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Message Bubble Content — renders text, media, location, interactive */
+/* ------------------------------------------------------------------ */
+function MessageBubbleContent({ msg, isInbound }: { msg: Message; isInbound: boolean }) {
+  const c = msg.content;
+  const textColor = isInbound ? "text-gray-500" : "text-white/70";
+  const linkColor = isInbound ? "text-emerald-600 underline" : "text-white underline";
+
+  switch (msg.message_type) {
+    case "image":
+      return (
+        <div className="space-y-1.5">
+          {c.media_url ? (
+            <img src={c.media_url} alt={c.caption || "Image"} className="rounded-lg max-w-full max-h-60 object-cover" />
+          ) : (
+            <div className="flex items-center gap-2 py-2">
+              <Image className="h-5 w-5 shrink-0 opacity-70" />
+              <span className="text-xs opacity-70">Image received</span>
+            </div>
+          )}
+          {c.caption && <p>{c.caption}</p>}
+        </div>
+      );
+
+    case "audio":
+      return (
+        <div className="flex items-center gap-2 py-1">
+          <Mic className="h-5 w-5 shrink-0 opacity-80" />
+          {c.media_url ? (
+            <audio controls src={c.media_url} className="h-8 max-w-[200px]" />
+          ) : (
+            <span className="text-xs opacity-70">Voice message received</span>
+          )}
+        </div>
+      );
+
+    case "video":
+      return (
+        <div className="space-y-1.5">
+          {c.media_url ? (
+            <video controls src={c.media_url} className="rounded-lg max-w-full max-h-60" />
+          ) : (
+            <div className="flex items-center gap-2 py-2">
+              <Video className="h-5 w-5 shrink-0 opacity-70" />
+              <span className="text-xs opacity-70">Video received</span>
+            </div>
+          )}
+          {c.caption && <p>{c.caption}</p>}
+        </div>
+      );
+
+    case "document":
+      return (
+        <div className="flex items-center gap-2 py-1">
+          <FileText className="h-5 w-5 shrink-0 opacity-80" />
+          <div className="min-w-0">
+            {c.media_url ? (
+              <a href={c.media_url} target="_blank" rel="noopener noreferrer" className={linkColor}>
+                {c.caption || "Document"}
+              </a>
+            ) : (
+              <span className="text-xs opacity-70">{c.caption || "Document received"}</span>
+            )}
+            {c.mime_type && <p className={cn("text-[10px]", textColor)}>{c.mime_type}</p>}
+          </div>
+        </div>
+      );
+
+    case "location":
+      return (
+        <div className="flex items-center gap-2 py-1">
+          <MapPin className="h-5 w-5 shrink-0 opacity-80" />
+          {c.latitude && c.longitude ? (
+            <a
+              href={`https://maps.google.com/?q=${c.latitude},${c.longitude}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={linkColor}
+            >
+              View location ({c.latitude.toFixed(4)}, {c.longitude.toFixed(4)})
+            </a>
+          ) : (
+            <span className="text-xs opacity-70">Location shared</span>
+          )}
+        </div>
+      );
+
+    case "interactive":
+      return (
+        <div className="space-y-2">
+          {c.text && <p>{c.text}</p>}
+          {c.interactive?.buttons && (
+            <div className="flex flex-wrap gap-1 pt-1">
+              {c.interactive.buttons.map((btn) => (
+                <span
+                  key={btn.id}
+                  className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-medium",
+                    isInbound ? "bg-gray-200 text-gray-700" : "bg-white/20 text-white"
+                  )}
+                >
+                  {btn.title}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+
+    case "sticker":
+      return (
+        <div className="flex items-center gap-2 py-1">
+          <span className="text-2xl">🏷️</span>
+          <span className="text-xs opacity-70">Sticker</span>
+        </div>
+      );
+
+    case "reaction":
+      return <span className="text-xl">{c.text || "👍"}</span>;
+
+    default:
+      // Text message (most common) — also handle links
+      if (c.text) {
+        return <>{renderTextWithLinks(c.text)}</>;
+      }
+      return <span className="text-xs opacity-70">Unsupported message</span>;
+  }
+}
+
+/* Render text with clickable links */
+function renderTextWithLinks(text: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  if (parts.length === 1) return <>{text}</>;
+  return (
+    <>
+      {parts.map((part, i) =>
+        urlRegex.test(part) ? (
+          <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline break-all">
+            {part}
+          </a>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
   );
 }

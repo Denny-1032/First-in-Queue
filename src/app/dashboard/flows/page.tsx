@@ -30,14 +30,6 @@ interface Flow {
   runs: number;
 }
 
-const mockFlows: Flow[] = [
-  { id: "1", name: "Order Tracking", trigger: "track order", steps: 3, active: true, runs: 456 },
-  { id: "2", name: "Product Inquiry", trigger: "product", steps: 2, active: true, runs: 312 },
-  { id: "3", name: "Return Request", trigger: "return", steps: 5, active: true, runs: 189 },
-  { id: "4", name: "Book Appointment", trigger: "appointment", steps: 4, active: false, runs: 78 },
-  { id: "5", name: "Get Support", trigger: "support", steps: 2, active: true, runs: 267 },
-  { id: "6", name: "Feedback Collection", trigger: "feedback", steps: 3, active: true, runs: 134 },
-];
 
 interface FlowStep {
   id: string;
@@ -53,18 +45,11 @@ const stepTypeIcons = {
   handoff: UserCheck,
 };
 
-const exampleSteps = [
-  { id: "1", type: "message" as const, label: "Greeting", content: "I'd be happy to help track your order!" },
-  { id: "2", type: "question" as const, label: "Ask Order #", content: "Please share your order number" },
-  { id: "3", type: "action" as const, label: "Lookup Order", content: "API: GET /orders/{order_id}" },
-  { id: "4", type: "condition" as const, label: "Order Found?", content: "If order exists → show status, else → apologize" },
-  { id: "5", type: "message" as const, label: "Show Status", content: "Here's your order status: {status}" },
-];
 
 export default function FlowsPage() {
   const { toast } = useToast();
-  const [flows, setFlows] = useState(mockFlows);
-  const [selectedFlow, setSelectedFlow] = useState<string | null>("1");
+  const [flows, setFlows] = useState<Flow[]>([]);
+  const [selectedFlow, setSelectedFlow] = useState<string | null>(null);
   const [tenantFlowSteps, setTenantFlowSteps] = useState<Record<string, FlowStep[]>>({});
   const [loading, setLoading] = useState(true);
 
@@ -92,7 +77,7 @@ export default function FlowsPage() {
           setTenantFlowSteps(stepsMap);
           setSelectedFlow(mapped[0]?.id || null);
         }
-      } catch { /* use mock */ }
+      } catch { /* no flows available */ }
       setLoading(false);
     }
     loadFlows();
@@ -129,6 +114,19 @@ export default function FlowsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Flow List */}
         <div className="space-y-3">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-6 w-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : flows.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Workflow className="h-10 w-10 mx-auto text-gray-300 mb-3" />
+                <p className="text-sm text-gray-500">No flows yet.</p>
+                <p className="text-xs text-gray-400 mt-1">Create your first flow or configure flows in AI Config to automate conversations.</p>
+              </CardContent>
+            </Card>
+          ) : null}
           {flows.map((flow) => (
             <Card
               key={flow.id}
@@ -184,7 +182,7 @@ export default function FlowsPage() {
                 type: s.type,
                 label: `Step ${i + 1}`,
                 content: s.content || ({ message: "Send a message", question: "Ask a question", action: "Perform an action", condition: "Check a condition", handoff: "Transfer to human agent" }[s.type] || "Configure this step"),
-              })) || exampleSteps;
+              })) || [];
 
             return (
               <Card>

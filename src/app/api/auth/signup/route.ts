@@ -98,6 +98,19 @@ export async function POST(request: NextRequest) {
       max_concurrent_chats: 10,
     });
 
+    // Create 7-day trial subscription on Starter plan
+    const now = new Date();
+    const trialEnd = new Date(now);
+    trialEnd.setDate(trialEnd.getDate() + 7);
+    await db.from("subscriptions").insert({
+      tenant_id: tenant.id,
+      plan_id: "starter",
+      status: "trialing",
+      current_period_start: now.toISOString(),
+      current_period_end: trialEnd.toISOString(),
+      messages_used: 0,
+    });
+
     const token = generateAuthToken(user.id, email.toLowerCase());
     const response = NextResponse.json({
       user: { id: user.id, email: user.email, name: user.name, tenant_id: tenant.id },

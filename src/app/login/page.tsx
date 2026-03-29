@@ -195,7 +195,7 @@ export default function LoginPage() {
                 onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
                 className="text-emerald-600 font-medium hover:underline"
               >
-                {isSignUp ? "Sign in" : "Sign up free"}
+                {isSignUp ? "Sign in" : "Start free trial"}
               </button>
             </p>
           </CardContent>

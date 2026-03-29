@@ -330,9 +330,8 @@ export default function AIConfigPage() {
 
                     for (const line of lines) {
                       const trimmed = line.trim();
-                      // Detect topic headers (lines ending with : or lines that are short labels)
-                      const topicMatch = trimmed.match(/^([A-Za-z\s&\/]+):\s*(.*)$/);
-                      if (topicMatch && topicMatch[1].length < 40) {
+                      const topicMatch = trimmed.match(/^([A-Za-z\s&\/\-]+):\s*(.*)$/);
+                      if (topicMatch && topicMatch[1].length < 50) {
                         if (currentTopic && currentContent) {
                           entries.push({
                             id: Date.now().toString() + entries.length,
@@ -343,11 +342,10 @@ export default function AIConfigPage() {
                         }
                         currentTopic = topicMatch[1].trim();
                         currentContent = topicMatch[2] || "";
-                        currentKeywords = currentTopic.toLowerCase().split(/[\s&\/]+/).filter((w) => w.length > 2);
+                        currentKeywords = currentTopic.toLowerCase().split(/[\s&\/\-]+/).filter((w) => w.length > 2);
                       } else if (currentTopic) {
                         currentContent += (currentContent ? " " : "") + trimmed;
                       } else {
-                        // First line is usually business description
                         entries.push({
                           id: Date.now().toString() + entries.length,
                           topic: "About Us",
@@ -365,18 +363,120 @@ export default function AIConfigPage() {
                       });
                     }
 
-                    if (entries.length > 0) {
-                      setKnowledgeBase((prev) => [...prev, ...entries]);
-                      toast(`Added ${entries.length} knowledge entries from your description`);
-                      setBusinessDescription("");
-                      setShowBulkImport(false);
-                    } else {
+                    if (entries.length === 0) {
                       toast("Could not parse entries. Try using 'Topic: content' format.", "warning");
+                      return;
                     }
+
+                    // --- Auto-generate FAQs from parsed knowledge entries ---
+                    const faqTemplates: Array<{
+                      patterns: RegExp;
+                      questions: string[];
+                    }> = [
+                      {
+                        patterns: /shipping|deliver/i,
+                        questions: ["How long does delivery take?", "How much does shipping cost?"],
+                      },
+                      {
+                        patterns: /return|exchange|refund/i,
+                        questions: ["What is your return policy?", "How do I return an item?"],
+                      },
+                      {
+                        patterns: /warranty|guarantee/i,
+                        questions: ["What warranty do your products have?", "How do I claim warranty?"],
+                      },
+                      {
+                        patterns: /payment|pay/i,
+                        questions: ["What payment methods do you accept?", "Do you offer payment plans?"],
+                      },
+                      {
+                        patterns: /hours|open|schedule/i,
+                        questions: ["What are your operating hours?"],
+                      },
+                      {
+                        patterns: /products?\s*-|products?\s*:/i,
+                        questions: ["What products do you sell?"],
+                      },
+                      {
+                        patterns: /promotion|sale|discount|deal|coupon|code/i,
+                        questions: ["Do you have any current promotions or deals?"],
+                      },
+                      {
+                        patterns: /contact|email|phone|whatsapp|address/i,
+                        questions: ["How can I contact you?"],
+                      },
+                      {
+                        patterns: /repair|fix|screen|battery/i,
+                        questions: ["Do you offer repair services?"],
+                      },
+                      {
+                        patterns: /loyal|reward|point|vip/i,
+                        questions: ["Do you have a loyalty or rewards program?"],
+                      },
+                      {
+                        patterns: /cancel|cancell/i,
+                        questions: ["Can I cancel my order?"],
+                      },
+                      {
+                        patterns: /track|tracking/i,
+                        questions: ["How do I track my order?"],
+                      },
+                      {
+                        patterns: /price\s*match/i,
+                        questions: ["Do you price match?"],
+                      },
+                      {
+                        patterns: /about\s*us|founded|who\s*are/i,
+                        questions: ["Tell me about your business"],
+                      },
+                      {
+                        patterns: /store|showroom|physical|visit/i,
+                        questions: ["Do you have a physical store I can visit?"],
+                      },
+                    ];
+
+                    const generatedFaqs: FAQ[] = [];
+                    const usedQuestions = new Set(faqs.map((f) => f.question.toLowerCase()));
+
+                    for (const entry of entries) {
+                      const combined = `${entry.topic} ${entry.content}`;
+                      for (const tpl of faqTemplates) {
+                        if (!tpl.patterns.test(combined)) continue;
+                        for (const q of tpl.questions) {
+                          if (usedQuestions.has(q.toLowerCase())) continue;
+                          usedQuestions.add(q.toLowerCase());
+
+                          // Build a concise answer from the entry content (first 300 chars)
+                          const answer = entry.content.length > 300
+                            ? entry.content.slice(0, 297).replace(/\s+\S*$/, "") + "..."
+                            : entry.content;
+
+                          generatedFaqs.push({
+                            id: `faq_${Date.now()}_${generatedFaqs.length}`,
+                            question: q,
+                            answer,
+                            category: entry.topic.toLowerCase().replace(/[^a-z0-9]+/g, "_"),
+                          });
+                        }
+                      }
+                    }
+
+                    setKnowledgeBase((prev) => [...prev, ...entries]);
+                    if (generatedFaqs.length > 0) {
+                      setFaqs((prev) => [...prev, ...generatedFaqs]);
+                    }
+
+                    const parts = [`Added ${entries.length} knowledge entries`];
+                    if (generatedFaqs.length > 0) {
+                      parts.push(`${generatedFaqs.length} FAQs auto-generated`);
+                    }
+                    toast(parts.join(" and ") + " from your description");
+                    setBusinessDescription("");
+                    setShowBulkImport(false);
                   }}
                 >
                   <Wand2 className="h-3.5 w-3.5" />
-                  Generate Entries
+                  Generate Entries & FAQs
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setShowBulkImport(false)}>
                   Cancel

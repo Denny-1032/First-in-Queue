@@ -151,6 +151,41 @@ export class WhatsAppClient {
     });
   }
 
+  async sendTypingIndicator(to: string): Promise<void> {
+    try {
+      await this.api.post(this.messagesUrl, {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to,
+        type: "reaction",
+      });
+    } catch {
+      // Typing indicator is best-effort; don't fail the message flow
+    }
+  }
+
+  async sendAudio(to: string, audioUrl: string): Promise<string> {
+    const res = await this.api.post(this.messagesUrl, {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to,
+      type: "audio",
+      audio: { link: audioUrl },
+    });
+    return res.data.messages?.[0]?.id || "";
+  }
+
+  async sendVideo(to: string, videoUrl: string, caption?: string): Promise<string> {
+    const res = await this.api.post(this.messagesUrl, {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to,
+      type: "video",
+      video: { link: videoUrl, ...(caption && { caption }) },
+    });
+    return res.data.messages?.[0]?.id || "";
+  }
+
   async sendInteractive(to: string, interactive: InteractiveMessage): Promise<string> {
     if (interactive.type === "button" && interactive.buttons) {
       return this.sendButtons(to, interactive.body, interactive.buttons, interactive.header?.text, interactive.footer);
