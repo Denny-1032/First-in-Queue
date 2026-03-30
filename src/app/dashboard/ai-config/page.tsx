@@ -120,10 +120,10 @@ export default function AIConfigPage() {
 
   return (
     <div className="space-y-8 w-full pb-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">AI Configuration</h1>
-          <p className="text-gray-500 mt-1">Configure your AI assistant</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Configuration</h1>
+          <p className="text-gray-500 mt-1 text-sm">Configure your AI assistant</p>
         </div>
         <Button
           className="gap-2"
@@ -209,7 +209,7 @@ export default function AIConfigPage() {
 
           <div>
             <label className="text-sm font-medium text-gray-700 mb-3 block">Emoji Usage</label>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {emojiOptions.map((opt) => (
                 <button
                   key={opt.value}
@@ -229,7 +229,7 @@ export default function AIConfigPage() {
 
           <div>
             <label className="text-sm font-medium text-gray-700 mb-3 block">Response Style</label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {styleOptions.map((opt) => (
                 <button
                   key={opt.value}

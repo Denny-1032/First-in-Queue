@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     default: "First in Queue — AI WhatsApp Customer Care",
     template: "%s | First in Queue",
   },
-  description: "AI-powered WhatsApp support for Zambian businesses. Instant responses, 40+ languages, 24/7. Start your free trial.",
+  description: "AI-powered WhatsApp & voice support for Zambian businesses. Instant responses, 40+ languages, 24/7. Start your free trial.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com"),
   openGraph: {
     type: "website",

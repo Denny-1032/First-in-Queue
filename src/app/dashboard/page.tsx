@@ -17,6 +17,7 @@ import {
   Frown,
   Zap,
   RefreshCw,
+  Phone,
 } from "lucide-react";
 import type { AnalyticsData } from "@/types";
 
@@ -41,7 +42,7 @@ function StatCard({
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-sm text-gray-500">{title}</p>
-            <p className="text-3xl font-bold text-gray-900">{value}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900">{value}</p>
             {change && (
               <div className="flex items-center gap-1 text-xs">
                 {changeType === "up" ? (
@@ -138,10 +139,10 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-          <p className="text-gray-500 mt-1">Here&apos;s how your AI assistant is doing</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Welcome back</h1>
+          <p className="text-gray-500 mt-1 text-sm">Here&apos;s how your AI assistant is doing</p>
         </div>
         <div className="flex items-center gap-3">
           {lastUpdated && (
@@ -160,8 +161,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats Grid — 3 key metrics only */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Stats Grid — 4 key metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Messages Today"
           value={analytics.messages_today}
@@ -184,6 +185,14 @@ export default function DashboardPage() {
           icon={Zap}
           iconColor="bg-gradient-to-br from-amber-500 to-orange-600"
         />
+        <Link href="/dashboard/voice" className="block">
+          <StatCard
+            title="Voice Calls"
+            value="View"
+            icon={Phone}
+            iconColor="bg-gradient-to-br from-purple-500 to-indigo-600"
+          />
+        </Link>
       </div>
 
       {/* Second Row — 2 columns */}
@@ -323,14 +332,14 @@ export default function DashboardPage() {
             </div>
           </div>
         </Link>
-        <Link href="/dashboard/settings" className="rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-emerald-200 transition-all group">
+        <Link href="/dashboard/voice" className="rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-emerald-200 transition-all group">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors">
-              <CheckCircle2 className="h-5 w-5 text-purple-600" />
+              <Phone className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Business Settings</p>
-              <p className="text-xs text-gray-500">Hours, messages, and preferences</p>
+              <p className="text-sm font-semibold text-gray-900">Voice Calls</p>
+              <p className="text-xs text-gray-500">AI phone calls and scheduled calls</p>
             </div>
           </div>
         </Link>

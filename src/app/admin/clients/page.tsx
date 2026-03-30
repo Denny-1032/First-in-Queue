@@ -101,7 +101,7 @@ export default function AdminClientsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Client Management</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Client Management</h1>
         <p className="text-sm text-slate-400 mt-1">Manage all business accounts, their bots, and connections</p>
       </div>
 

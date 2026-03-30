@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +37,7 @@ export default function SettingsPage() {
   const [currentPlanId, setCurrentPlanId] = useState("starter");
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("trialing");
   const [messagesUsed, setMessagesUsed] = useState(0);
+  const [voiceMinutesUsed, setVoiceMinutesUsed] = useState(0);
   const [periodEnd, setPeriodEnd] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutPlanId, setCheckoutPlanId] = useState("starter");
@@ -51,6 +53,18 @@ export default function SettingsPage() {
     { day: "Sunday", open: "", close: "", enabled: false },
   ];
   const [schedule, setSchedule] = useState(defaultSchedule);
+
+  // Show toast if redirected after card payment
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    const plan = searchParams.get("plan");
+    if (payment === "success") {
+      toast(`Payment successful! Your ${plan || ""} plan is now active.`, "success");
+      // Clean up URL params
+      window.history.replaceState({}, "", "/dashboard/settings");
+    }
+  }, [searchParams, toast]);
 
   // Load tenant config from API
   useEffect(() => {
@@ -90,6 +104,7 @@ export default function SettingsPage() {
           if (data.subscription) {
             setCurrentPlanId(data.subscription.plan_id);
             setMessagesUsed(data.subscription.messages_used);
+            setVoiceMinutesUsed(data.subscription.voice_minutes_used || 0);
             setPeriodEnd(data.subscription.current_period_end);
             setSubscriptionStatus(data.subscription.status);
           }
@@ -105,10 +120,10 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-8 w-full">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-500 mt-1">Configure your First in Queue instance</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
+          <p className="text-gray-500 mt-1 text-sm">Configure your First in Queue instance</p>
         </div>
         <Button
           className="gap-2"
@@ -237,28 +252,31 @@ export default function SettingsPage() {
         <CardContent>
           <div className="space-y-3">
             {schedule.map((day) => (
-              <div key={day.day} className="flex items-center gap-4">
-                <span className="text-sm text-gray-700 w-24">{day.day}</span>
-                <button
-                  onClick={() => updateScheduleDay(schedule.indexOf(day), "enabled", !day.enabled)}
-                  className={cn(
-                    "w-12 h-6 rounded-full transition-colors relative",
-                    day.enabled ? "bg-emerald-500" : "bg-gray-200"
+              <div key={day.day} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <span className="text-sm text-gray-700 w-24 shrink-0">{day.day}</span>
+                  <button
+                    onClick={() => updateScheduleDay(schedule.indexOf(day), "enabled", !day.enabled)}
+                    className={cn(
+                      "w-12 h-6 rounded-full transition-colors relative shrink-0",
+                      day.enabled ? "bg-emerald-500" : "bg-gray-200"
+                    )}
+                  >
+                    <div className={cn(
+                      "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                      day.enabled ? "translate-x-6" : "translate-x-0.5"
+                    )} />
+                  </button>
+                  {!day.enabled && (
+                    <span className="text-sm text-gray-400">Closed</span>
                   )}
-                >
-                  <div className={cn(
-                    "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
-                    day.enabled ? "translate-x-6" : "translate-x-0.5"
-                  )} />
-                </button>
-                {day.enabled ? (
-                  <div className="flex items-center gap-2">
+                </div>
+                {day.enabled && (
+                  <div className="flex items-center gap-2 pl-0 sm:pl-0">
                     <Input value={day.open} onChange={(e) => updateScheduleDay(schedule.indexOf(day), "open", e.target.value)} className="w-24 text-center" />
                     <span className="text-gray-400">to</span>
                     <Input value={day.close} onChange={(e) => updateScheduleDay(schedule.indexOf(day), "close", e.target.value)} className="w-24 text-center" />
                   </div>
-                ) : (
-                  <span className="text-sm text-gray-400">Closed</span>
                 )}
               </div>
             ))}
@@ -412,6 +430,31 @@ export default function SettingsPage() {
                     style={{ width: `${usagePercent}%` }}
                   />
                 </div>
+              </div>
+              <div className="py-3 border-b border-gray-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Voice Minutes This Month</p>
+                    <p className="text-xs text-gray-500">AI phone call minutes used</p>
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {voiceMinutesUsed.toLocaleString()} / {currentPlan.voiceMinutesPerMonth >= 999999 ? "Unlimited" : currentPlan.voiceMinutesPerMonth.toLocaleString()}
+                  </span>
+                </div>
+                {currentPlan.voiceMinutesPerMonth < 999999 && (() => {
+                  const voicePercent = Math.min(100, Math.round((voiceMinutesUsed / currentPlan.voiceMinutesPerMonth) * 100));
+                  return (
+                    <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          voicePercent > 80 ? "bg-red-500" : voicePercent > 60 ? "bg-amber-500" : "bg-purple-500"
+                        )}
+                        style={{ width: `${voicePercent}%` }}
+                      />
+                    </div>
+                  );
+                })()}
               </div>
               {periodEnd && (
                 <div className="flex items-center justify-between py-3 border-b border-gray-100">

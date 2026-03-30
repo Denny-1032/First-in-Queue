@@ -9,13 +9,14 @@ import {
   Settings,
   Zap,
   Shield,
+  Phone,
 } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 
 export const metadata: Metadata = {
   title: "How It Works",
-  description: "3 simple steps to AI-powered WhatsApp customer care. No technical skills needed.",
+  description: "3 simple steps to AI-powered WhatsApp & voice customer care. No technical skills needed.",
 };
 
 export default function HowItWorksPage() {
@@ -84,7 +85,7 @@ export default function HowItWorksPage() {
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">We set everything up for you</h2>
               <p className="text-gray-500 leading-relaxed mb-6">
-                We connect your WhatsApp API, set up AI, and configure automated flows.
+                We connect your WhatsApp API, set up AI voice agents, and configure automated flows.
               </p>
               <ul className="space-y-3">
                 <li className="flex items-start gap-2 text-sm text-gray-600">
@@ -98,6 +99,10 @@ export default function HowItWorksPage() {
                 <li className="flex items-start gap-2 text-sm text-gray-600">
                   <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
                   Automated workflows for common customer requests
+                </li>
+                <li className="flex items-start gap-2 text-sm text-gray-600">
+                  <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                  AI voice agent configured for outbound & inbound calls
                 </li>
               </ul>
             </div>
@@ -116,7 +121,7 @@ export default function HowItWorksPage() {
               <ul className="space-y-3">
                 <li className="flex items-start gap-2 text-sm text-gray-600">
                   <CheckCircle2 className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
-                  AI handles common questions instantly — no wait times
+                  AI handles WhatsApp messages and phone calls instantly
                 </li>
                 <li className="flex items-start gap-2 text-sm text-gray-600">
                   <CheckCircle2 className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
@@ -143,8 +148,9 @@ export default function HowItWorksPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { icon: Bot, title: "AI Assistant", desc: "GPT-4o powered, 24/7, 40+ languages.", color: "text-emerald-600 bg-emerald-100" },
+              { icon: Phone, title: "AI Voice Calls", desc: "Outbound, inbound, and scheduled phone calls powered by AI.", color: "text-purple-600 bg-purple-100" },
               { icon: Users, title: "Smart Handoff", desc: "Seamless transfer to human agents with full context.", color: "text-blue-600 bg-blue-100" },
-              { icon: MessageSquare, title: "Rich Messages", desc: "Buttons, lists, images, and documents.", color: "text-purple-600 bg-purple-100" },
+              { icon: MessageSquare, title: "Rich Messages", desc: "Buttons, lists, images, and documents.", color: "text-indigo-600 bg-indigo-100" },
               { icon: Shield, title: "Fully Managed", desc: "We handle hosting, API, and updates.", color: "text-amber-600 bg-amber-100" },
               { icon: Settings, title: "Easy Dashboard", desc: "Conversations, AI settings, and analytics in one place.", color: "text-rose-600 bg-rose-100" },
               { icon: Zap, title: "Conversation Flows", desc: "Automated workflows for bookings, orders, and more.", color: "text-cyan-600 bg-cyan-100" },

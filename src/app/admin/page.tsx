@@ -76,7 +76,7 @@ export default function AdminDashboardPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Platform Overview</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Platform Overview</h1>
         <p className="text-sm text-slate-400 mt-1">Cross-tenant metrics and operations at a glance</p>
       </div>
 

@@ -42,7 +42,7 @@ export default function AdminSettingsPage() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold text-white">Platform Settings</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Platform Settings</h1>
         <p className="text-sm text-slate-400 mt-1">Global configuration for the First in Queue platform</p>
       </div>
 

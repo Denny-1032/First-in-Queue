@@ -411,10 +411,11 @@ export interface Subscription {
   id: string;
   tenant_id: string;
   plan_id: string;
-  status: "active" | "past_due" | "cancelled" | "expired";
+  status: "active" | "trialing" | "past_due" | "cancelled" | "expired";
   current_period_start: string;
   current_period_end: string;
   messages_used: number;
+  voice_minutes_used: number;
   cancel_at_period_end: boolean;
   created_at: string;
   updated_at: string;
@@ -438,3 +439,79 @@ export interface Payment {
   created_at: string;
   updated_at: string;
 }
+
+// --- Voice Agent Types ---
+export interface VoiceAgent {
+  id: string;
+  tenant_id: string;
+  retell_agent_id: string;
+  name: string;
+  voice_id?: string;
+  greeting_message: string;
+  system_prompt?: string;
+  language: string;
+  max_call_duration_seconds: number;
+  transfer_phone_number?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VoiceCall {
+  id: string;
+  tenant_id: string;
+  voice_agent_id?: string;
+  retell_call_id?: string;
+  direction: "inbound" | "outbound";
+  caller_phone?: string;
+  callee_phone?: string;
+  status: VoiceCallStatus;
+  duration_seconds: number;
+  recording_url?: string;
+  transcript?: string;
+  transcript_object?: VoiceTranscriptEntry[];
+  call_analysis?: VoiceCallAnalysis;
+  disconnection_reason?: string;
+  cost_cents: number;
+  latency_ms?: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  started_at?: string;
+  ended_at?: string;
+  created_at: string;
+}
+
+export type VoiceCallStatus = "registered" | "ongoing" | "ended" | "error";
+
+export interface VoiceTranscriptEntry {
+  role: "agent" | "user";
+  content: string;
+  words?: Array<{ word: string; start: number; end: number }>;
+}
+
+export interface VoiceCallAnalysis {
+  call_summary?: string;
+  user_sentiment?: "Positive" | "Neutral" | "Negative";
+  call_successful?: boolean;
+  in_voicemail?: boolean;
+  custom_analysis_data?: Record<string, unknown>;
+}
+
+export interface ScheduledCall {
+  id: string;
+  tenant_id: string;
+  voice_agent_id: string;
+  customer_phone: string;
+  customer_name?: string;
+  purpose?: string;
+  scheduled_at: string;
+  status: ScheduledCallStatus;
+  retell_call_id?: string;
+  retry_count: number;
+  max_retries: number;
+  result_summary?: string;
+  error_message?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ScheduledCallStatus = "pending" | "calling" | "completed" | "failed" | "cancelled";

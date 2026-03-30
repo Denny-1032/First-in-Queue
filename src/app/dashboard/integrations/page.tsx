@@ -26,15 +26,17 @@ const integrations: Integration[] = [
   { id: "1", name: "WhatsApp Cloud API", description: "Meta's official WhatsApp Business messaging API", category: "Messaging", connected: true, icon: "💬" },
   { id: "2", name: "OpenAI", description: "GPT-powered AI for intelligent customer responses", category: "AI", connected: true, icon: "🤖" },
   { id: "3", name: "Supabase", description: "Database, auth, and real-time subscriptions", category: "Database", connected: true, icon: "⚡" },
-  { id: "4", name: "Stripe", description: "Payment processing and subscription billing", category: "Payments", connected: false, icon: "💳" },
-  { id: "5", name: "Shopify", description: "E-commerce platform for order and product data", category: "E-commerce", connected: false, icon: "🛒" },
-  { id: "6", name: "HubSpot", description: "CRM for contact management and deal tracking", category: "CRM", connected: false, icon: "📊" },
-  { id: "7", name: "Salesforce", description: "Enterprise CRM and customer data platform", category: "CRM", connected: false, icon: "☁️" },
-  { id: "8", name: "Zendesk", description: "Help desk and ticketing system", category: "Support", connected: false, icon: "🎫" },
-  { id: "9", name: "Slack", description: "Team notifications and agent alerts", category: "Notifications", connected: false, icon: "📢" },
-  { id: "10", name: "Zapier", description: "Connect with 5000+ apps via automation workflows", category: "Automation", connected: false, icon: "⚡" },
-  { id: "11", name: "Google Sheets", description: "Export conversation data and analytics", category: "Data", connected: false, icon: "📗" },
-  { id: "12", name: "Webhooks", description: "Custom HTTP webhooks for any event", category: "Developer", connected: false, icon: "🔗" },
+  { id: "4", name: "Retell AI", description: "AI voice agent for phone calls — STT, LLM, and TTS", category: "Voice", connected: true, icon: "🗣️" },
+  { id: "5", name: "Twilio", description: "Telephony provider for outbound and inbound voice calls", category: "Voice", connected: true, icon: "📞" },
+  { id: "6", name: "Lipila", description: "Mobile money and card payments for Zambian businesses", category: "Payments", connected: true, icon: "�" },
+  { id: "7", name: "Shopify", description: "E-commerce platform for order and product data", category: "E-commerce", connected: false, icon: "🛒" },
+  { id: "8", name: "HubSpot", description: "CRM for contact management and deal tracking", category: "CRM", connected: false, icon: "📊" },
+  { id: "9", name: "Salesforce", description: "Enterprise CRM and customer data platform", category: "CRM", connected: false, icon: "☁️" },
+  { id: "10", name: "Zendesk", description: "Help desk and ticketing system", category: "Support", connected: false, icon: "🎫" },
+  { id: "11", name: "Slack", description: "Team notifications and agent alerts", category: "Notifications", connected: false, icon: "📢" },
+  { id: "12", name: "Zapier", description: "Connect with 5000+ apps via automation workflows", category: "Automation", connected: false, icon: "⚡" },
+  { id: "13", name: "Google Sheets", description: "Export conversation data and analytics", category: "Data", connected: false, icon: "📗" },
+  { id: "14", name: "Webhooks", description: "Custom HTTP webhooks for any event", category: "Developer", connected: false, icon: "🔗" },
 ];
 
 export default function IntegrationsPage() {
@@ -71,8 +73,8 @@ export default function IntegrationsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Integrations</h1>
-        <p className="text-gray-500 mt-1">{connectedCount} of {integrations.length} connected</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Integrations</h1>
+        <p className="text-gray-500 mt-1 text-sm">{connectedCount} of {integrations.length} connected</p>
       </div>
 
       {/* Connected integrations */}

@@ -4,8 +4,12 @@ import { checkRateLimit } from "@/lib/api/rate-limit";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Rate limit API routes (except webhook — WhatsApp needs unrestricted access)
-  if (pathname.startsWith("/api/") && !pathname.startsWith("/api/webhook")) {
+  // Rate limit API routes (except webhooks — external services need unrestricted access)
+  const isWebhook =
+    pathname.startsWith("/api/webhook") ||
+    pathname.startsWith("/api/webhooks/") ||
+    pathname === "/api/voice/twilio-status";
+  if (pathname.startsWith("/api/") && !isWebhook) {
     const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
     const { allowed, remaining, resetIn } = checkRateLimit(ip, 120);
 

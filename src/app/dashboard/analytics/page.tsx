@@ -64,10 +64,10 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-          <p className="text-gray-500 mt-1">Deep insights into your customer care performance</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Analytics</h1>
+          <p className="text-gray-500 mt-1 text-sm">Deep insights into your customer care performance</p>
         </div>
         <button
           onClick={() => fetchAnalytics(true).finally(() => setRefreshing(false))}
@@ -80,7 +80,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
           { label: "Total Messages", value: analytics ? analytics.messages_this_week.toLocaleString() : "0", icon: MessageSquare, color: "text-blue-600" },
           { label: "AI Resolution", value: analytics ? `${analytics.ai_resolution_rate.toFixed(1)}%` : "0%", icon: Bot, color: "text-emerald-600" },

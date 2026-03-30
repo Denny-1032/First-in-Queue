@@ -18,11 +18,13 @@ import {
   LogOut,
   Menu,
   X,
+  Phone,
 } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Home", icon: Home },
   { href: "/dashboard/conversations", label: "Conversations", icon: MessageSquare },
+  { href: "/dashboard/voice", label: "Voice Calls", icon: Phone },
   { href: "/dashboard/ai-config", label: "AI Assistant", icon: Bot },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },

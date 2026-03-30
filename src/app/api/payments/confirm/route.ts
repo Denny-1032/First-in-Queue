@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       await activateSubscription(payment.tenant_id, payment.id, payment.amount);
       const { planId } = resolvePlanFromAmount(payment.amount);
 
-      return NextResponse.redirect(`${appUrl}/dashboard?payment=success&plan=${planId}`);
+      return NextResponse.redirect(`${appUrl}/dashboard/settings?payment=success&plan=${planId}`);
     } else if (lipilaStatus.status === "Failed") {
       await supabase
         .from("payments")

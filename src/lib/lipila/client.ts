@@ -3,7 +3,12 @@
 // Docs: https://docs.lipila.dev
 // =============================================
 
-const LIPILA_API_URL = process.env.LIPILA_API_URL || "https://api.lipila.dev";
+const LIPILA_ENVIRONMENT = (process.env.LIPILA_ENVIRONMENT || "sandbox").toLowerCase();
+const LIPILA_API_URL =
+  process.env.LIPILA_API_URL ||
+  (LIPILA_ENVIRONMENT === "production"
+    ? "https://blz.lipila.io"
+    : "https://api.lipila.dev");
 const LIPILA_API_KEY = process.env.LIPILA_API_KEY || "";
 const LIPILA_CALLBACK_URL = process.env.LIPILA_CALLBACK_URL || "";
 

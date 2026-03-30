@@ -40,6 +40,10 @@ const faqs = [
     question: "What if I exceed my message limit?",
     answer: "We notify you at 80%. After the limit, messages queue until the next cycle or until you upgrade. No surprise charges.",
   },
+  {
+    question: "What are AI voice call minutes?",
+    answer: "Every plan includes AI voice call minutes. Your AI assistant can make and receive phone calls — handling customer enquiries, scheduling callbacks, and more. Voice minutes are tracked separately from WhatsApp messages.",
+  },
 ];
 
 export default function PricingPage() {
@@ -134,6 +138,7 @@ export default function PricingPage() {
                     )}
                   </div>
                   <p className="text-xs text-gray-400 mt-1">{plan.messagesLabel}</p>
+                  <p className="text-xs text-emerald-600 font-medium mt-0.5">{plan.voiceMinutesLabel}</p>
                 </div>
                 <ul className="space-y-2.5 mb-8 flex-1">
                   {plan.features.map((f) => (

@@ -13,13 +13,17 @@ import {
   Shield,
   Workflow,
   Clock,
+  Phone,
+  Headphones,
+  CalendarClock,
+  Mic,
 } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 
 export const metadata: Metadata = {
-  title: "AI WhatsApp Customer Care for Zambian Businesses",
-  description: "Automate customer support on WhatsApp with AI. 40+ languages, 24/7 responses, 5-minute setup. Start your 7-day free trial.",
+  title: "AI WhatsApp & Voice Customer Care for Zambian Businesses",
+  description: "Automate customer support on WhatsApp and phone calls with AI. 40+ languages, 24/7 responses, 5-minute setup. Start your 7-day free trial.",
 };
 
 export default function Home() {
@@ -37,7 +41,7 @@ export default function Home() {
             </span>
           </h1>
           <p className="text-lg text-gray-500 mt-6 max-w-xl mx-auto">
-            AI-powered WhatsApp support. Set up in minutes, serve thousands instantly.
+            AI-powered WhatsApp &amp; voice support. Set up in minutes, serve thousands instantly.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
             <Link
@@ -65,7 +69,7 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-              WhatsApp-compliant
+              WhatsApp + Voice calls
             </div>
           </div>
         </div>
@@ -114,6 +118,106 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Voice Agent Preview */}
+      <section className="pb-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 rounded-full bg-purple-50 border border-purple-200 px-4 py-1.5 text-sm font-medium text-purple-700 mb-4">
+              <Phone className="h-4 w-4" />
+              AI Voice Agent
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Your AI answers the phone too</h2>
+            <p className="text-gray-500 mt-3 max-w-2xl mx-auto">
+              The same AI that handles WhatsApp can make and receive phone calls — scheduling appointments, answering FAQs, and following up with customers automatically.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            {/* Voice Call Visual Preview */}
+            <div className="rounded-2xl border border-gray-200 bg-gradient-to-b from-gray-50 to-white shadow-2xl shadow-gray-200/50 overflow-hidden">
+              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-5 text-center">
+                <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm mb-3">
+                  <Phone className="h-8 w-8 text-white" />
+                </div>
+                <p className="text-white font-semibold">FiQ Voice Agent</p>
+                <p className="text-purple-200 text-sm">Outbound call &middot; +260 97 123 4567</p>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 shrink-0 mt-0.5">
+                    <Headphones className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div className="rounded-2xl rounded-tl-sm bg-purple-50 border border-purple-100 px-4 py-2.5 text-sm text-gray-800">
+                    Hi Mary! This is the AI assistant from Lusaka Auto Service. I&apos;m calling to confirm your appointment tomorrow at 10 AM for a tyre rotation. Does that still work for you?
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 justify-end">
+                  <div className="rounded-2xl rounded-tr-sm bg-gray-100 px-4 py-2.5 text-sm text-gray-800">
+                    Yes, that works! Can I also add an oil change?
+                  </div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 shrink-0 mt-0.5">
+                    <Users className="h-4 w-4 text-gray-600" />
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 shrink-0 mt-0.5">
+                    <Headphones className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div className="rounded-2xl rounded-tl-sm bg-purple-50 border border-purple-100 px-4 py-2.5 text-sm text-gray-800">
+                    Absolutely! I&apos;ve added an oil change to your booking. Your updated appointment is tomorrow at 10 AM for a tyre rotation and oil change. Total estimate: K350. See you then!
+                  </div>
+                </div>
+                <div className="flex justify-center">
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-white/80 rounded-full px-3 py-1 border border-gray-100">
+                    <Mic className="h-3 w-3 text-purple-500" />
+                    AI voice call &middot; 47 seconds &middot; Appointment confirmed
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Voice Features List */}
+            <div className="space-y-6">
+              {[
+                {
+                  icon: Phone,
+                  title: "Outbound & Inbound Calls",
+                  desc: "AI makes follow-up calls, appointment reminders, and handles incoming enquiries automatically.",
+                  color: "bg-purple-100 text-purple-600",
+                },
+                {
+                  icon: CalendarClock,
+                  title: "Scheduled Calls",
+                  desc: "Schedule calls in advance — the AI calls customers at the right time with the right context.",
+                  color: "bg-blue-100 text-blue-600",
+                },
+                {
+                  icon: Globe,
+                  title: "Multilingual Voice",
+                  desc: "Natural-sounding AI voice in English, Bemba, Nyanja, and 40+ other languages.",
+                  color: "bg-teal-100 text-teal-600",
+                },
+                {
+                  icon: BarChart3,
+                  title: "Call Analytics & Transcripts",
+                  desc: "Full call recordings, transcripts, and performance metrics in your dashboard.",
+                  color: "bg-amber-100 text-amber-600",
+                },
+              ].map((feature) => (
+                <div key={feature.title} className="flex items-start gap-4">
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${feature.color} shrink-0`}>
+                    <feature.icon className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">{feature.title}</h3>
+                    <p className="text-sm text-gray-500 mt-1 leading-relaxed">{feature.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Stats Bar */}
       <section className="py-12 px-6 bg-gray-50 border-y border-gray-100">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
@@ -149,6 +253,7 @@ export default function Home() {
               { icon: Shield, title: "Compliant", desc: "Meta Business API compliant out of the box.", color: "bg-teal-100 text-teal-600" },
               { icon: Zap, title: "5-Min Setup", desc: "Tell us about your business — we handle the rest.", color: "bg-orange-100 text-orange-600" },
               { icon: MessageSquare, title: "Rich Media", desc: "Images, docs, buttons, lists, locations.", color: "bg-indigo-100 text-indigo-600" },
+              { icon: Phone, title: "AI Voice Calls", desc: "Outbound, inbound, and scheduled AI phone calls.", color: "bg-violet-100 text-violet-600" },
               { icon: Clock, title: "24/7", desc: "Always on, even outside business hours.", color: "bg-cyan-100 text-cyan-600" },
             ].map((feature) => (
               <div key={feature.title} className="group rounded-2xl border border-gray-200 p-6 hover:shadow-lg hover:border-gray-300 transition-all">
@@ -234,9 +339,9 @@ export default function Home() {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-10">
             {[
-              { name: "Starter", price: "K499/mo", desc: "1,000 messages", highlight: true },
-              { name: "Growth", price: "K1,299/mo", desc: "5,000 messages" },
-              { name: "Enterprise", price: "Custom", desc: "Unlimited" },
+              { name: "Starter", price: "K499/mo", desc: "1,000 messages + 60 voice mins", highlight: true },
+              { name: "Growth", price: "K1,299/mo", desc: "5,000 messages + 200 voice mins" },
+              { name: "Enterprise", price: "Custom", desc: "Unlimited messages & calls" },
             ].map((p) => (
               <div key={p.name} className={`rounded-2xl border-2 p-6 ${p.highlight ? "border-emerald-500 bg-white shadow-lg" : "border-gray-200 bg-white"}`}>
                 <h3 className="text-sm font-semibold text-gray-900">{p.name}</h3>

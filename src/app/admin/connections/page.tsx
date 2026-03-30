@@ -110,7 +110,7 @@ export default function AdminConnectionsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">WhatsApp Connections</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">WhatsApp Connections</h1>
         <p className="text-sm text-slate-400 mt-1">Manage WhatsApp Business API credentials for each client</p>
       </div>
 

@@ -220,8 +220,8 @@ export default function ConversationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Conversations</h1>
-        <p className="text-gray-500 mt-1">Manage customer conversations and handoffs</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Conversations</h1>
+        <p className="text-gray-500 mt-1 text-sm">Manage customer conversations and handoffs</p>
       </div>
 
       <div className="flex gap-4 lg:gap-6 h-[calc(100vh-12rem)] lg:h-[calc(100vh-10rem)]">
@@ -326,7 +326,7 @@ export default function ConversationsPage() {
           {selectedConvo ? (
             <>
               {/* Chat Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setSelectedId(null)}
@@ -348,7 +348,7 @@ export default function ConversationsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                   {selectedConvo.status !== "handoff" && selectedConvo.status !== "resolved" && (
                     <Button
                       size="sm"
@@ -498,7 +498,7 @@ export default function ConversationsPage() {
               )}
 
               {/* Message Input */}
-              <div className="px-6 py-4 border-t border-gray-100">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100">
                 <div className="flex items-center gap-2">
                   <Button
                     size="icon"
