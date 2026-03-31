@@ -37,7 +37,7 @@ function StatCard({
   iconColor: string;
 }) {
   return (
-    <Card>
+    <Card className="h-full">
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -187,7 +187,7 @@ export default function DashboardPage() {
         />
         <div 
           onClick={() => window.location.href = '/dashboard/voice'}
-          className="cursor-pointer"
+          className="cursor-pointer h-full"
         >
           <StatCard
             title="Voice Calls"

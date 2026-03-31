@@ -390,13 +390,11 @@ export default function SettingsPage() {
                     size="sm"
                     className="gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
                     onClick={() => {
-                      const nextPlan = currentPlanId === "starter" ? "starter" : "growth";
-                      setCheckoutPlanId(nextPlan);
-                      setCheckoutOpen(true);
+                      window.location.href = "/pricing?from=settings";
                     }}
                   >
                     <CreditCard className="h-3.5 w-3.5" />
-                    {subscriptionStatus === "trialing" ? "Subscribe" : "Upgrade"}
+                    {subscriptionStatus === "trialing" ? "Start Trial" : "Upgrade"}
                   </Button>
                 )}
               </div>

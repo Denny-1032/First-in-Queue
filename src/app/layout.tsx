@@ -33,7 +33,13 @@ export const metadata: Metadata = {
     description: "AI-powered WhatsApp support for Zambian businesses.",
   },
   robots: { index: true, follow: true },
-  icons: { icon: "/fiq-logo.png" },
+  icons: {
+    icon: [
+      { url: "/fiq-logo.png", type: "image/png" },
+    ],
+    shortcut: "/fiq-logo.png",
+    apple: "/fiq-logo.png",
+  },
 };
 
 export default function RootLayout({

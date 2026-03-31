@@ -30,6 +30,9 @@ export function VoiceDemoCall() {
         setStatus("success");
         setMessage(data.message || "Demo call initiated! You'll receive a call in 10-15 seconds.");
         setPhoneNumber("");
+      } else if (response.status === 503) {
+        setStatus("error");
+        setMessage(data.error || "Demo calls coming soon! We're setting up the voice line.");
       } else {
         setStatus("error");
         setMessage(data.error || "Failed to initiate demo call");

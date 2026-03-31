@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
 
     if (!DEMO_AGENT_ID || !DEMO_PHONE) {
       return NextResponse.json(
-        { error: "Demo service not configured" },
-        { status: 500 }
+        { error: "Demo calls coming soon! We're setting up the voice line." },
+        { status: 503 }
       );
     }
 

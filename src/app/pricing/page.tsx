@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, CheckCircle2, Star, HelpCircle, ShieldCheck } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
@@ -46,8 +47,10 @@ const faqs = [
   },
 ];
 
-export default function PricingPage() {
+function PricingContent() {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
+  const searchParams = useSearchParams();
+  const fromSettings = searchParams.get("from") === "settings";
   const isYearly = billing === "yearly";
 
   return (
@@ -149,14 +152,20 @@ export default function PricingPage() {
                   ))}
                 </ul>
                 <Link
-                  href={plan.id === "enterprise" ? "/contact" : "/login"}
+                  href={
+                    plan.id === "enterprise"
+                      ? "/contact"
+                      : fromSettings
+                        ? `/trial-payment?plan=${plan.id}&billing=${billing}`
+                        : "/login"
+                  }
                   className={`block w-full text-center rounded-xl py-3 text-sm font-semibold transition-all ${
                     plan.highlight
                       ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/25"
                       : "border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
                   }`}
                 >
-                  {plan.cta}
+                  {fromSettings && plan.id !== "enterprise" ? "Choose Plan" : plan.cta}
                 </Link>
               </div>
             ))}
@@ -221,5 +230,13 @@ export default function PricingPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <PricingContent />
+    </Suspense>
   );
 }

@@ -11,6 +11,7 @@ import {
   Shield,
   Phone,
 } from "lucide-react";
+// Settings, Zap, Bot still used in "What's included" section
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 
@@ -43,97 +44,82 @@ export default function HowItWorksPage() {
       <section className="py-16 px-6">
         <div className="max-w-5xl mx-auto space-y-20">
           {/* Step 1 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold text-lg mb-6">
-                01
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Tell us about your business</h2>
-              <p className="text-gray-500 leading-relaxed mb-6">
-                Share your business name, industry, and common customer questions.
-              </p>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-2 text-sm text-gray-600">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
-                  Choose your industry (e-commerce, healthcare, restaurant, and more)
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-600">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
-                  Add your business info, FAQs, and policies
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-600">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
-                  Set your AI assistant&apos;s name, tone, and personality
-                </li>
-              </ul>
+          <div className="max-w-2xl">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold text-lg mb-6">
+              01
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-8 flex flex-col items-center justify-center gap-4">
-              <Settings className="h-16 w-16 text-emerald-500" />
-            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Tell us about your business</h2>
+            <p className="text-gray-500 leading-relaxed mb-6">
+              Share your business name, industry, and common customer questions.
+            </p>
+            <ul className="space-y-3">
+              <li className="flex items-start gap-2 text-sm text-gray-600">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+                Choose your industry (e-commerce, healthcare, restaurant, and more)
+              </li>
+              <li className="flex items-start gap-2 text-sm text-gray-600">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+                Add your business info, FAQs, and policies
+              </li>
+              <li className="flex items-start gap-2 text-sm text-gray-600">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+                Set your AI assistant&apos;s name, tone, and personality
+              </li>
+            </ul>
           </div>
 
           {/* Step 2 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div className="order-2 md:order-1 rounded-2xl border border-gray-200 bg-gray-50 p-8 flex flex-col items-center justify-center gap-4">
-              <Zap className="h-16 w-16 text-blue-500" />
+          <div className="max-w-2xl">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-lg mb-6">
+              02
             </div>
-            <div className="order-1 md:order-2">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-lg mb-6">
-                02
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">We set everything up for you</h2>
-              <p className="text-gray-500 leading-relaxed mb-6">
-                We connect your WhatsApp API, set up AI voice agents, and configure automated flows.
-              </p>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-2 text-sm text-gray-600">
-                  <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                  WhatsApp Business API connection (fully managed)
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-600">
-                  <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                  AI trained on your products, services, and policies
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-600">
-                  <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                  Automated workflows for common customer requests
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-600">
-                  <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                  AI voice agent configured for outbound & inbound calls
-                </li>
-              </ul>
-            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">We set everything up for you</h2>
+            <p className="text-gray-500 leading-relaxed mb-6">
+              We connect your WhatsApp API, set up AI voice agents, and configure automated flows.
+            </p>
+            <ul className="space-y-3">
+              <li className="flex items-start gap-2 text-sm text-gray-600">
+                <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                WhatsApp Business API connection (fully managed)
+              </li>
+              <li className="flex items-start gap-2 text-sm text-gray-600">
+                <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                AI trained on your products, services, and policies
+              </li>
+              <li className="flex items-start gap-2 text-sm text-gray-600">
+                <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                Automated workflows for common customer requests
+              </li>
+              <li className="flex items-start gap-2 text-sm text-gray-600">
+                <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                AI voice agent configured for outbound & inbound calls
+              </li>
+            </ul>
           </div>
 
           {/* Step 3 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 text-white font-bold text-lg mb-6">
-                03
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Go live and let AI handle the rest</h2>
-              <p className="text-gray-500 leading-relaxed mb-6">
-                AI responds to customers 24/7 in 40+ languages. Monitor and fine-tune from your dashboard.
-              </p>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-2 text-sm text-gray-600">
-                  <CheckCircle2 className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
-                  AI handles WhatsApp messages and phone calls instantly
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-600">
-                  <CheckCircle2 className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
-                  Complex issues are automatically escalated to your team
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-600">
-                  <CheckCircle2 className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
-                  Track performance with real-time analytics in your dashboard
-                </li>
-              </ul>
+          <div className="max-w-2xl">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 text-white font-bold text-lg mb-6">
+              03
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-8 flex flex-col items-center justify-center gap-4">
-              <Bot className="h-16 w-16 text-purple-500" />
-            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Go live and let AI handle the rest</h2>
+            <p className="text-gray-500 leading-relaxed mb-6">
+              AI responds to customers 24/7 in 40+ languages. Monitor and fine-tune from your dashboard.
+            </p>
+            <ul className="space-y-3">
+              <li className="flex items-start gap-2 text-sm text-gray-600">
+                <CheckCircle2 className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
+                AI handles WhatsApp messages and phone calls instantly
+              </li>
+              <li className="flex items-start gap-2 text-sm text-gray-600">
+                <CheckCircle2 className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
+                Complex issues are automatically escalated to your team
+              </li>
+              <li className="flex items-start gap-2 text-sm text-gray-600">
+                <CheckCircle2 className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
+                Track performance with real-time analytics in your dashboard
+              </li>
+            </ul>
           </div>
         </div>
       </section>
