@@ -115,6 +115,7 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({
       user: { id: user.id, email: user.email, name: user.name, tenant_id: tenant.id },
       message: "Account created successfully",
+      redirectTo: "/trial-payment",
     });
 
     response.cookies.set("fiq-auth", token, {

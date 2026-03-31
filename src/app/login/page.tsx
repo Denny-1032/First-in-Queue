@@ -63,8 +63,12 @@ export default function LoginPage() {
       }
 
       toast(isSignUp ? "Account created! Welcome aboard." : "Welcome back!");
-      const redirect = new URLSearchParams(window.location.search).get("redirect") || "/dashboard";
-      router.push(redirect);
+      if (data.redirectTo) {
+        router.push(data.redirectTo);
+      } else {
+        const redirect = new URLSearchParams(window.location.search).get("redirect") || "/dashboard";
+        router.push(redirect);
+      }
     } catch {
       setError("Something went wrong. Please try again.");
       toast("Something went wrong. Please try again.", "error");

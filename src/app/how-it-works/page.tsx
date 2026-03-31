@@ -69,7 +69,6 @@ export default function HowItWorksPage() {
             </div>
             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-8 flex flex-col items-center justify-center gap-4">
               <Settings className="h-16 w-16 text-emerald-500" />
-              <p className="text-sm text-gray-500 text-center">Guided setup wizard — no technical knowledge needed.</p>
             </div>
           </div>
 
@@ -77,7 +76,6 @@ export default function HowItWorksPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div className="order-2 md:order-1 rounded-2xl border border-gray-200 bg-gray-50 p-8 flex flex-col items-center justify-center gap-4">
               <Zap className="h-16 w-16 text-blue-500" />
-              <p className="text-sm text-gray-500 text-center">WhatsApp API + AI trained on your business data.</p>
             </div>
             <div className="order-1 md:order-2">
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-lg mb-6">
@@ -135,7 +133,6 @@ export default function HowItWorksPage() {
             </div>
             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-8 flex flex-col items-center justify-center gap-4">
               <Bot className="h-16 w-16 text-purple-500" />
-              <p className="text-sm text-gray-500 text-center">Resolves up to 78% of inquiries automatically.</p>
             </div>
           </div>
         </div>

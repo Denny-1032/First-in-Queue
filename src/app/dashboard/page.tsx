@@ -185,14 +185,17 @@ export default function DashboardPage() {
           icon={Zap}
           iconColor="bg-gradient-to-br from-amber-500 to-orange-600"
         />
-        <Link href="/dashboard/voice" className="block">
+        <div 
+          onClick={() => window.location.href = '/dashboard/voice'}
+          className="cursor-pointer"
+        >
           <StatCard
             title="Voice Calls"
             value="View"
             icon={Phone}
             iconColor="bg-gradient-to-br from-purple-500 to-indigo-600"
           />
-        </Link>
+        </div>
       </div>
 
       {/* Second Row — 2 columns */}
@@ -327,7 +330,7 @@ export default function DashboardPage() {
               <Bot className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Customize AI Assistant</p>
+              <p className="text-sm font-semibold text-gray-900">Customize Chat Agent</p>
               <p className="text-xs text-gray-500">Update knowledge base and FAQs</p>
             </div>
           </div>
@@ -338,7 +341,7 @@ export default function DashboardPage() {
               <Phone className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Voice Calls</p>
+              <p className="text-sm font-semibold text-gray-900">Voice Agent</p>
               <p className="text-xs text-gray-500">AI phone calls and scheduled calls</p>
             </div>
           </div>

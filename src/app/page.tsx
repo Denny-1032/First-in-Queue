@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
+import { VoiceDemoCall } from "@/components/landing/voice-demo-call";
 
 export const metadata: Metadata = {
   title: "AI WhatsApp & Voice Customer Care for Zambian Businesses",
@@ -132,48 +133,7 @@ export default function Home() {
             </p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-            {/* Voice Call Visual Preview */}
-            <div className="rounded-2xl border border-gray-200 bg-gradient-to-b from-gray-50 to-white shadow-2xl shadow-gray-200/50 overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-5 text-center">
-                <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm mb-3">
-                  <Phone className="h-8 w-8 text-white" />
-                </div>
-                <p className="text-white font-semibold">FiQ Voice Agent</p>
-                <p className="text-purple-200 text-sm">Outbound call &middot; +260 97 123 4567</p>
-              </div>
-              <div className="p-6 space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 shrink-0 mt-0.5">
-                    <Headphones className="h-4 w-4 text-purple-600" />
-                  </div>
-                  <div className="rounded-2xl rounded-tl-sm bg-purple-50 border border-purple-100 px-4 py-2.5 text-sm text-gray-800">
-                    Hi Mary! This is the AI assistant from Lusaka Auto Service. I&apos;m calling to confirm your appointment tomorrow at 10 AM for a tyre rotation. Does that still work for you?
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 justify-end">
-                  <div className="rounded-2xl rounded-tr-sm bg-gray-100 px-4 py-2.5 text-sm text-gray-800">
-                    Yes, that works! Can I also add an oil change?
-                  </div>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 shrink-0 mt-0.5">
-                    <Users className="h-4 w-4 text-gray-600" />
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 shrink-0 mt-0.5">
-                    <Headphones className="h-4 w-4 text-purple-600" />
-                  </div>
-                  <div className="rounded-2xl rounded-tl-sm bg-purple-50 border border-purple-100 px-4 py-2.5 text-sm text-gray-800">
-                    Absolutely! I&apos;ve added an oil change to your booking. Your updated appointment is tomorrow at 10 AM for a tyre rotation and oil change. Total estimate: K350. See you then!
-                  </div>
-                </div>
-                <div className="flex justify-center">
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-white/80 rounded-full px-3 py-1 border border-gray-100">
-                    <Mic className="h-3 w-3 text-purple-500" />
-                    AI voice call &middot; 47 seconds &middot; Appointment confirmed
-                  </div>
-                </div>
-              </div>
-            </div>
+            <VoiceDemoCall />
 
             {/* Voice Features List */}
             <div className="space-y-6">

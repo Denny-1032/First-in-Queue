@@ -369,9 +369,7 @@ export default function VoiceConfigPage() {
             <span className="text-gray-300">/</span>
             <span className="text-sm text-gray-900 font-medium">Configuration</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Voice Agent Settings</h1>
-          <p className="text-sm text-gray-500">Configure your AI voice agent for phone calls</p>
-        </div>
+                  </div>
       </div>
 
       {loading ? (
