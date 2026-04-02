@@ -19,7 +19,7 @@ const faqs = [
   },
   {
     question: "What counts as a message?",
-    answer: "Each AI-generated response counts as one message. Inbound customer messages and system messages don't count.",
+    answer: "Each automated response counts as one message. Inbound customer messages and system messages don't count.",
   },
   {
     question: "Which payment methods do you accept?",
@@ -42,8 +42,8 @@ const faqs = [
     answer: "We notify you at 80%. After the limit, messages queue until the next cycle or until you upgrade. No surprise charges.",
   },
   {
-    question: "What are AI voice call minutes?",
-    answer: "Every plan includes AI voice call minutes. Your AI assistant can make and receive phone calls — handling customer enquiries, scheduling callbacks, and more. Voice minutes are tracked separately from WhatsApp messages.",
+    question: "What are voice call minutes?",
+    answer: "Every plan includes voice call minutes. Your assistant can make and receive phone calls — handling customer enquiries, scheduling callbacks, and more. Voice minutes are tracked separately from WhatsApp messages.",
   },
 ];
 

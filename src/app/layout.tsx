@@ -15,22 +15,22 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "First in Queue — AI WhatsApp Customer Care",
+    default: "First in Queue — WhatsApp & Voice Customer Care",
     template: "%s | First in Queue",
   },
-  description: "AI-powered WhatsApp & voice support for Zambian businesses. Instant responses, 40+ languages, 24/7. Start your free trial.",
+  description: "Automated WhatsApp & voice customer support for Zambian businesses. Instant responses, 24/7. Book a free demo.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com"),
   openGraph: {
     type: "website",
     locale: "en_ZM",
     siteName: "First in Queue",
-    title: "First in Queue — AI WhatsApp Customer Care",
-    description: "AI-powered WhatsApp support for Zambian businesses. Instant responses, 40+ languages, 24/7.",
+    title: "First in Queue — WhatsApp & Voice Customer Care",
+    description: "Automated WhatsApp & voice support for Zambian businesses. Instant responses, 24/7.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "First in Queue — AI WhatsApp Customer Care",
-    description: "AI-powered WhatsApp support for Zambian businesses.",
+    title: "First in Queue — WhatsApp & Voice Customer Care",
+    description: "Automated WhatsApp & voice support for Zambian businesses.",
   },
   robots: { index: true, follow: true },
   icons: {

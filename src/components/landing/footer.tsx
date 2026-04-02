@@ -13,7 +13,7 @@ export function Footer() {
               <Image src="/fiq-logo.png?v=2" alt="First in Queue" width={200} height={200} className="h-8 w-8 object-contain" />
               <span className="text-lg font-bold text-gray-900">First in Queue</span>
             </Link>
-            <p className="text-sm text-gray-500">AI-powered WhatsApp &amp; voice customer care for businesses. Nobody waits. Everyone&apos;s first.</p>
+            <p className="text-sm text-gray-500">Automated WhatsApp &amp; voice customer care for businesses. Nobody waits. Everyone&apos;s first.</p>
           </div>
           <div>
             <h4 className="text-sm font-semibold text-gray-900 mb-3">Product</h4>

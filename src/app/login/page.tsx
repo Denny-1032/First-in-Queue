@@ -82,12 +82,12 @@ export default function LoginPage() {
           <span className="text-2xl font-bold">First in Queue</span>
         </div>
         <div className="space-y-8 max-w-md">
-          <h2 className="text-3xl font-bold leading-tight">AI-powered WhatsApp support for your business</h2>
+          <h2 className="text-3xl font-bold leading-tight">Faster responses on WhatsApp and phone — automatically</h2>
           <div className="space-y-4">
             {[
-              { icon: Bot, text: "Intelligent AI that learns your business" },
-              { icon: MessageSquare, text: "Handle thousands of conversations at once" },
-              { icon: ArrowRight, text: "5-minute setup, no code required" },
+              { icon: MessageSquare, text: "WhatsApp messages answered instantly, 24/7" },
+              { icon: Bot, text: "Phone calls handled and followed up automatically" },
+              { icon: ArrowRight, text: "5-minute setup, no technical skills needed" },
             ].map((item) => (
               <div key={item.text} className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
@@ -195,7 +195,7 @@ export default function LoginPage() {
                 onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
                 className="text-emerald-600 font-medium hover:underline"
               >
-                {isSignUp ? "Sign in" : "Start free trial"}
+                {isSignUp ? "Sign in" : "Sign up"}
               </button>
             </p>
           </CardContent>

@@ -57,7 +57,7 @@ function TrialPaymentContent() {
         planId: plan.id,
         billingInterval: billingParam as "monthly" | "yearly",
         paymentMethod,
-        phoneNumber: paymentMethod === "mobile_money" ? phoneNumber : undefined,
+        phoneNumber,
         email,
         firstName: paymentMethod === "card" ? firstName : undefined,
         lastName: paymentMethod === "card" ? lastName : undefined,
@@ -169,22 +169,22 @@ function TrialPaymentContent() {
                 />
               </div>
 
-              {/* Mobile Money fields */}
-              {paymentMethod === "mobile_money" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Mobile Money Number
-                  </label>
-                  <Input
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="097 123 4567"
-                    required
-                  />
+              {/* Phone Number - required for both payment methods */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {paymentMethod === "mobile_money" ? "Mobile Money Number" : "Phone Number"}
+                </label>
+                <Input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="097 123 4567"
+                  required
+                />
+                {paymentMethod === "mobile_money" && (
                   <p className="text-xs text-gray-400 mt-1">Airtel, MTN, or Zamtel number</p>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Card-specific fields */}
               {paymentMethod === "card" && (
@@ -235,7 +235,7 @@ function TrialPaymentContent() {
                   "Processing..."
                 ) : (
                   <>
-                    Start Free Trial
+                    Continue
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}

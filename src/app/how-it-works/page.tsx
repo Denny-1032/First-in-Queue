@@ -17,7 +17,7 @@ import { Footer } from "@/components/landing/footer";
 
 export const metadata: Metadata = {
   title: "How It Works",
-  description: "3 simple steps to AI-powered WhatsApp & voice customer care. No technical skills needed.",
+  description: "3 simple steps to automated WhatsApp & voice customer care. No technical skills needed.",
 };
 
 export default function HowItWorksPage() {
@@ -63,7 +63,7 @@ export default function HowItWorksPage() {
               </li>
               <li className="flex items-start gap-2 text-sm text-gray-600">
                 <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
-                Set your AI assistant&apos;s name, tone, and personality
+                Set your assistant&apos;s name, tone, and personality
               </li>
             </ul>
           </div>
@@ -75,7 +75,7 @@ export default function HowItWorksPage() {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">We set everything up for you</h2>
             <p className="text-gray-500 leading-relaxed mb-6">
-              We connect your WhatsApp API, set up AI voice agents, and configure automated flows.
+              We connect your WhatsApp, set up voice agents, and configure automated response flows.
             </p>
             <ul className="space-y-3">
               <li className="flex items-start gap-2 text-sm text-gray-600">
@@ -84,7 +84,7 @@ export default function HowItWorksPage() {
               </li>
               <li className="flex items-start gap-2 text-sm text-gray-600">
                 <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                AI trained on your products, services, and policies
+                Trained on your products, services, and policies
               </li>
               <li className="flex items-start gap-2 text-sm text-gray-600">
                 <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
@@ -92,7 +92,7 @@ export default function HowItWorksPage() {
               </li>
               <li className="flex items-start gap-2 text-sm text-gray-600">
                 <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                AI voice agent configured for outbound & inbound calls
+                Voice agent configured for outbound & inbound calls
               </li>
             </ul>
           </div>
@@ -102,14 +102,14 @@ export default function HowItWorksPage() {
             <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 text-white font-bold text-lg mb-6">
               03
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Go live and let AI handle the rest</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Go live and let it handle the rest</h2>
             <p className="text-gray-500 leading-relaxed mb-6">
-              AI responds to customers 24/7 in 40+ languages. Monitor and fine-tune from your dashboard.
+              Customers get instant responses 24/7 in 40+ languages. Monitor and fine-tune from your dashboard.
             </p>
             <ul className="space-y-3">
               <li className="flex items-start gap-2 text-sm text-gray-600">
                 <CheckCircle2 className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
-                AI handles WhatsApp messages and phone calls instantly
+                WhatsApp messages and phone calls handled instantly
               </li>
               <li className="flex items-start gap-2 text-sm text-gray-600">
                 <CheckCircle2 className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
@@ -130,12 +130,12 @@ export default function HowItWorksPage() {
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center mb-12">What&apos;s included</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: Bot, title: "AI Assistant", desc: "GPT-4o powered, 24/7, 40+ languages.", color: "text-emerald-600 bg-emerald-100" },
-              { icon: Phone, title: "AI Voice Calls", desc: "Outbound, inbound, and scheduled phone calls powered by AI.", color: "text-purple-600 bg-purple-100" },
+              { icon: Bot, title: "Smart Assistant", desc: "Available 24/7, in 40+ languages.", color: "text-emerald-600 bg-emerald-100" },
+              { icon: Phone, title: "Voice Calls", desc: "Outbound, inbound, and scheduled phone calls — handled automatically.", color: "text-purple-600 bg-purple-100" },
               { icon: Users, title: "Smart Handoff", desc: "Seamless transfer to human agents with full context.", color: "text-blue-600 bg-blue-100" },
               { icon: MessageSquare, title: "Rich Messages", desc: "Buttons, lists, images, and documents.", color: "text-indigo-600 bg-indigo-100" },
               { icon: Shield, title: "Fully Managed", desc: "We handle hosting, API, and updates.", color: "text-amber-600 bg-amber-100" },
-              { icon: Settings, title: "Easy Dashboard", desc: "Conversations, AI settings, and analytics in one place.", color: "text-rose-600 bg-rose-100" },
+              { icon: Settings, title: "Easy Dashboard", desc: "Conversations, settings, and analytics in one place.", color: "text-rose-600 bg-rose-100" },
               { icon: Zap, title: "Conversation Flows", desc: "Automated workflows for bookings, orders, and more.", color: "text-cyan-600 bg-cyan-100" },
             ].map((item) => (
               <div key={item.title} className="rounded-2xl bg-white border border-gray-200 p-6">

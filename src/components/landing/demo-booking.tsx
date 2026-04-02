@@ -40,7 +40,7 @@ export function DemoBooking({ id }: { id?: string }) {
         <CheckCircle2 className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
         <h3 className="text-xl font-bold text-gray-900 mb-2">Demo Booked!</h3>
         <p className="text-gray-600 text-sm">
-          We&apos;ll reach out within 24 hours to schedule your personalized demo.
+          We&apos;ll reach out within 12 hours to schedule your personalized demo.
         </p>
       </div>
     );
@@ -94,7 +94,7 @@ export function DemoBooking({ id }: { id?: string }) {
             </>
           )}
         </button>
-        <p className="text-xs text-gray-400 text-center">No account needed. We&apos;ll reach out within 24 hours.</p>
+        <p className="text-xs text-gray-400 text-center">No account needed. We&apos;ll reach out within 12 hours.</p>
       </form>
     </div>
   );

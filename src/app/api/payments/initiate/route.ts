@@ -46,10 +46,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate phone number early for mobile money
-    if (paymentMethod === "mobile_money" && !phoneNumber) {
+    // Validate phone number for all payment methods (Lipila requires it)
+    if (!phoneNumber) {
       return NextResponse.json(
-        { error: "Phone number required for mobile money payment" },
+        { error: "Phone number is required" },
         { status: 400 }
       );
     }
@@ -94,15 +94,16 @@ export async function POST(request: NextRequest) {
       });
     } else if (paymentMethod === "card") {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const formattedPhone = formatZambianPhone(phoneNumber);
 
       lipilaResponse = await collectCard({
         customerInfo: {
           firstName: firstName || "Customer",
           lastName: lastName || "",
-          phoneNumber: phoneNumber ? formatZambianPhone(phoneNumber) : "",
+          phoneNumber: formattedPhone,
           city: city || "Lusaka",
           country: "ZM",
-          address: address || "",
+          address: address || "N/A",
           zip: zip || "10101",
           email,
         },
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
           referenceId,
           amount,
           narration,
-          accountNumber: phoneNumber ? formatZambianPhone(phoneNumber) : email,
+          accountNumber: formattedPhone,
           currency: "ZMW",
           backUrl: `${appUrl}/pricing`,
           redirectUrl: `${appUrl}/api/payments/confirm?ref=${referenceId}`,

@@ -6,7 +6,7 @@ import { Footer } from "@/components/landing/footer";
 
 export const metadata: Metadata = {
   title: "Industries",
-  description: "Pre-configured AI templates for e-commerce, healthcare, restaurants, real estate, education, travel, finance, and SaaS.",
+  description: "Pre-configured templates for e-commerce, healthcare, restaurants, real estate, education, travel, finance, and SaaS.",
 };
 
 const industries = [
@@ -66,7 +66,7 @@ const industries = [
     emoji: "🎓",
     name: "Education",
     tagline: "Support students and parents effortlessly",
-    description: "Handle admissions, schedules, and fee inquiries with instant AI responses.",
+    description: "Handle admissions, schedules, and fee inquiries with instant automated responses.",
     useCases: [
       "Admissions process and requirements",
       "Course schedules and registration",
@@ -131,7 +131,7 @@ export default function IndustriesPage() {
             </span>
           </h1>
           <p className="text-lg text-gray-500 mt-6 max-w-2xl mx-auto">
-            Pre-configured AI templates, escalation rules, and flows for your industry.
+            Pre-configured templates, escalation rules, and response flows for your industry.
           </p>
         </div>
       </section>
@@ -166,12 +166,12 @@ export default function IndustriesPage() {
                 <div className={`md:col-span-2 bg-gradient-to-br from-gray-50 to-gray-100 p-8 md:p-10 flex items-center justify-center ${idx % 2 === 1 ? "md:order-1" : ""}`}>
                   <div className="text-center">
                     <span className="text-6xl">{ind.emoji}</span>
-                    <p className="text-sm text-gray-400 mt-4">Pre-built AI template included</p>
+                    <p className="text-sm text-gray-400 mt-4">Pre-built template included</p>
                     <Link
-                      href="/login"
+                      href="/#book-demo"
                       className="inline-flex items-center gap-2 mt-4 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-2.5 text-sm font-medium text-white hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/25"
                     >
-                      Try for Free
+                      Book a Demo
                       <ArrowRight className="h-4 w-4" />
                     </Link>
                   </div>
@@ -188,7 +188,7 @@ export default function IndustriesPage() {
           <div className="rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 p-12 md:p-16 text-white">
             <h2 className="text-3xl md:text-4xl font-bold">Don&apos;t see your industry?</h2>
             <p className="text-emerald-100 mt-4 max-w-lg mx-auto">
-              We&apos;ll create a custom AI template for your industry.
+              We&apos;ll create a custom template for your industry.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
               <Link

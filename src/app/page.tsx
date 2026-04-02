@@ -13,15 +13,14 @@ import {
   Users,
   Zap,
   Globe,
-  BarChart3,
 } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 import { DemoBooking } from "@/components/landing/demo-booking";
 
 export const metadata: Metadata = {
-  title: "AI WhatsApp & Voice Customer Care for Zambian Businesses",
-  description: "Never lose a customer to slow responses again. AI handles WhatsApp messages and phone calls 24/7. Book a free demo.",
+  title: "WhatsApp & Voice Customer Care for Zambian Businesses | First in Queue",
+  description: "Never lose a customer to slow responses again. Automated WhatsApp and phone support — 24/7, in 40+ languages. Book a free demo.",
 };
 
 export default function Home() {
@@ -42,7 +41,7 @@ export default function Home() {
                 again
               </h1>
               <p className="text-lg text-gray-500 mt-6 max-w-lg">
-                AI answers your WhatsApp messages and phone calls instantly — 24/7, in 40+ languages. Your customers get help in seconds, not hours.
+                An automated assistant answers your WhatsApp messages and phone calls instantly — 24/7, in 40+ languages. Your customers get help in seconds, not hours.
               </p>
               <div className="flex flex-col sm:flex-row items-start gap-4 mt-8">
                 <Link
@@ -122,13 +121,13 @@ export default function Home() {
               {
                 icon: MessageSquare,
                 title: "WhatsApp on autopilot",
-                desc: "AI replies instantly to customer messages — orders, questions, complaints — in their language.",
+                desc: "Replies instantly to customer messages — orders, questions, complaints — in their language.",
                 color: "bg-green-100 text-green-600",
               },
               {
                 icon: Phone,
-                title: "AI answers the phone",
-                desc: "Handles inbound calls, makes follow-ups, and schedules appointments — no staff needed.",
+                title: "Answers the phone for you",
+                desc: "Handles inbound calls, makes follow-ups, and schedules appointments — no extra staff needed.",
                 color: "bg-purple-100 text-purple-600",
               },
               {
@@ -155,7 +154,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">See it in action</h2>
-            <p className="text-gray-500 mt-3">A real customer conversation, resolved by AI in 8 seconds.</p>
+            <p className="text-gray-500 mt-3">A real customer conversation, resolved automatically in 8 seconds.</p>
           </div>
           <div className="rounded-2xl border border-gray-200 bg-gradient-to-b from-gray-50 to-white shadow-2xl shadow-gray-200/50 overflow-hidden">
             <div className="bg-emerald-600 px-6 py-4 flex items-center gap-3">
@@ -189,7 +188,7 @@ export default function Home() {
               <div className="flex justify-center">
                 <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-white/80 rounded-full px-3 py-1">
                   <Bot className="h-3 w-3 text-emerald-500" />
-                  Resolved by AI in 8 seconds
+                  Resolved automatically in 8 seconds
                 </div>
               </div>
             </div>
@@ -215,82 +214,50 @@ export default function Home() {
               </div>
             ))}
           </div>
-          {/* Testimonials */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                quote: "We used to miss 40% of WhatsApp messages. Now every customer gets a reply in seconds.",
-                name: "Sarah M.",
-                role: "E-commerce Owner, Lusaka",
-              },
-              {
-                quote: "FiQ handles 80% of our enquiries automatically. My team finally has time to focus on complex cases.",
-                name: "James K.",
-                role: "Operations Manager, Healthcare",
-              },
-              {
-                quote: "The AI voice calls for appointment reminders reduced our no-shows by 60%. Game changer.",
-                name: "Linda C.",
-                role: "Clinic Administrator",
-              },
-            ].map((t) => (
-              <div key={t.name} className="rounded-2xl bg-white border border-gray-200 p-6">
-                <p className="text-sm text-gray-700 leading-relaxed italic">&ldquo;{t.quote}&rdquo;</p>
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <p className="text-sm font-semibold text-gray-900">{t.name}</p>
-                  <p className="text-xs text-gray-500">{t.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* USE CASES — Problem → Solution → Result */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Works for your industry</h2>
-          </div>
-          <div className="space-y-6">
-            {[
-              {
-                industry: "E-Commerce",
-                problem: "Customers ask about orders, returns, and stock — your team can't keep up.",
-                solution: "FiQ instantly answers order queries, processes returns, and checks stock levels via WhatsApp.",
-                result: "90% of order queries resolved instantly. Zero missed messages.",
-              },
-              {
-                industry: "Healthcare",
-                problem: "Patients miss appointments. Rescheduling clogs up phone lines.",
-                solution: "AI calls patients to confirm appointments, sends reminders, and reschedules via WhatsApp.",
-                result: "60% fewer no-shows. Staff freed up for patient care.",
-              },
-              {
-                industry: "Real Estate",
-                problem: "Leads enquire about properties at night and on weekends — nobody responds.",
-                solution: "FiQ responds instantly with property details, availability, and schedules viewings.",
-                result: "3x more viewings booked. No lead goes cold.",
-              },
-            ].map((uc) => (
-              <div key={uc.industry} className="rounded-2xl border border-gray-200 p-6 md:p-8">
-                <span className="inline-block text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full mb-4">{uc.industry}</span>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                  <div>
-                    <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-1">Problem</p>
-                    <p className="text-sm text-gray-600">{uc.problem}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">Solution</p>
-                    <p className="text-sm text-gray-600">{uc.solution}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-1">Result</p>
-                    <p className="text-sm text-gray-700 font-medium">{uc.result}</p>
+          {/* Scrolling Testimonials */}
+          <div className="overflow-hidden">
+            <div className="flex animate-marquee gap-6" style={{ width: "max-content" }}>
+              {[
+                {
+                  quote: "We used to miss 40% of WhatsApp messages. Now every customer gets a reply in seconds.",
+                  name: "Sarah M.",
+                  role: "E-commerce Owner, Lusaka",
+                },
+                {
+                  quote: "FiQ handles 80% of our enquiries automatically. My team finally has time to focus on complex cases.",
+                  name: "James K.",
+                  role: "Operations Manager, Healthcare",
+                },
+                {
+                  quote: "Automated appointment reminders reduced our no-shows by 60%. Game changer.",
+                  name: "Linda C.",
+                  role: "Clinic Administrator",
+                },
+                {
+                  quote: "Response time went from 2 hours to under 10 seconds. Customers love it.",
+                  name: "David N.",
+                  role: "Restaurant Owner, Kitwe",
+                },
+                {
+                  quote: "We scaled from 50 to 500 daily enquiries without hiring anyone new.",
+                  name: "Grace T.",
+                  role: "Operations Lead, Real Estate",
+                },
+                {
+                  quote: "Our support team now only handles complex issues. Everything else is automated.",
+                  name: "Michael B.",
+                  role: "IT Manager, Finance",
+                },
+              ].flatMap((t, i) => [t, { ...t, name: `${t.name}`, role: t.role, _dup: i }]).map((t, i) => (
+                <div key={i} className="rounded-2xl bg-white border border-gray-200 p-6 min-w-[300px] max-w-[340px] shrink-0">
+                  <p className="text-sm text-gray-700 leading-relaxed italic">&ldquo;{t.quote}&rdquo;</p>
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <p className="text-sm font-semibold text-gray-900">{t.name}</p>
+                    <p className="text-xs text-gray-500">{t.role}</p>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -304,8 +271,8 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { step: "01", title: "Tell us about your business", desc: "Share your name, industry, and common customer questions.", color: "from-emerald-500 to-teal-600" },
-              { step: "02", title: "We set everything up", desc: "We configure WhatsApp, AI voice agent, and automated flows.", color: "from-blue-500 to-indigo-600" },
-              { step: "03", title: "Go live", desc: "AI handles customer support 24/7. You focus on growing.", color: "from-purple-500 to-violet-600" },
+              { step: "02", title: "We set everything up", desc: "We configure WhatsApp, voice, and automated response flows.", color: "from-blue-500 to-indigo-600" },
+              { step: "03", title: "Go live", desc: "Customer support runs 24/7. You focus on growing.", color: "from-purple-500 to-violet-600" },
             ].map((item) => (
               <div key={item.step} className="rounded-2xl bg-white border border-gray-200 p-8 shadow-sm">
                 <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${item.color} text-white font-bold text-lg mb-6`}>

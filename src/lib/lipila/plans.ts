@@ -40,8 +40,8 @@ export const PLANS: PlanDefinition[] = [
     voiceMinutesLabel: "30 voice minutes/mo",
     whatsappNumbers: 1,
     features: [
-      "AI-powered responses",
-      "30 AI voice call minutes",
+      "Automated responses",
+      "30 voice call minutes",
       "1 WhatsApp number",
       "40+ languages auto-detected",
       "Conversation flows",
@@ -67,7 +67,7 @@ export const PLANS: PlanDefinition[] = [
     whatsappNumbers: 2,
     features: [
       "Everything in Starter",
-      "120 AI voice call minutes",
+      "120 voice call minutes",
       "2 WhatsApp numbers",
       "Scheduled outbound calls",
       "Human agent handoff",
@@ -95,7 +95,7 @@ export const PLANS: PlanDefinition[] = [
       "Unlimited messages",
       "Unlimited voice minutes",
       "Unlimited WhatsApp numbers",
-      "Custom AI training on your data",
+      "Custom training on your data",
       "99.9% uptime SLA",
       "Dedicated account manager",
       "Custom integrations (POS, ERP)",
