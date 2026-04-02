@@ -1,9 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
+import { WhatsAppButton } from "./whatsapp-button";
 
 export function Footer() {
   return (
     <footer className="py-12 px-6 border-t border-gray-100">
+      <WhatsAppButton />
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           <div>

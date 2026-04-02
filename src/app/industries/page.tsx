@@ -199,10 +199,10 @@ export default function IndustriesPage() {
                 <ArrowRight className="h-5 w-5" />
               </Link>
               <Link
-                href="/login"
+                href="/#book-demo"
                 className="inline-flex items-center gap-2 rounded-xl border-2 border-white/30 px-8 py-4 text-base font-semibold text-white hover:bg-white/10 transition-all"
               >
-                Start Free Trial
+                Book a Demo
               </Link>
             </div>
           </div>

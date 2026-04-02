@@ -2,29 +2,26 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  MessageSquare,
   Bot,
-  Zap,
-  Globe,
-  BarChart3,
-  Users,
   ArrowRight,
   CheckCircle2,
   Shield,
-  Workflow,
   Clock,
   Phone,
-  Headphones,
-  CalendarClock,
-  Mic,
+  MessageSquare,
+  AlertTriangle,
+  Users,
+  Zap,
+  Globe,
+  BarChart3,
 } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
-import { VoiceDemoCall } from "@/components/landing/voice-demo-call";
+import { DemoBooking } from "@/components/landing/demo-booking";
 
 export const metadata: Metadata = {
   title: "AI WhatsApp & Voice Customer Care for Zambian Businesses",
-  description: "Automate customer support on WhatsApp and phone calls with AI. 40+ languages, 24/7 responses, 5-minute setup. Start your 7-day free trial.",
+  description: "Never lose a customer to slow responses again. AI handles WhatsApp messages and phone calls 24/7. Book a free demo.",
 };
 
 export default function Home() {
@@ -32,53 +29,134 @@ export default function Home() {
     <div className="min-h-screen bg-white overflow-x-hidden">
       <Navbar />
 
-      {/* Hero */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-gray-900 tracking-tight leading-[1.1] max-w-4xl mx-auto">
-            Your customers are{" "}
-            <span className="bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
-              always first
-            </span>
-          </h1>
-          <p className="text-lg text-gray-500 mt-6 max-w-xl mx-auto">
-            AI-powered WhatsApp &amp; voice support. Set up in minutes, serve thousands instantly.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-8 py-4 text-base font-semibold text-white hover:from-emerald-600 hover:to-teal-700 transition-all shadow-xl shadow-emerald-500/25"
-            >
-              Start Free Trial
-              <ArrowRight className="h-5 w-5" />
-            </Link>
-            <Link
-              href="/how-it-works"
-              className="inline-flex items-center gap-2 rounded-xl border-2 border-gray-200 px-8 py-4 text-base font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-all"
-            >
-              See How It Works
-            </Link>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 mt-12 text-sm text-gray-500">
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-              7-day free trial
+      {/* HERO — Business outcome focused */}
+      <section className="pt-32 pb-16 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 tracking-tight leading-[1.1]">
+                Never lose a customer to{" "}
+                <span className="bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
+                  slow responses
+                </span>{" "}
+                again
+              </h1>
+              <p className="text-lg text-gray-500 mt-6 max-w-lg">
+                AI answers your WhatsApp messages and phone calls instantly — 24/7, in 40+ languages. Your customers get help in seconds, not hours.
+              </p>
+              <div className="flex flex-col sm:flex-row items-start gap-4 mt-8">
+                <Link
+                  href="#book-demo"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-8 py-4 text-base font-semibold text-white hover:from-emerald-600 hover:to-teal-700 transition-all shadow-xl shadow-emerald-500/25"
+                >
+                  Book a Demo
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+                <Link
+                  href="#how-it-works"
+                  className="inline-flex items-center gap-2 rounded-xl border-2 border-gray-200 px-8 py-4 text-base font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-all"
+                >
+                  See How It Works
+                </Link>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-8 text-sm text-gray-500">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                  5-minute setup
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                  No technical skills needed
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                  Free demo
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-              5-minute setup
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-              WhatsApp + Voice calls
+            {/* Demo Booking Form — right side of hero */}
+            <div className="lg:pl-8">
+              <DemoBooking id="book-demo" />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Chat Demo Preview */}
+      {/* PROBLEM SECTION — Pain points */}
+      <section className="py-16 px-6 bg-gray-50 border-y border-gray-100">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Sound familiar?</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { icon: Clock, text: "Customers wait hours for a reply — and leave", color: "text-red-500 bg-red-50" },
+              { icon: AlertTriangle, text: "Your team misses messages on nights and weekends", color: "text-amber-500 bg-amber-50" },
+              { icon: Users, text: "Support staff are overwhelmed and burning out", color: "text-orange-500 bg-orange-50" },
+            ].map((p) => (
+              <div key={p.text} className="rounded-2xl border border-gray-200 bg-white p-6 flex items-start gap-4">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${p.color} shrink-0`}>
+                  <p.icon className="h-5 w-5" />
+                </div>
+                <p className="text-gray-700 font-medium text-sm leading-relaxed">{p.text}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-center text-gray-500 mt-8 text-sm">
+            Every missed message is a lost sale. FiQ makes sure that never happens.
+          </p>
+        </div>
+      </section>
+
+      {/* SOLUTION SECTION — What FiQ does */}
+      <section className="py-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">How FiQ solves it</h2>
+            <p className="text-gray-500 mt-3 max-w-2xl mx-auto">
+              One platform handles all your customer conversations — WhatsApp and phone — so your team can focus on growing the business.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: MessageSquare,
+                title: "WhatsApp on autopilot",
+                desc: "AI replies instantly to customer messages — orders, questions, complaints — in their language.",
+                color: "bg-green-100 text-green-600",
+              },
+              {
+                icon: Phone,
+                title: "AI answers the phone",
+                desc: "Handles inbound calls, makes follow-ups, and schedules appointments — no staff needed.",
+                color: "bg-purple-100 text-purple-600",
+              },
+              {
+                icon: Users,
+                title: "Hands off to humans when needed",
+                desc: "Complex issues get escalated to your team with full context. Nothing falls through the cracks.",
+                color: "bg-blue-100 text-blue-600",
+              },
+            ].map((s) => (
+              <div key={s.title} className="rounded-2xl border border-gray-200 p-8 hover:shadow-lg transition-all">
+                <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl ${s.color} mb-5`}>
+                  <s.icon className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{s.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* LIVE DEMO — Chat simulation */}
       <section className="pb-20 px-6">
         <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">See it in action</h2>
+            <p className="text-gray-500 mt-3">A real customer conversation, resolved by AI in 8 seconds.</p>
+          </div>
           <div className="rounded-2xl border border-gray-200 bg-gradient-to-b from-gray-50 to-white shadow-2xl shadow-gray-200/50 overflow-hidden">
             <div className="bg-emerald-600 px-6 py-4 flex items-center gap-3">
               <Image src="/fiq-logo.png?v=2" alt="First in Queue" width={200} height={200} className="h-9 w-9 object-contain rounded-full bg-white/10 p-0.5" />
@@ -119,128 +197,117 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Voice Agent Preview */}
-      <section className="pb-20 px-6">
+      {/* SOCIAL PROOF — Stats + Testimonials */}
+      <section className="py-16 px-6 bg-gray-50 border-y border-gray-100">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 rounded-full bg-purple-50 border border-purple-200 px-4 py-1.5 text-sm font-medium text-purple-700 mb-4">
-              <Phone className="h-4 w-4" />
-              AI Voice Agent
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Your AI answers the phone too</h2>
-            <p className="text-gray-500 mt-3 max-w-2xl mx-auto">
-              The same AI that handles WhatsApp can make and receive phone calls — scheduling appointments, answering FAQs, and following up with customers automatically.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-            <VoiceDemoCall />
-
-            {/* Voice Features List */}
-            <div className="space-y-6">
-              {[
-                {
-                  icon: Phone,
-                  title: "Outbound & Inbound Calls",
-                  desc: "AI makes follow-up calls, appointment reminders, and handles incoming enquiries automatically.",
-                  color: "bg-purple-100 text-purple-600",
-                },
-                {
-                  icon: CalendarClock,
-                  title: "Scheduled Calls",
-                  desc: "Schedule calls in advance — the AI calls customers at the right time with the right context.",
-                  color: "bg-blue-100 text-blue-600",
-                },
-                {
-                  icon: Globe,
-                  title: "Multilingual Voice",
-                  desc: "Natural-sounding AI voice in English, Bemba, Nyanja, and 40+ other languages.",
-                  color: "bg-teal-100 text-teal-600",
-                },
-                {
-                  icon: BarChart3,
-                  title: "Call Analytics & Transcripts",
-                  desc: "Full call recordings, transcripts, and performance metrics in your dashboard.",
-                  color: "bg-amber-100 text-amber-600",
-                },
-              ].map((feature) => (
-                <div key={feature.title} className="flex items-start gap-4">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${feature.color} shrink-0`}>
-                    <feature.icon className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-semibold text-gray-900">{feature.title}</h3>
-                    <p className="text-sm text-gray-500 mt-1 leading-relaxed">{feature.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Bar */}
-      <section className="py-12 px-6 bg-gray-50 border-y border-gray-100">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {[
-            { value: "78%", label: "AI Resolution Rate" },
-            { value: "<10s", label: "Avg Response Time" },
-            { value: "40+", label: "Languages Supported" },
-            { value: "99.9%", label: "Uptime SLA" },
-          ].map((stat) => (
-            <div key={stat.label}>
-              <p className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
-                {stat.value}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Features */}
-      <section id="features" className="py-20 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Everything you need</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center mb-16">
             {[
-              { icon: Bot, title: "AI Responses", desc: "GPT-4o powered, context-aware, on-brand replies.", color: "bg-emerald-100 text-emerald-600" },
-              { icon: Globe, title: "40+ Languages", desc: "Auto-detects and replies in the customer's language.", color: "bg-blue-100 text-blue-600" },
-              { icon: Users, title: "Smart Handoff", desc: "Escalates to humans with full context when needed.", color: "bg-purple-100 text-purple-600" },
-              { icon: Workflow, title: "Flows", desc: "No-code workflows for orders, bookings, returns.", color: "bg-amber-100 text-amber-600" },
-              { icon: BarChart3, title: "Analytics", desc: "Sentiment, resolution rates, and agent performance.", color: "bg-rose-100 text-rose-600" },
-              { icon: Shield, title: "Compliant", desc: "Meta Business API compliant out of the box.", color: "bg-teal-100 text-teal-600" },
-              { icon: Zap, title: "5-Min Setup", desc: "Tell us about your business — we handle the rest.", color: "bg-orange-100 text-orange-600" },
-              { icon: MessageSquare, title: "Rich Media", desc: "Images, docs, buttons, lists, locations.", color: "bg-indigo-100 text-indigo-600" },
-              { icon: Phone, title: "AI Voice Calls", desc: "Outbound, inbound, and scheduled AI phone calls.", color: "bg-violet-100 text-violet-600" },
-              { icon: Clock, title: "24/7", desc: "Always on, even outside business hours.", color: "bg-cyan-100 text-cyan-600" },
-            ].map((feature) => (
-              <div key={feature.title} className="group rounded-2xl border border-gray-200 p-6 hover:shadow-lg hover:border-gray-300 transition-all">
-                <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl ${feature.color} mb-4`}>
-                  <feature.icon className="h-6 w-6" />
+              { value: "78%", label: "Issues resolved without staff" },
+              { value: "<10s", label: "Average response time" },
+              { value: "40+", label: "Languages supported" },
+              { value: "24/7", label: "Always available" },
+            ].map((stat) => (
+              <div key={stat.label}>
+                <p className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
+                  {stat.value}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+          {/* Testimonials */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                quote: "We used to miss 40% of WhatsApp messages. Now every customer gets a reply in seconds.",
+                name: "Sarah M.",
+                role: "E-commerce Owner, Lusaka",
+              },
+              {
+                quote: "FiQ handles 80% of our enquiries automatically. My team finally has time to focus on complex cases.",
+                name: "James K.",
+                role: "Operations Manager, Healthcare",
+              },
+              {
+                quote: "The AI voice calls for appointment reminders reduced our no-shows by 60%. Game changer.",
+                name: "Linda C.",
+                role: "Clinic Administrator",
+              },
+            ].map((t) => (
+              <div key={t.name} className="rounded-2xl bg-white border border-gray-200 p-6">
+                <p className="text-sm text-gray-700 leading-relaxed italic">&ldquo;{t.quote}&rdquo;</p>
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <p className="text-sm font-semibold text-gray-900">{t.name}</p>
+                  <p className="text-xs text-gray-500">{t.role}</p>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">{feature.title}</h3>
-                <p className="text-sm text-gray-500 mt-2 leading-relaxed">{feature.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How It Works — Brief */}
-      <section className="py-20 px-6 bg-gray-50">
+      {/* USE CASES — Problem → Solution → Result */}
+      <section className="py-20 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Works for your industry</h2>
+          </div>
+          <div className="space-y-6">
+            {[
+              {
+                industry: "E-Commerce",
+                problem: "Customers ask about orders, returns, and stock — your team can't keep up.",
+                solution: "FiQ instantly answers order queries, processes returns, and checks stock levels via WhatsApp.",
+                result: "90% of order queries resolved instantly. Zero missed messages.",
+              },
+              {
+                industry: "Healthcare",
+                problem: "Patients miss appointments. Rescheduling clogs up phone lines.",
+                solution: "AI calls patients to confirm appointments, sends reminders, and reschedules via WhatsApp.",
+                result: "60% fewer no-shows. Staff freed up for patient care.",
+              },
+              {
+                industry: "Real Estate",
+                problem: "Leads enquire about properties at night and on weekends — nobody responds.",
+                solution: "FiQ responds instantly with property details, availability, and schedules viewings.",
+                result: "3x more viewings booked. No lead goes cold.",
+              },
+            ].map((uc) => (
+              <div key={uc.industry} className="rounded-2xl border border-gray-200 p-6 md:p-8">
+                <span className="inline-block text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full mb-4">{uc.industry}</span>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                  <div>
+                    <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-1">Problem</p>
+                    <p className="text-sm text-gray-600">{uc.problem}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">Solution</p>
+                    <p className="text-sm text-gray-600">{uc.solution}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-1">Result</p>
+                    <p className="text-sm text-gray-700 font-medium">{uc.result}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS — Brief */}
+      <section id="how-it-works" className="py-20 px-6 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">3 steps to go live</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Up and running in 3 steps</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { step: "01", title: "Tell Us About Your Business", desc: "Share your business name and industry.", color: "from-emerald-500 to-teal-600" },
-              { step: "02", title: "We Set Everything Up", desc: "We configure WhatsApp, AI, and your bot.", color: "from-blue-500 to-indigo-600" },
-              { step: "03", title: "Go Live", desc: "AI handles support 24/7 in 40+ languages.", color: "from-purple-500 to-violet-600" },
+              { step: "01", title: "Tell us about your business", desc: "Share your name, industry, and common customer questions.", color: "from-emerald-500 to-teal-600" },
+              { step: "02", title: "We set everything up", desc: "We configure WhatsApp, AI voice agent, and automated flows.", color: "from-blue-500 to-indigo-600" },
+              { step: "03", title: "Go live", desc: "AI handles customer support 24/7. You focus on growing.", color: "from-purple-500 to-violet-600" },
             ].map((item) => (
-              <div key={item.step} className="relative rounded-2xl bg-white border border-gray-200 p-8 shadow-sm">
+              <div key={item.step} className="rounded-2xl bg-white border border-gray-200 p-8 shadow-sm">
                 <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${item.color} text-white font-bold text-lg mb-6`}>
                   {item.step}
                 </div>
@@ -249,88 +316,46 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <div className="text-center mt-10">
-            <Link href="/how-it-works" className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
-              Learn more about how it works
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
         </div>
       </section>
 
-      {/* Industries — Brief */}
-      <section className="py-20 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Built for every industry</h2>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      {/* TRUST SIGNALS */}
+      <section className="py-12 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { emoji: "🛒", name: "E-Commerce" },
-              { emoji: "🏥", name: "Healthcare" },
-              { emoji: "🍽️", name: "Restaurants" },
-              { emoji: "🏠", name: "Real Estate" },
-              { emoji: "🎓", name: "Education" },
-              { emoji: "✈️", name: "Travel" },
-              { emoji: "💰", name: "Finance" },
-              { emoji: "💻", name: "SaaS" },
-            ].map((ind) => (
-              <div key={ind.name} className="rounded-2xl border border-gray-200 p-6 text-center hover:shadow-lg hover:border-emerald-200 transition-all">
-                <span className="text-4xl">{ind.emoji}</span>
-                <h3 className="text-base font-semibold text-gray-900 mt-3">{ind.name}</h3>
+              { icon: Shield, title: "Secure & Private", desc: "Your data is encrypted and never shared. Fully compliant." },
+              { icon: Zap, title: "99.9% Uptime", desc: "Enterprise-grade reliability. Your support never goes offline." },
+              { icon: Globe, title: "40+ Languages", desc: "Responds in your customer's language — automatically." },
+            ].map((t) => (
+              <div key={t.title} className="flex items-start gap-3 p-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 shrink-0">
+                  <t.icon className="h-5 w-5 text-gray-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{t.title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{t.desc}</p>
+                </div>
               </div>
             ))}
           </div>
-          <div className="text-center mt-10">
-            <Link href="/industries" className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
-              See all industries and use cases
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
         </div>
       </section>
 
-      {/* Pricing — Brief */}
-      <section className="py-20 px-6 bg-gray-50">
-        <div className="max-w-7xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Simple, transparent pricing</h2>
-          <p className="text-gray-500 max-w-lg mx-auto mb-4">
-            7-day free trial. 30-day money-back guarantee. All prices in Zambian Kwacha.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-10">
-            {[
-              { name: "Starter", price: "K499/mo", desc: "1,000 messages + 60 voice mins", highlight: true },
-              { name: "Growth", price: "K1,299/mo", desc: "5,000 messages + 200 voice mins" },
-              { name: "Enterprise", price: "Custom", desc: "Unlimited messages & calls" },
-            ].map((p) => (
-              <div key={p.name} className={`rounded-2xl border-2 p-6 ${p.highlight ? "border-emerald-500 bg-white shadow-lg" : "border-gray-200 bg-white"}`}>
-                <h3 className="text-sm font-semibold text-gray-900">{p.name}</h3>
-                <p className="text-2xl font-bold text-gray-900 mt-2">{p.price}</p>
-                <p className="text-xs text-gray-500 mt-1">{p.desc}</p>
-              </div>
-            ))}
-          </div>
-          <Link href="/pricing" className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
-            View full pricing and FAQs
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </section>
-
-      {/* CTA */}
+      {/* FINAL CTA */}
       <section className="py-20 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <div className="rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 p-12 md:p-16 text-white">
-            <h2 className="text-3xl md:text-4xl font-bold">Ready to get started?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold">Stop losing customers to slow responses</h2>
             <p className="text-emerald-100 mt-4 max-w-lg mx-auto">
-              5-minute setup. 7-day free trial. 30-day money-back guarantee.
+              Book a free demo and see how FiQ can handle your customer support — instantly.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
               <Link
-                href="/login"
+                href="#book-demo"
                 className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-semibold text-emerald-700 hover:bg-emerald-50 transition-all shadow-lg"
               >
-                Start Free Trial
+                Book a Demo
                 <ArrowRight className="h-5 w-5" />
               </Link>
               <Link

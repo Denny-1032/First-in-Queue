@@ -213,15 +213,15 @@ function PricingContent() {
       <section className="py-20 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <div className="rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 p-12 md:p-16 text-white">
-            <h2 className="text-3xl md:text-4xl font-bold">Start your free trial</h2>
+            <h2 className="text-3xl md:text-4xl font-bold">See FiQ in action</h2>
             <p className="text-emerald-100 mt-4 max-w-lg mx-auto">
-              7 days free. 30-day money-back guarantee.
+              Book a free demo. No commitment required.
             </p>
             <Link
-              href="/login"
+              href="/#book-demo"
               className="inline-flex items-center gap-2 mt-8 rounded-xl bg-white px-8 py-4 text-base font-semibold text-emerald-700 hover:bg-emerald-50 transition-all shadow-lg"
             >
-              Start Free Trial
+              Book a Demo
               <ArrowRight className="h-5 w-5" />
             </Link>
           </div>

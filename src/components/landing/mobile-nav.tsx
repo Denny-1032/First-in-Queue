@@ -59,11 +59,11 @@ export function MobileNav() {
                 Login
               </Link>
               <Link
-                href="/login"
+                href="/#book-demo"
                 onClick={() => setOpen(false)}
                 className="mx-4 mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-3 text-sm font-medium text-white"
               >
-                Start Trial
+                Book a Demo
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

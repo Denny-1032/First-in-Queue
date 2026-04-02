@@ -57,18 +57,10 @@ function TrialPaymentContent() {
         planId: plan.id,
         billingInterval: billingParam as "monthly" | "yearly",
         paymentMethod,
-        accountNumber: paymentMethod === "mobile_money" ? phoneNumber : undefined,
+        phoneNumber: paymentMethod === "mobile_money" ? phoneNumber : undefined,
         email,
-        customerInfo: paymentMethod === "card" ? {
-          firstName,
-          lastName,
-          phoneNumber: "",
-          email,
-          city: "Lusaka",
-          country: "ZM",
-          address: "",
-          zip: "",
-        } : undefined,
+        firstName: paymentMethod === "card" ? firstName : undefined,
+        lastName: paymentMethod === "card" ? lastName : undefined,
       };
 
       const res = await fetch("/api/payments/initiate", {
