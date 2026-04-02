@@ -37,10 +37,10 @@ export default function ContactPage() {
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">Email Us</h2>
             <a
-              href="mailto:support@firstinqueue.com"
+              href="mailto:copperjetofficial@gmail.com"
               className="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors"
             >
-              support@firstinqueue.com
+              copperjetofficial@gmail.com
             </a>
           </div>
 
@@ -88,7 +88,7 @@ export default function ContactPage() {
             Unlimited messages, custom integrations, or SLA guarantees? Let&apos;s talk.
           </p>
           <a
-            href="mailto:sales@firstinqueue.com"
+            href="mailto:copperjetofficial@gmail.com"
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-8 py-4 text-base font-semibold text-white hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/25"
           >
             <Mail className="h-5 w-5" />

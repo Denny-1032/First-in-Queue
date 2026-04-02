@@ -89,10 +89,24 @@ export default function DashboardPage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Check if first-time user
+  // Check if first-time user — verify server-side, not just localStorage
   useEffect(() => {
     const completed = localStorage.getItem("fiq-onboarding-complete");
-    if (!completed) setShowOnboarding(true);
+    if (completed) return; // Already done locally
+    // Check if tenant exists on server
+    fetch("/api/setup")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.setup) {
+          // Tenant exists — mark onboarding complete so we don't ask again
+          localStorage.setItem("fiq-onboarding-complete", "true");
+        } else {
+          setShowOnboarding(true);
+        }
+      })
+      .catch(() => {
+        // On error, don't block the dashboard
+      });
   }, []);
 
   const handleOnboardingComplete = () => {

@@ -8,11 +8,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
-    // Admin credentials — in production use env vars or a proper auth system
-    const adminEmail = process.env.ADMIN_EMAIL || "admin@firstinqueue.com";
+    // Support multiple admin emails via comma-separated env var or fallback to single
+    const adminEmailsEnv = process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || "admin@firstinqueue.com";
+    const adminEmails = adminEmailsEnv.split(",").map(e => e.trim().toLowerCase());
+    
+    // Default admin password
     const adminPassword = process.env.ADMIN_PASSWORD || "FiQ@dmin2024!";
 
-    if (email !== adminEmail || password !== adminPassword) {
+    // Check if email is in admin list and password matches
+    if (!adminEmails.includes(email.toLowerCase()) || password !== adminPassword) {
       return NextResponse.json({ error: "Invalid admin credentials" }, { status: 401 });
     }
 

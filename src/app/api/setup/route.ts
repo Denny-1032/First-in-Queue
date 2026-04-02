@@ -70,15 +70,53 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const db = getSupabaseAdmin();
-    const { data: tenant } = await db
-      .from("tenants")
-      .select("id, name, slug, config, is_active, created_at")
-      .limit(1)
-      .single();
 
+    // If user is logged in, check their specific tenant
+    const authToken = request.cookies.get("fiq-auth")?.value;
+    if (authToken) {
+      try {
+        const payload = JSON.parse(Buffer.from(authToken, "base64url").toString());
+        if (payload.userId) {
+          const { data: user } = await db
+            .from("users")
+            .select("tenant_id")
+            .eq("id", payload.userId)
+            .single();
+
+          if (user?.tenant_id) {
+            const { data: tenant } = await db
+              .from("tenants")
+              .select("id, name, config, is_active")
+              .eq("id", user.tenant_id)
+              .single();
+
+            if (tenant) {
+              // Tenant exists and has a name set (not just default) = setup complete
+              const hasCompletedSetup = !!(tenant.config?.business_name && tenant.config.business_name !== "Your Business");
+              return NextResponse.json({
+                setup: hasCompletedSetup || tenant.is_active,
+                tenant_id: tenant.id,
+                tenant_name: tenant.name,
+                industry: tenant.config?.industry,
+              });
+            }
+          }
+        }
+      } catch {
+        // Token parse error — fall through to global check
+      }
+    }
+
+    // Fallback: global tenant check (for first-time /api/setup usage)
+    const { data: tenants } = await db
+      .from("tenants")
+      .select("id, name, config, is_active")
+      .limit(1);
+
+    const tenant = tenants?.[0];
     if (!tenant) {
       return NextResponse.json({ setup: false, message: "No tenant configured. POST to /api/setup to create one." });
     }

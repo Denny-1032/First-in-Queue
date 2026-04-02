@@ -15,6 +15,10 @@ import {
   Wifi,
   WifiOff,
   BarChart3,
+  Calendar,
+  CreditCard,
+  Banknote,
+  Star,
 } from "lucide-react";
 
 interface PlatformStats {
@@ -39,20 +43,55 @@ interface ClientRow {
   created_at: string;
 }
 
+interface DemoBooking {
+  id: string;
+  name: string;
+  company: string | null;
+  contact: string;
+  status: string;
+  created_at: string;
+  notes: string | null;
+}
+
+interface SubscriptionData {
+  subscriptions: {
+    id: string;
+    tenant_id: string;
+    plan_id: string;
+    status: string;
+    current_period_start: string;
+    current_period_end: string;
+    tenants: { name: string };
+  }[];
+  stats: {
+    total: number;
+    active: number;
+    trialing: number;
+    expired: number;
+    estimated_monthly_revenue: number;
+  };
+}
+
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [clients, setClients] = useState<ClientRow[]>([]);
+  const [bookings, setBookings] = useState<DemoBooking[]>([]);
+  const [subscriptions, setSubscriptions] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const [statsRes, clientsRes] = await Promise.all([
+        const [statsRes, clientsRes, bookingsRes, subsRes] = await Promise.all([
           fetch("/api/admin/stats"),
           fetch("/api/admin/clients"),
+          fetch("/api/admin/bookings"),
+          fetch("/api/admin/subscriptions"),
         ]);
         if (statsRes.ok) setStats(await statsRes.json());
         if (clientsRes.ok) setClients(await clientsRes.json());
+        if (bookingsRes.ok) setBookings(await bookingsRes.json());
+        if (subsRes.ok) setSubscriptions(await subsRes.json());
       } catch (e) {
         console.error("Failed to load admin data:", e);
       } finally {
@@ -197,6 +236,86 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Revenue Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {[
+          { label: "Monthly Revenue (Est.)", value: `K${(subscriptions?.stats.estimated_monthly_revenue || 0).toLocaleString()}`, icon: Banknote, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+          { label: "Active Subscriptions", value: subscriptions?.stats.active || 0, icon: CreditCard, color: "text-blue-400", bg: "bg-blue-500/10" },
+          { label: "Trialing", value: subscriptions?.stats.trialing || 0, icon: Star, color: "text-amber-400", bg: "bg-amber-500/10" },
+        ].map((metric) => (
+          <Card key={metric.label} className="bg-slate-900 border-slate-800">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`h-8 w-8 rounded-lg ${metric.bg} flex items-center justify-center`}>
+                    <metric.icon className={`h-4 w-4 ${metric.color}`} />
+                  </div>
+                  <p className="text-xs text-slate-400">{metric.label}</p>
+                </div>
+                <p className="text-2xl font-bold text-white">{metric.value}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Demo Bookings */}
+      <Card className="bg-slate-900 border-slate-800">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white text-base">Recent Demo Bookings</CardTitle>
+            <div className="flex items-center gap-2">
+              {bookings.filter(b => b.status === "new").length > 0 && (
+                <Badge className="bg-amber-500/10 text-amber-400 border-0">
+                  {bookings.filter(b => b.status === "new").length} pending
+                </Badge>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {bookings.slice(0, 5).map((booking) => (
+              <div
+                key={booking.id}
+                className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-lg bg-slate-700 flex items-center justify-center">
+                    <Calendar className="h-4 w-4 text-slate-300" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">{booking.name}</p>
+                    <p className="text-xs text-slate-500">
+                      {booking.company || "No company"} • {booking.contact}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500">
+                    {new Date(booking.created_at).toLocaleDateString()}
+                  </span>
+                  <Badge
+                    className={
+                      booking.status === "new"
+                        ? "bg-amber-500/10 text-amber-400 border-0 text-[10px]"
+                        : booking.status === "contacted"
+                        ? "bg-blue-500/10 text-blue-400 border-0 text-[10px]"
+                        : "bg-emerald-500/10 text-emerald-400 border-0 text-[10px]"
+                    }
+                  >
+                    {booking.status}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+            {bookings.length === 0 && (
+              <p className="text-sm text-slate-500 text-center py-4">No demo bookings yet</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

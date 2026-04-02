@@ -216,39 +216,39 @@ export default function Home() {
           </div>
           {/* Scrolling Testimonials */}
           <div className="overflow-hidden">
-            <div className="flex animate-marquee gap-6" style={{ width: "max-content" }}>
+            <div className="flex animate-marquee gap-6 hover:[animation-play-state:paused]" style={{ width: "max-content" }}>
               {[
                 {
-                  quote: "We used to miss 40% of WhatsApp messages. Now every customer gets a reply in seconds.",
-                  name: "Sarah M.",
-                  role: "E-commerce Owner, Lusaka",
+                  quote: "Honestly didn't expect much but wow — my WhatsApp replies are instant now. Customers actually think I never sleep lol.",
+                  name: "Cosmas K.",
+                  role: "Shop Owner, Lusaka",
                 },
                 {
-                  quote: "FiQ handles 80% of our enquiries automatically. My team finally has time to focus on complex cases.",
-                  name: "James K.",
-                  role: "Operations Manager, Healthcare",
+                  quote: "Game changer for my clinic. Patients get appointment confirmations immediately, and I'm not glued to my phone 24/7 anymore.",
+                  name: "Situmbeko M.",
+                  role: "Medical Administrator",
                 },
                 {
-                  quote: "Automated appointment reminders reduced our no-shows by 60%. Game changer.",
+                  quote: "Was skeptical at first but the automated responses are surprisingly good. Saved me from hiring extra staff last month.",
                   name: "Linda C.",
-                  role: "Clinic Administrator",
+                  role: "Restaurant Manager",
                 },
                 {
-                  quote: "Response time went from 2 hours to under 10 seconds. Customers love it.",
-                  name: "David N.",
-                  role: "Restaurant Owner, Kitwe",
+                  quote: "My customers keep asking how I reply so fast. Little do they know it's not me at 11pm 😂 FiQ just works.",
+                  name: "Ahmed S.",
+                  role: "Online Retailer, Kitwe",
                 },
                 {
-                  quote: "We scaled from 50 to 500 daily enquiries without hiring anyone new.",
+                  quote: "Tried other solutions before but this one actually understands our local context. The Bemba responses are spot on.",
                   name: "Grace T.",
-                  role: "Operations Lead, Real Estate",
+                  role: "Real Estate Agent",
                 },
                 {
-                  quote: "Our support team now only handles complex issues. Everything else is automated.",
+                  quote: "No more missed enquiries when I'm in meetings. FiQ handles the routine stuff and flags what actually needs my attention.",
                   name: "Michael B.",
-                  role: "IT Manager, Finance",
+                  role: "Finance Consultant",
                 },
-              ].flatMap((t, i) => [t, { ...t, name: `${t.name}`, role: t.role, _dup: i }]).map((t, i) => (
+              ].map((t, i) => (
                 <div key={i} className="rounded-2xl bg-white border border-gray-200 p-6 min-w-[300px] max-w-[340px] shrink-0">
                   <p className="text-sm text-gray-700 leading-relaxed italic">&ldquo;{t.quote}&rdquo;</p>
                   <div className="mt-4 pt-4 border-t border-gray-100">
