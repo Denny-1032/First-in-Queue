@@ -21,6 +21,8 @@ export async function getTenantByPhoneNumberId(phoneNumberId: string): Promise<T
     .eq("is_active", true)
     .single();
   
+  console.log(`[DB] Raw Supabase response:`, { error: error?.message, data: data ? `tenant ${data.name}` : 'null' });
+  
   if (error) {
     console.error("[DB] getTenantByPhoneNumberId error:", error);
   }
