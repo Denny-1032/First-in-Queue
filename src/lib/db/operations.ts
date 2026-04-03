@@ -13,6 +13,7 @@ import type {
 
 // --- Tenant Operations ---
 export async function getTenantByPhoneNumberId(phoneNumberId: string): Promise<Tenant | null> {
+  console.log(`[DB] Querying tenant with phone_number_id: "${phoneNumberId}"`);
   const { data, error } = await getSupabaseAdmin()
     .from("tenants")
     .select("*")
@@ -23,6 +24,8 @@ export async function getTenantByPhoneNumberId(phoneNumberId: string): Promise<T
   if (error) {
     console.error("[DB] getTenantByPhoneNumberId error:", error);
   }
+  
+  console.log(`[DB] Query result: data=${data ? 'found' : 'null'}, error=${error ? error.message : 'none'}`);
   
   if (error || !data) return null;
   return data as Tenant;

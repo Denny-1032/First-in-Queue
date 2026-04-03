@@ -62,7 +62,9 @@ export async function handleWebhook(payload: WhatsAppWebhookPayload): Promise<vo
 
       // Handle incoming messages
       if (messages && messages.length > 0) {
+        console.log(`[Handler] Looking up tenant for phone_number_id: ${phoneNumberId}`);
         const tenant = await getTenantByPhoneNumberId(phoneNumberId);
+        console.log(`[Handler] Tenant lookup result:`, tenant ? `found ${tenant.name}` : 'null');
         if (!tenant) {
           console.warn(`[Handler] No tenant found for phone_number_id: ${phoneNumberId}`);
           continue;
