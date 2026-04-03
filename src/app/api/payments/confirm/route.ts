@@ -32,34 +32,35 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${appUrl}/pricing?payment=error&msg=not_found`);
     }
 
-    let status: "Successful" | "Failed" | "Pending";
+    let status: "successful" | "failed" | "pending";
     
     // Check status based on payment method
     if (payment.payment_method === "card") {
       // Use Lenco verification for card payments
       const lencoStatus = await verifyPayment(referenceId);
-      status = lencoStatus.status;
+      // Normalize Lenco status (already lowercase)
+      status = lencoStatus.status === "pay-offline" ? "pending" : lencoStatus.status;
       
       // Update payment with Lenco data
       await supabase
         .from("payments")
         .update({
-          status: status.toLowerCase(),
+          status,
           payment_type: lencoStatus.type,
           lenco_reference: lencoStatus.lencoReference,
           completed_at: lencoStatus.completedAt,
         })
         .eq("id", payment.id);
     } else {
-      // Use Lipila for mobile money
+      // Use Lipila for mobile money (returns capitalized status)
       const lipilaStatus = await checkCollectionStatus(referenceId);
-      status = lipilaStatus.status;
+      status = lipilaStatus.status.toLowerCase() as "successful" | "failed" | "pending";
       
       // Update payment with Lipila data
       await supabase
         .from("payments")
         .update({
-          status: status.toLowerCase(),
+          status,
           payment_type: lipilaStatus.paymentType,
           lipila_identifier: lipilaStatus.identifier,
           lipila_external_id: lipilaStatus.externalId || null,
@@ -67,13 +68,13 @@ export async function GET(request: NextRequest) {
         .eq("id", payment.id);
     }
 
-    if (status === "Successful") {
+    if (status === "successful") {
       // Activate subscription using shared helper
       await activateSubscription(payment.tenant_id, payment.id, payment.amount);
       const { planId } = resolvePlanFromAmount(payment.amount);
 
       return NextResponse.redirect(`${appUrl}/dashboard/settings?payment=success&plan=${planId}`);
-    } else if (status === "Failed") {
+    } else if (status === "failed") {
       await supabase
         .from("payments")
         .update({ status: "failed", error_message: "Payment failed" })

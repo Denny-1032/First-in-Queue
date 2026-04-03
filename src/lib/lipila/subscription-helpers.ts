@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { PLANS } from "./plans";
-import { activatePaidSubscription } from "./trial-helpers";
+import { activatePaidSubscription } from "@/lib/trial-helpers";
 
 /**
  * Resolve plan ID and billing interval from a payment amount.
