@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { handleWebhook } from "@/lib/engine/handler";
 import type { WhatsAppWebhookPayload } from "@/types";
 
@@ -30,12 +31,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    // Process asynchronously so we respond to WhatsApp quickly
-    // WhatsApp expects a 200 within 20 seconds
     console.log("[Webhook] Processing payload for phone_number_id:", 
-  payload.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id);
-  handleWebhook(payload).catch((err) => {
-      console.error("[Webhook] Async processing error:", err);
+      payload.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id);
+
+    // Use after() to keep the Vercel serverless function alive
+    // while processing the webhook asynchronously after sending 200
+    after(async () => {
+      try {
+        await handleWebhook(payload);
+      } catch (err) {
+        console.error("[Webhook] Async processing error:", err);
+      }
     });
 
     return NextResponse.json({ status: "ok" }, { status: 200 });
