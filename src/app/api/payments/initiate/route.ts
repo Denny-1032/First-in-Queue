@@ -63,24 +63,47 @@ export async function POST(request: NextRequest) {
 
     // Create pending payment record
     const supabase = getSupabaseAdmin();
-    const { data: payment, error: paymentError } = await supabase
+    const basePaymentInsert = {
+      tenant_id: tenantId,
+      lipila_reference_id: referenceId,
+      amount,
+      currency: "ZMW",
+      status: "pending",
+      narration,
+      account_number: phoneNumber ? formatZambianPhone(phoneNumber) : email,
+    };
+
+    let payment = null;
+    let paymentError = null;
+
+    // Primary insert: include payment_method when schema supports it.
+    ({ data: payment, error: paymentError } = await supabase
       .from("payments")
       .insert({
-        tenant_id: tenantId,
-        lipila_reference_id: referenceId,
-        amount,
-        currency: "ZMW",
-        status: "pending",
-        narration,
-        account_number: phoneNumber ? formatZambianPhone(phoneNumber) : email,
+        ...basePaymentInsert,
         payment_method: paymentMethod,
       })
       .select()
-      .single();
+      .single());
 
-    if (paymentError) {
+    // Backward-compatible fallback for environments where payment_method column does not exist.
+    if (paymentError && paymentError.code === "PGRST204") {
+      ({ data: payment, error: paymentError } = await supabase
+        .from("payments")
+        .insert(basePaymentInsert)
+        .select()
+        .single());
+    }
+
+    if (paymentError || !payment) {
       console.error("[Payments] Error creating payment record:", paymentError);
-      return NextResponse.json({ error: "Failed to create payment" }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: "Failed to create payment",
+          reason: paymentError?.message || "unknown_insert_error",
+        },
+        { status: 500 }
+      );
     }
 
     let response;
