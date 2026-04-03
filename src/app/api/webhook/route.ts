@@ -32,7 +32,9 @@ export async function POST(request: NextRequest) {
 
     // Process asynchronously so we respond to WhatsApp quickly
     // WhatsApp expects a 200 within 20 seconds
-    handleWebhook(payload).catch((err) => {
+    console.log("[Webhook] Processing payload for phone_number_id:", 
+  payload.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id);
+  handleWebhook(payload).catch((err) => {
       console.error("[Webhook] Async processing error:", err);
     });
 

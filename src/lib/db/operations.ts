@@ -19,6 +19,11 @@ export async function getTenantByPhoneNumberId(phoneNumberId: string): Promise<T
     .eq("whatsapp_phone_number_id", phoneNumberId)
     .eq("is_active", true)
     .single();
+  
+  if (error) {
+    console.error("[DB] getTenantByPhoneNumberId error:", error);
+  }
+  
   if (error || !data) return null;
   return data as Tenant;
 }
