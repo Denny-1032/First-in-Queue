@@ -15,7 +15,11 @@ import type {
 export async function getTenantByPhoneNumberId(phoneNumberId: string): Promise<Tenant | null> {
   console.log(`[DB] Querying tenant with phone_number_id: "${phoneNumberId}"`);
   try {
-    const { data, error } = await getSupabaseAdmin()
+    console.log(`[DB] Getting Supabase admin client...`);
+    const supabase = getSupabaseAdmin();
+    console.log(`[DB] Supabase client obtained, executing query...`);
+    
+    const { data, error } = await supabase
       .from("tenants")
       .select("*")
       .eq("whatsapp_phone_number_id", phoneNumberId)
