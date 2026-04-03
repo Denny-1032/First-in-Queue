@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, CreditCard, Smartphone, ArrowRight, AlertCircle } from "lucide-react";
+import { CheckCircle2, Smartphone, ArrowRight, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { PLANS } from "@/lib/lipila/plans";
 
@@ -19,11 +19,8 @@ function TrialPaymentContent() {
   const billingParam = searchParams.get("billing") || "monthly";
 
   const [loading, setLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"mobile_money" | "card">("mobile_money");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -56,11 +53,9 @@ function TrialPaymentContent() {
         tenantId,
         planId: plan.id,
         billingInterval: billingParam as "monthly" | "yearly",
-        paymentMethod,
+        paymentMethod: "mobile_money",
         phoneNumber,
         email,
-        firstName: paymentMethod === "card" ? firstName : undefined,
-        lastName: paymentMethod === "card" ? lastName : undefined,
       };
 
       const res = await fetch("/api/payments/initiate", {
@@ -75,12 +70,9 @@ function TrialPaymentContent() {
         throw new Error(data.error || "Payment initiation failed");
       }
 
-      if (paymentMethod === "card" && data.redirectUrl) {
-        window.location.href = data.redirectUrl;
-      } else {
-        toast("Payment initiated! Complete the payment on your phone.", "success");
-        router.push("/dashboard/settings?payment=pending");
-      }
+      // Mobile money flow
+      toast("Payment initiated! Complete the payment on your phone.", "success");
+      router.push("/dashboard/settings?payment=pending");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed");
       toast(err instanceof Error ? err.message : "Payment failed", "error");
@@ -124,40 +116,16 @@ function TrialPaymentContent() {
                 </div>
               </div>
 
-              {/* Payment Method Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Payment Method
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("mobile_money")}
-                    className={`p-3 border rounded-lg flex flex-col items-center gap-2 transition-all ${
-                      paymentMethod === "mobile_money"
-                        ? "border-emerald-500 bg-emerald-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <Smartphone className="h-5 w-5" />
-                    <span className="text-sm font-medium">Mobile Money</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("card")}
-                    className={`p-3 border rounded-lg flex flex-col items-center gap-2 transition-all ${
-                      paymentMethod === "card"
-                        ? "border-emerald-500 bg-emerald-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <CreditCard className="h-5 w-5" />
-                    <span className="text-sm font-medium">Card</span>
-                  </button>
+              {/* Payment Method - Mobile Money Only */}
+              <div className="flex items-center gap-3 p-3 border border-emerald-500 bg-emerald-50 rounded-lg">
+                <Smartphone className="h-5 w-5 text-emerald-600" />
+                <div>
+                  <span className="text-sm font-medium text-gray-900">Mobile Money</span>
+                  <p className="text-xs text-gray-500">Pay with Airtel, MTN, or Zamtel</p>
                 </div>
               </div>
 
-              {/* Email - always shown */}
+              {/* Email */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <Input
@@ -169,10 +137,10 @@ function TrialPaymentContent() {
                 />
               </div>
 
-              {/* Phone Number - required for both payment methods */}
+              {/* Mobile Money Number */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {paymentMethod === "mobile_money" ? "Mobile Money Number" : "Phone Number"}
+                  Mobile Money Number
                 </label>
                 <Input
                   type="tel"
@@ -181,41 +149,8 @@ function TrialPaymentContent() {
                   placeholder="097 123 4567"
                   required
                 />
-                {paymentMethod === "mobile_money" && (
-                  <p className="text-xs text-gray-400 mt-1">Airtel, MTN, or Zamtel number</p>
-                )}
+                <p className="text-xs text-gray-400 mt-1">Airtel, MTN, or Zamtel number</p>
               </div>
-
-              {/* Card-specific fields */}
-              {paymentMethod === "card" && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        First Name
-                      </label>
-                      <Input
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="John"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Last Name
-                      </label>
-                      <Input
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        placeholder="Doe"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-400">Card details will be collected securely on the next page.</p>
-                </div>
-              )}
 
               {/* Error Display */}
               {error && (

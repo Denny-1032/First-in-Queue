@@ -1,5 +1,5 @@
 // =============================================
-// WAVELY - Core Type Definitions
+// First in Queue (FiQ) - Core Type Definitions
 // =============================================
 
 // --- Tenant / Business ---

@@ -1,12 +1,12 @@
-# Wavely — Intelligent WhatsApp Customer Care Platform
+# First in Queue — Intelligent WhatsApp Customer Care Platform
 
-**Wavely** is an AI-powered WhatsApp customer care platform that any business can configure and deploy in minutes. Built on the WhatsApp Cloud API with GPT-4o intelligence, it delivers instant, context-aware support that speaks your customers' language.
+**First in Queue** is an AI-powered WhatsApp customer care platform that any business can configure and deploy in minutes. Built on the WhatsApp Cloud API with GPT-4o intelligence, it delivers instant, context-aware support that speaks your customers' language.
 
 ---
 
-## Why Wavely?
+## Why First in Queue?
 
-| Problem | Wavely Solution |
+| Problem | First in Queue Solution |
 |---|---|
 | Most chatbots are rule-based and frustrating | GPT-4o AI that truly understands context and intent |
 | Competitors charge $99-499/mo | Free tier + $49/mo Growth plan |
@@ -51,7 +51,7 @@
 ## Architecture
 
 ```
-wavely/
+First in Queue/
 ├── src/
 │   ├── app/                          # Next.js App Router
 │   │   ├── page.tsx                  # Marketing landing page
@@ -115,8 +115,8 @@ wavely/
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/your-org/wavely.git
-cd wavely
+git clone https://github.com/your-org/First in Queue.git
+cd First in Queue
 npm install
 ```
 
@@ -173,10 +173,10 @@ Visit:
 
 ## Authentication
 
-Wavely uses cookie-based authentication with middleware protection:
+First in Queue uses cookie-based authentication with middleware protection:
 
 - **Login page** at `/login` with email/password and demo mode
-- **Auth cookie** (`wavely-auth`) set on login, cleared on logout
+- **Auth cookie** (`First in Queue-auth`) set on login, cleared on logout
 - **Middleware** redirects unauthenticated users from `/dashboard/*` to `/login`
 - **Rate limiting** on API routes (120 req/min per IP, webhook excluded)
 - **Sign Out** button in dashboard sidebar
@@ -187,7 +187,7 @@ For production, replace the demo auth with Supabase Auth or your preferred provi
 
 ## Business Configuration
 
-Wavely uses a JSON-based configuration system. Each tenant/business has a `config` object that defines:
+First in Queue uses a JSON-based configuration system. Each tenant/business has a `config` object that defines:
 
 ```typescript
 {

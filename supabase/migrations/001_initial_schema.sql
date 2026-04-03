@@ -1,12 +1,12 @@
 -- =============================================
--- WAVELY - Database Schema
+-- First in Queue - Database Schema
 -- =============================================
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =============================================
--- TENANTS (Businesses using Wavely)
+-- TENANTS (Businesses using First in Queue)
 -- =============================================
 CREATE TABLE tenants (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

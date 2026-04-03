@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { checkCollectionStatus } from "@/lib/lipila/client";
+import { verifyPayment } from "@/lib/lenco/client";
 import { activateSubscription, resolvePlanFromAmount } from "@/lib/lipila/subscription-helpers";
 
 /**
- * Card Payment Confirmation Redirect
- * After card payment on Lipila's 3D Secure page, the user is redirected here.
+ * Payment Confirmation Redirect
+ * Handles redirects from both Lipila (mobile money) and Lenco (card) payment flows.
  * We check the payment status and redirect to appropriate page.
  */
 export async function GET(request: NextRequest) {
@@ -20,10 +21,7 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabaseAdmin();
 
-    // Check status with Lipila
-    const lipilaStatus = await checkCollectionStatus(referenceId);
-
-    // Find the payment record
+    // Find the payment record first
     const { data: payment } = await supabase
       .from("payments")
       .select("*")
@@ -34,30 +32,54 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${appUrl}/pricing?payment=error&msg=not_found`);
     }
 
-    if (lipilaStatus.status === "Successful") {
-      // Update payment status
+    let status: "Successful" | "Failed" | "Pending";
+    
+    // Check status based on payment method
+    if (payment.payment_method === "card") {
+      // Use Lenco verification for card payments
+      const lencoStatus = await verifyPayment(referenceId);
+      status = lencoStatus.status;
+      
+      // Update payment with Lenco data
       await supabase
         .from("payments")
         .update({
-          status: "successful",
+          status: status.toLowerCase(),
+          payment_type: lencoStatus.type,
+          lenco_reference: lencoStatus.lencoReference,
+          completed_at: lencoStatus.completedAt,
+        })
+        .eq("id", payment.id);
+    } else {
+      // Use Lipila for mobile money
+      const lipilaStatus = await checkCollectionStatus(referenceId);
+      status = lipilaStatus.status;
+      
+      // Update payment with Lipila data
+      await supabase
+        .from("payments")
+        .update({
+          status: status.toLowerCase(),
           payment_type: lipilaStatus.paymentType,
           lipila_identifier: lipilaStatus.identifier,
           lipila_external_id: lipilaStatus.externalId || null,
         })
         .eq("id", payment.id);
+    }
 
+    if (status === "Successful") {
       // Activate subscription using shared helper
       await activateSubscription(payment.tenant_id, payment.id, payment.amount);
       const { planId } = resolvePlanFromAmount(payment.amount);
 
       return NextResponse.redirect(`${appUrl}/dashboard/settings?payment=success&plan=${planId}`);
-    } else if (lipilaStatus.status === "Failed") {
+    } else if (status === "Failed") {
       await supabase
         .from("payments")
-        .update({ status: "failed", error_message: lipilaStatus.message })
+        .update({ status: "failed", error_message: "Payment failed" })
         .eq("id", payment.id);
 
-      return NextResponse.redirect(`${appUrl}/pricing?payment=failed&msg=${encodeURIComponent(lipilaStatus.message || "Payment failed")}`);
+      return NextResponse.redirect(`${appUrl}/pricing?payment=failed&msg=Payment failed`);
     } else {
       // Still pending
       return NextResponse.redirect(`${appUrl}/pricing?payment=pending&ref=${referenceId}`);

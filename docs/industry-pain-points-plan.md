@@ -2,7 +2,7 @@
 
 ## Codebase Audit Summary
 
-**Current state:** WhatsApp AI customer care platform (First in Queue / Wavely) with 8 industry templates. Each template has: knowledge base, FAQs, quick replies, conversation flows, escalation rules, and custom AI instructions.
+**Current state:** WhatsApp AI customer care platform (First in Queue / First in Queue) with 8 industry templates. Each template has: knowledge base, FAQs, quick replies, conversation flows, escalation rules, and custom AI instructions.
 
 **Core gap across ALL industries:** Templates provide static information but lack *actionable automation*. Flows collect customer data but don't process it. No structured data extraction, no proactive messaging, no interactive WhatsApp features (lists/catalogs) in flows, and no multi-step stateful conversations.
 

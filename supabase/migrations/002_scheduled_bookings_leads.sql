@@ -1,5 +1,5 @@
 -- =============================================
--- WAVELY - Phase 4: Scheduled Messages, Bookings, Lead Scores
+-- First in Queue - Phase 4: Scheduled Messages, Bookings, Lead Scores
 -- =============================================
 
 -- =============================================

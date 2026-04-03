@@ -18,8 +18,8 @@ const faqs = [
     answer: "If you're not satisfied within 30 days of your first payment, contact us for a full refund. No questions asked.",
   },
   {
-    question: "What counts as a message?",
-    answer: "Each automated response counts as one message. Inbound customer messages and system messages don't count.",
+    question: "What counts as a WhatsApp conversation?",
+    answer: "Each automated response counts as one conversation. Inbound customer messages and system messages don't count.",
   },
   {
     question: "Which payment methods do you accept?",
@@ -38,12 +38,12 @@ const faqs = [
     answer: "40+ languages including English, Bemba, Nyanja, Tonga, Lozi, French, Portuguese, and more. Auto-detected from each message.",
   },
   {
-    question: "What if I exceed my message limit?",
-    answer: "We notify you at 80%. After the limit, messages queue until the next cycle or until you upgrade. No surprise charges.",
+    question: "What if I exceed my plan limits?",
+    answer: "Service continues automatically. Additional usage is billed at K0.10 per WhatsApp message and K2.00 per voice minute. No service interruption.",
   },
   {
-    question: "What are voice call minutes?",
-    answer: "Every plan includes voice call minutes. Your assistant can make and receive phone calls — handling customer enquiries, scheduling callbacks, and more. Voice minutes are tracked separately from WhatsApp messages.",
+    question: "What are AI voice call minutes?",
+    answer: "Your AI assistant can make and receive phone calls — handling customer enquiries, scheduling callbacks, and more. Voice minutes are tracked separately from WhatsApp conversations.",
   },
 ];
 
@@ -140,8 +140,14 @@ function PricingContent() {
                       </>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">{plan.messagesLabel}</p>
-                  <p className="text-xs text-emerald-600 font-medium mt-0.5">{plan.voiceMinutesLabel}</p>
+                  <p className="text-sm text-gray-600 mt-3 font-medium">
+                    {plan.id === "basic" && "For small businesses getting started with automated customer support"}
+                    {plan.id === "business" && "For growing businesses handling daily customer demand"}
+                    {plan.id === "enterprise" && "For high-volume or mission-critical operations"}
+                  </p>
+                  {plan.id === "basic" && (
+                    <p className="text-xs text-gray-500 mt-2 italic">"Ideal for businesses handling up to ~30 customer enquiries per day"</p>
+                  )}
                 </div>
                 <ul className="space-y-2.5 mb-8 flex-1">
                   {plan.features.map((f) => (
@@ -167,6 +173,16 @@ function PricingContent() {
                 >
                   {fromSettings && plan.id !== "enterprise" ? "Choose Plan" : plan.cta}
                 </Link>
+                {plan.id !== "enterprise" && (
+                  <p className="text-xs text-gray-500 text-center mt-3">
+                    Additional usage charged at K0.10/message and K2.00/minute
+                  </p>
+                )}
+                {plan.id === "enterprise" && (
+                  <p className="text-xs text-gray-500 text-center mt-3 italic">
+                    *Subject to fair usage policy
+                  </p>
+                )}
               </div>
             ))}
           </div>

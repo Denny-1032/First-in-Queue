@@ -7,6 +7,7 @@ import {
   formatZambianPhone,
 } from "@/lib/lipila/client";
 import { getPlanById } from "@/lib/lipila/plans";
+import { getWidgetConfig, generateLencoReference } from "@/lib/lenco/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const referenceId = generateReferenceId();
+    const referenceId = paymentMethod === "card" ? generateLencoReference() : generateReferenceId();
     const isYearly = billingInterval === "yearly";
     const amount = isYearly ? plan.yearlyPriceZMW : plan.priceZMW;
     const intervalLabel = isYearly ? "Yearly" : "Monthly";
@@ -72,6 +73,7 @@ export async function POST(request: NextRequest) {
         status: "pending",
         narration,
         account_number: phoneNumber ? formatZambianPhone(phoneNumber) : email,
+        payment_method: paymentMethod,
       })
       .select()
       .single();
@@ -81,10 +83,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create payment" }, { status: 500 });
     }
 
-    let lipilaResponse;
+    let response;
 
     if (paymentMethod === "mobile_money") {
-      lipilaResponse = await collectMobileMoney({
+      // Use Lipila for mobile money (works fine)
+      const lipilaResponse = await collectMobileMoney({
         referenceId,
         amount,
         narration,
@@ -92,55 +95,56 @@ export async function POST(request: NextRequest) {
         currency: "ZMW",
         email,
       });
-    } else if (paymentMethod === "card") {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-      const formattedPhone = formatZambianPhone(phoneNumber);
 
-      lipilaResponse = await collectCard({
-        customerInfo: {
+      // Update payment with Lipila response data
+      await supabase
+        .from("payments")
+        .update({
+          payment_type: lipilaResponse.paymentType,
+          lipila_identifier: lipilaResponse.identifier,
+        })
+        .eq("id", payment.id);
+
+      response = {
+        paymentId: payment.id,
+        referenceId,
+        status: lipilaResponse.status,
+        paymentType: lipilaResponse.paymentType,
+        message:
+          "A payment prompt has been sent to your phone. Please enter your PIN to complete the payment.",
+      };
+    } else if (paymentMethod === "card") {
+      // Use Lenco for card payments (Lipila card doesn't work)
+      const widgetConfig = getWidgetConfig({
+        reference: referenceId,
+        email,
+        amount,
+        currency: "ZMW",
+        channels: ["card"],
+        customer: {
           firstName: firstName || "Customer",
           lastName: lastName || "",
-          phoneNumber: formattedPhone,
-          city: city || "Lusaka",
-          country: "ZM",
-          address: address || "N/A",
-          zip: zip || "10101",
-          email,
+          phone: formatZambianPhone(phoneNumber),
         },
-        collectionRequest: {
-          referenceId,
-          amount,
-          narration,
-          accountNumber: formattedPhone,
-          currency: "ZMW",
-          backUrl: `${appUrl}/pricing`,
-          redirectUrl: `${appUrl}/api/payments/confirm?ref=${referenceId}`,
+        metadata: {
+          tenantId,
+          planId,
+          billingInterval,
         },
       });
+
+      response = {
+        paymentId: payment.id,
+        referenceId,
+        paymentMethod: "card",
+        widgetConfig,
+        message: "Ready to load payment widget",
+      };
     } else {
       return NextResponse.json({ error: "Invalid payment method" }, { status: 400 });
     }
 
-    // Update payment with Lipila response data
-    await supabase
-      .from("payments")
-      .update({
-        payment_type: lipilaResponse.paymentType,
-        lipila_identifier: lipilaResponse.identifier,
-      })
-      .eq("id", payment.id);
-
-    return NextResponse.json({
-      paymentId: payment.id,
-      referenceId,
-      status: lipilaResponse.status,
-      paymentType: lipilaResponse.paymentType,
-      cardRedirectionUrl: lipilaResponse.cardRedirectionUrl,
-      message:
-        paymentMethod === "mobile_money"
-          ? "A payment prompt has been sent to your phone. Please enter your PIN to complete the payment."
-          : "Redirecting to card payment...",
-    });
+    return NextResponse.json(response);
   } catch (error) {
     console.error("[Payments] Error initiating payment:", error);
     return NextResponse.json(

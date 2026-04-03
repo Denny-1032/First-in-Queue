@@ -1,35 +1,23 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Workflow,
-  Plus,
-  Play,
-  Pause,
-  Pencil,
-  Trash2,
   ArrowRight,
   MessageSquare,
   HelpCircle,
   Zap,
   GitBranch,
   UserCheck,
+  Bot,
+  CheckCircle2,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/components/ui/toast";
-
-interface Flow {
-  id: string;
-  name: string;
-  trigger: string;
-  steps: number;
-  active: boolean;
-  runs: number;
-}
-
+import Link from "next/link";
 
 interface FlowStep {
   id: string;
@@ -45,12 +33,52 @@ const stepTypeIcons = {
   handoff: UserCheck,
 };
 
+// Default AI-managed flows
+const defaultFlows = [
+  {
+    id: "greeting",
+    name: "Welcome & Greeting",
+    trigger: "New conversation started",
+    description: "Automatically greets customers and identifies their needs",
+    steps: 3,
+    active: true,
+  },
+  {
+    id: "faq",
+    name: "FAQ Handler",
+    trigger: "Common questions detected",
+    description: "Answers frequently asked questions from your knowledge base",
+    steps: 2,
+    active: true,
+  },
+  {
+    id: "booking",
+    name: "Appointment Booking",
+    trigger: "Booking intent detected",
+    description: "Guides customers through scheduling appointments or reservations",
+    steps: 5,
+    active: true,
+  },
+  {
+    id: "escalation",
+    name: "Human Handoff",
+    trigger: "Complex issue or request",
+    description: "Transfers conversation to a human agent when needed",
+    steps: 2,
+    active: true,
+  },
+  {
+    id: "followup",
+    name: "Follow-up Messages",
+    trigger: "After conversation ends",
+    description: "Sends satisfaction surveys and follow-up messages",
+    steps: 2,
+    active: true,
+  },
+];
 
 export default function FlowsPage() {
-  const { toast } = useToast();
-  const [flows, setFlows] = useState<Flow[]>([]);
-  const [selectedFlow, setSelectedFlow] = useState<string | null>(null);
-  const [tenantFlowSteps, setTenantFlowSteps] = useState<Record<string, FlowStep[]>>({});
+  const [flows, setFlows] = useState(defaultFlows);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -61,214 +89,151 @@ export default function FlowsPage() {
         const tenants = await res.json();
         if (tenants.length > 0 && tenants[0].config?.flows?.length) {
           const configFlows = tenants[0].config.flows;
-          const mapped: Flow[] = configFlows.map((f: { id: string; name: string; trigger: string; steps: FlowStep[] }, idx: number) => ({
+          const customFlows = configFlows.map((f: { id: string; name: string; trigger: string; steps: FlowStep[] }, idx: number) => ({
             id: f.id || String(idx),
             name: f.name,
             trigger: f.trigger,
+            description: "Custom conversation flow",
             steps: f.steps?.length || 0,
             active: true,
-            runs: 0,
           }));
-          const stepsMap: Record<string, FlowStep[]> = {};
-          configFlows.forEach((f: { id: string; steps: FlowStep[] }) => {
-            stepsMap[f.id] = f.steps || [];
-          });
-          setFlows(mapped);
-          setTenantFlowSteps(stepsMap);
-          setSelectedFlow(mapped[0]?.id || null);
+          setFlows([...defaultFlows, ...customFlows]);
         }
-      } catch { /* no flows available */ }
+      } catch { /* use defaults */ }
       setLoading(false);
     }
     loadFlows();
   }, []);
-
-  const toggleFlow = (id: string) => {
-    const flow = flows.find((f) => f.id === id);
-    setFlows(flows.map((f) => (f.id === id ? { ...f, active: !f.active } : f)));
-    if (flow) toast(`Flow "${flow.name}" ${flow.active ? "paused" : "activated"}`, flow.active ? "warning" : "success");
-  };
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Conversation Flows</h1>
-          <p className="text-gray-500 mt-1 text-sm">Automated multi-step workflows</p>
+          <p className="text-gray-500 mt-1 text-sm">AI-powered automated conversation workflows</p>
         </div>
-        <Button
-          className="gap-2"
-          onClick={() => {
-            const id = Date.now().toString();
-            const newFlow = { id, name: "New Flow", trigger: "custom", steps: 0, active: false, runs: 0 };
-            setFlows((prev) => [...prev, newFlow]);
-            setSelectedFlow(id);
-            toast("New flow created. Configure its steps to get started.", "info");
-          }}
-        >
-          <Plus className="h-4 w-4" />
-          Create Flow
-        </Button>
+        <Link href="/dashboard/ai-config">
+          <Button variant="outline" className="gap-2">
+            <Settings className="h-4 w-4" />
+            Configure AI
+          </Button>
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Flow List */}
-        <div className="space-y-3">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="h-6 w-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      {/* AI-Managed Banner */}
+      <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 shrink-0">
+              <Bot className="h-6 w-6 text-emerald-600" />
             </div>
-          ) : flows.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Workflow className="h-10 w-10 mx-auto text-gray-300 mb-3" />
-                <p className="text-sm text-gray-500">No flows yet.</p>
-                <p className="text-xs text-gray-400 mt-1">Create your first flow or configure flows in AI Config to automate conversations.</p>
-              </CardContent>
-            </Card>
-          ) : null}
-          {flows.map((flow) => (
-            <Card
-              key={flow.id}
-              className={cn(
-                "cursor-pointer transition-all hover:shadow-md",
-                selectedFlow === flow.id && "ring-2 ring-emerald-500"
-              )}
-              onClick={() => setSelectedFlow(flow.id)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Workflow className="h-4 w-4 text-gray-400" />
-                      <h3 className="text-sm font-semibold text-gray-900">{flow.name}</h3>
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Trigger: &quot;{flow.trigger}&quot;
-                    </p>
-                    <div className="flex items-center gap-3 mt-2">
-                      <Badge variant={flow.active ? "default" : "secondary"}>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">AI-Powered Conversations</h2>
+              <p className="text-sm text-gray-600 mb-3">
+                Your AI assistant automatically handles customer conversations using intelligent flows. 
+                It understands context, answers questions, books appointments, and escalates to humans when needed.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Auto-detects intent
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  40+ languages
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  24/7 availability
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Active Flows */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Active Flows</h2>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="h-6 w-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {flows.map((flow) => {
+              return (
+                <Card key={flow.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100">
+                          <Workflow className="h-5 w-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-900">{flow.name}</h3>
+                          <p className="text-xs text-gray-500">{flow.steps} steps</p>
+                        </div>
+                      </div>
+                      <Badge variant={flow.active ? "default" : "secondary"} className="text-[10px]">
                         {flow.active ? "Active" : "Paused"}
                       </Badge>
-                      <span className="text-[10px] text-gray-400">{flow.steps} steps</span>
-                      <span className="text-[10px] text-gray-400">{flow.runs} runs</span>
                     </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggleFlow(flow.id); }}
-                      className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      {flow.active ? (
-                        <Pause className="h-3.5 w-3.5 text-gray-400" />
-                      ) : (
-                        <Play className="h-3.5 w-3.5 text-emerald-500" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Flow Editor */}
-        <div className="lg:col-span-2">
-          {(() => {
-            const activeFlow = flows.find((f) => f.id === selectedFlow);
-            const steps: Array<{ id: string; type: string; label: string; content: string }> =
-              tenantFlowSteps[selectedFlow || ""]?.map((s, i) => ({
-                id: s.id,
-                type: s.type,
-                label: `Step ${i + 1}`,
-                content: s.content || ({ message: "Send a message", question: "Ask a question", action: "Perform an action", condition: "Check a condition", handoff: "Transfer to human agent" }[s.type] || "Configure this step"),
-              })) || [];
-
-            return (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>{activeFlow?.name || "Select a flow"}</CardTitle>
-                      <CardDescription>Trigger: &quot;{activeFlow?.trigger || "—"}&quot;</CardDescription>
+                    <p className="text-xs text-gray-600 mb-3">{flow.description}</p>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                      <Zap className="h-3 w-3" />
+                      <span>Trigger: {flow.trigger}</span>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="gap-1.5">
-                        <Pencil className="h-3.5 w-3.5" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5 text-red-600 hover:bg-red-50"
-                        onClick={() => {
-                          if (!selectedFlow) return;
-                          setFlows((prev) => prev.filter((f) => f.id !== selectedFlow));
-                          setSelectedFlow(flows[0]?.id || null);
-                          toast("Flow deleted", "warning");
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {steps.map((step, i) => {
-                      const stepType = step.type as keyof typeof stepTypeIcons;
-                      const Icon = stepTypeIcons[stepType] || MessageSquare;
-                      const colors: Record<string, string> = {
-                        message: "border-emerald-200 bg-emerald-50",
-                        question: "border-blue-200 bg-blue-50",
-                        action: "border-purple-200 bg-purple-50",
-                        condition: "border-amber-200 bg-amber-50",
-                        handoff: "border-rose-200 bg-rose-50",
-                      };
-                      const iconColors: Record<string, string> = {
-                        message: "text-emerald-600",
-                        question: "text-blue-600",
-                        action: "text-purple-600",
-                        condition: "text-amber-600",
-                        handoff: "text-rose-600",
-                      };
-                      return (
-                        <div key={step.id}>
-                          <div className={cn("rounded-xl border-2 p-4", colors[stepType] || "border-gray-200 bg-gray-50")}>
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm">
-                                <Icon className={cn("h-4 w-4", iconColors[stepType] || "text-gray-600")} />
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold text-gray-400">STEP {i + 1}</span>
-                                  <Badge variant="outline" className="text-[10px] capitalize">{stepType}</Badge>
-                                </div>
-                                <p className="text-sm text-gray-700 mt-0.5">{step.content}</p>
-                              </div>
-                            </div>
-                          </div>
-                          {i < steps.length - 1 && (
-                            <div className="flex justify-center py-1">
-                              <ArrowRight className="h-4 w-4 text-gray-300 rotate-90" />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <Button variant="outline" className="w-full mt-4 gap-2 border-dashed">
-                    <Plus className="h-4 w-4" />
-                    Add Step
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })()}
-        </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      {/* How It Works */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">How Conversation Flows Work</CardTitle>
+          <CardDescription>Your AI assistant follows these steps automatically</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold text-sm">1</div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">Customer Messages</p>
+                <p className="text-xs text-gray-500">Via WhatsApp or Voice</p>
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-gray-300 hidden md:block" />
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 text-purple-600 font-bold text-sm">2</div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">AI Understands Intent</p>
+                <p className="text-xs text-gray-500">Analyzes context & needs</p>
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-gray-300 hidden md:block" />
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600 font-bold text-sm">3</div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">Selects Best Flow</p>
+                <p className="text-xs text-gray-500">Matches to right workflow</p>
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-gray-300 hidden md:block" />
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 font-bold text-sm">4</div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">Responds & Acts</p>
+                <p className="text-xs text-gray-500">Helps or escalates</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
