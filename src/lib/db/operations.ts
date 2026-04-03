@@ -14,23 +14,28 @@ import type {
 // --- Tenant Operations ---
 export async function getTenantByPhoneNumberId(phoneNumberId: string): Promise<Tenant | null> {
   console.log(`[DB] Querying tenant with phone_number_id: "${phoneNumberId}"`);
-  const { data, error } = await getSupabaseAdmin()
-    .from("tenants")
-    .select("*")
-    .eq("whatsapp_phone_number_id", phoneNumberId)
-    .eq("is_active", true)
-    .single();
-  
-  console.log(`[DB] Raw Supabase response:`, { error: error?.message, data: data ? `tenant ${data.name}` : 'null' });
-  
-  if (error) {
-    console.error("[DB] getTenantByPhoneNumberId error:", error);
+  try {
+    const { data, error } = await getSupabaseAdmin()
+      .from("tenants")
+      .select("*")
+      .eq("whatsapp_phone_number_id", phoneNumberId)
+      .eq("is_active", true)
+      .single();
+    
+    console.log(`[DB] Raw Supabase response:`, { error: error?.message, data: data ? `tenant ${data.name}` : 'null' });
+    
+    if (error) {
+      console.error("[DB] getTenantByPhoneNumberId error:", error);
+    }
+    
+    console.log(`[DB] Query result: data=${data ? 'found' : 'null'}, error=${error ? error.message : 'none'}`);
+    
+    if (error || !data) return null;
+    return data as Tenant;
+  } catch (err) {
+    console.error("[DB] Exception in getTenantByPhoneNumberId:", err);
+    return null;
   }
-  
-  console.log(`[DB] Query result: data=${data ? 'found' : 'null'}, error=${error ? error.message : 'none'}`);
-  
-  if (error || !data) return null;
-  return data as Tenant;
 }
 
 export async function getTenantById(tenantId: string): Promise<Tenant | null> {
