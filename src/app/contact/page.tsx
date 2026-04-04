@@ -51,7 +51,7 @@ export default function ContactPage() {
             <h2 className="text-xl font-bold text-gray-900 mb-2">WhatsApp</h2>
             {/* TODO: Replace with your actual Zambian WhatsApp number, e.g. https://wa.me/260XXXXXXXXX */}
             <a
-              href="https://wa.me/260970627630"
+              href="https://wa.me/260960667093"
               target="_blank"
               rel="noopener noreferrer"
               className="text-green-600 font-semibold hover:text-green-700 transition-colors"
