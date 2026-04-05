@@ -1,22 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Workflow,
   ArrowRight,
-  MessageSquare,
-  HelpCircle,
   Zap,
-  GitBranch,
-  UserCheck,
   Bot,
-  CheckCircle2,
   Settings,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 interface FlowStep {
@@ -24,14 +18,6 @@ interface FlowStep {
   type: "message" | "question" | "action" | "condition" | "handoff";
   content?: string;
 }
-
-const stepTypeIcons = {
-  message: MessageSquare,
-  question: HelpCircle,
-  action: Zap,
-  condition: GitBranch,
-  handoff: UserCheck,
-};
 
 // Default AI-managed flows
 const defaultFlows = [
@@ -122,32 +108,12 @@ export default function FlowsPage() {
 
       {/* AI-Managed Banner */}
       <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50">
-        <CardContent className="p-6">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 shrink-0">
-              <Bot className="h-6 w-6 text-emerald-600" />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">AI-Powered Conversations</h2>
-              <p className="text-sm text-gray-600 mb-3">
-                Your AI assistant automatically handles customer conversations using intelligent flows. 
-                It understands context, answers questions, books appointments, and escalates to humans when needed.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Auto-detects intent
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  40+ languages
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  24/7 availability
-                </div>
-              </div>
-            </div>
+        <CardContent className="p-5">
+          <div className="flex items-center gap-3">
+            <Bot className="h-5 w-5 text-emerald-600" />
+            <span className="text-sm font-semibold text-gray-900">AI-managed</span>
+            <span className="text-xs text-gray-500">·</span>
+            <span className="text-xs text-gray-600">Intent detection · 40+ languages · 24/7</span>
           </div>
         </CardContent>
       </Card>
@@ -193,47 +159,15 @@ export default function FlowsPage() {
       </div>
 
       {/* How It Works */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">How Conversation Flows Work</CardTitle>
-          <CardDescription>Your AI assistant follows these steps automatically</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold text-sm">1</div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">Customer Messages</p>
-                <p className="text-xs text-gray-500">Via WhatsApp or Voice</p>
-              </div>
-            </div>
-            <ArrowRight className="h-4 w-4 text-gray-300 hidden md:block" />
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 text-purple-600 font-bold text-sm">2</div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">AI Understands Intent</p>
-                <p className="text-xs text-gray-500">Analyzes context & needs</p>
-              </div>
-            </div>
-            <ArrowRight className="h-4 w-4 text-gray-300 hidden md:block" />
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600 font-bold text-sm">3</div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">Selects Best Flow</p>
-                <p className="text-xs text-gray-500">Matches to right workflow</p>
-              </div>
-            </div>
-            <ArrowRight className="h-4 w-4 text-gray-300 hidden md:block" />
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 font-bold text-sm">4</div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">Responds & Acts</p>
-                <p className="text-xs text-gray-500">Helps or escalates</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center gap-2 text-xs text-gray-500 justify-center flex-wrap">
+        <span className="font-medium text-gray-700">Customer messages</span>
+        <ArrowRight className="h-3 w-3" />
+        <span className="font-medium text-gray-700">AI detects intent</span>
+        <ArrowRight className="h-3 w-3" />
+        <span className="font-medium text-gray-700">Selects flow</span>
+        <ArrowRight className="h-3 w-3" />
+        <span className="font-medium text-gray-700">Responds or escalates</span>
+      </div>
     </div>
   );
 }

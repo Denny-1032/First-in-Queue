@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireSession, AuthError } from "@/lib/auth/session";
 import axios from "axios";
 
 // =============================================
@@ -27,6 +28,8 @@ const CRAWL_DELAY = 300; // ms between requests to be polite
 
 export async function POST(request: NextRequest) {
   try {
+    await requireSession();
+
     const body = await request.json();
     const { url } = body;
 
@@ -50,7 +53,7 @@ export async function POST(request: NextRequest) {
     const toVisit: string[] = [parsedUrl.href];
     const crawledPages: CrawledPage[] = [];
 
-    // Crawl the site
+    // Crawl the site — prioritize business-relevant pages
     while (toVisit.length > 0 && crawledPages.length < MAX_PAGES) {
       const currentUrl = toVisit.shift()!;
       const normalized = normalizeUrl(currentUrl);
@@ -66,12 +69,13 @@ export async function POST(request: NextRequest) {
 
         // Extract internal links for further crawling
         const links = extractInternalLinks(page.rawHtml, currentUrl, baseOrigin);
-        for (const link of links) {
-          const normLink = normalizeUrl(link);
-          if (!visited.has(normLink) && !toVisit.includes(link)) {
-            toVisit.push(link);
-          }
-        }
+        const unseen = links.filter((l) => {
+          const n = normalizeUrl(l);
+          return !visited.has(n) && !toVisit.includes(l);
+        });
+        // Sort by business relevance — about, services, pricing, FAQ, contact first
+        unseen.sort((a, b) => urlPriority(b) - urlPriority(a));
+        toVisit.push(...unseen);
 
         // Be polite — small delay between requests
         if (toVisit.length > 0) {
@@ -98,6 +102,9 @@ export async function POST(request: NextRequest) {
       source: parsedUrl.hostname,
     });
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("[Crawl] Error:", error);
     return NextResponse.json({ error: "Failed to crawl website" }, { status: 500 });
   }
@@ -210,6 +217,28 @@ function extractInternalLinks(rawHtml: string, currentUrl: string, baseOrigin: s
   }
 
   return [...new Set(links)]; // deduplicate
+}
+
+// Score URLs by business relevance so high-value pages are crawled first
+const PRIORITY_PATTERNS: [RegExp, number][] = [
+  [/\/(about|company|who-we-are|our-story)/i, 10],
+  [/\/(services?|solutions?|what-we-do|offerings?)/i, 10],
+  [/\/(pricing|plans|packages|rates)/i, 9],
+  [/\/(faq|frequently-asked|help|support)/i, 9],
+  [/\/(contact|get-in-touch|reach-us)/i, 8],
+  [/\/(products?|features?|capabilities)/i, 8],
+  [/\/(team|staff|people|careers)/i, 5],
+  [/\/(blog|news|articles|resources)/i, 3],
+  [/\/(terms|privacy|legal|cookie)/i, 1],
+];
+
+function urlPriority(url: string): number {
+  const path = new URL(url).pathname.toLowerCase();
+  if (path === "/" || path === "") return 7; // homepage is mid-priority (already visited first)
+  for (const [pattern, score] of PRIORITY_PATTERNS) {
+    if (pattern.test(path)) return score;
+  }
+  return 4; // default
 }
 
 function normalizeUrl(url: string): string {

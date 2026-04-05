@@ -43,11 +43,26 @@ export async function POST(
       return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
     }
 
-    // Send via WhatsApp
-    const whatsapp = createWhatsAppClient(tenant.whatsapp_access_token, tenant.whatsapp_phone_number_id);
-    const waMessageId = await whatsapp.sendText(conversation.customer_phone, text);
+    // Try to send via WhatsApp
+    let waMessageId = "";
+    let deliveryFailed = false;
+    let deliveryError = "";
 
-    // Save to database
+    if (!tenant.whatsapp_access_token || !tenant.whatsapp_phone_number_id) {
+      deliveryFailed = true;
+      deliveryError = "WhatsApp credentials not configured. Go to Settings → Integrations to connect WhatsApp.";
+    } else {
+      try {
+        const whatsapp = createWhatsAppClient(tenant.whatsapp_access_token, tenant.whatsapp_phone_number_id);
+        waMessageId = await whatsapp.sendText(conversation.customer_phone, text);
+      } catch (waErr) {
+        deliveryFailed = true;
+        deliveryError = waErr instanceof Error ? waErr.message : "WhatsApp API error";
+        console.error("[API] WhatsApp delivery failed:", deliveryError);
+      }
+    }
+
+    // Save to database regardless of delivery status
     const message = await saveMessage({
       conversation_id: id,
       tenant_id: conversation.tenant_id,
@@ -55,9 +70,13 @@ export async function POST(
       sender_type: "agent",
       message_type: "text",
       content: { text },
-      whatsapp_message_id: waMessageId,
-      status: "sent",
+      whatsapp_message_id: waMessageId || undefined,
+      status: deliveryFailed ? "failed" : "sent",
     });
+
+    if (deliveryFailed) {
+      return NextResponse.json({ ...message, _deliveryError: deliveryError }, { status: 207 });
+    }
 
     return NextResponse.json(message);
   } catch (error) {

@@ -62,6 +62,9 @@ export default function AIConfigPage() {
   const [businessDescription, setBusinessDescription] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Knowledge selection state
+  const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
+
   // Web crawl state
   const [showCrawl, setShowCrawl] = useState(false);
   const [crawlUrl, setCrawlUrl] = useState("");
@@ -117,6 +120,30 @@ export default function AIConfigPage() {
 
   const removeKnowledgeEntry = (id: string) => {
     setKnowledgeBase(knowledgeBase.filter((k) => k.id !== id));
+    setSelectedEntries((prev) => { const next = new Set(prev); next.delete(id); return next; });
+  };
+
+  const toggleSelectEntry = (id: string) => {
+    setSelectedEntries((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedEntries.size === knowledgeBase.length) {
+      setSelectedEntries(new Set());
+    } else {
+      setSelectedEntries(new Set(knowledgeBase.map((k) => k.id)));
+    }
+  };
+
+  const deleteSelectedEntries = () => {
+    if (selectedEntries.size === 0) return;
+    setKnowledgeBase((prev) => prev.filter((k) => !selectedEntries.has(k.id)));
+    toast(`Deleted ${selectedEntries.size} knowledge entries`);
+    setSelectedEntries(new Set());
   };
 
   const addFaq = () => {
@@ -279,7 +306,13 @@ export default function AIConfigPage() {
               <Brain className="h-5 w-5 text-purple-600" />
               <CardTitle>Knowledge Base</CardTitle>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              {selectedEntries.size > 0 && (
+                <Button variant="outline" size="sm" onClick={deleteSelectedEntries} className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete {selectedEntries.size}
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={() => { setShowCrawl(!showCrawl); setShowBulkImport(false); }} className="gap-1.5">
                 <Globe className="h-3.5 w-3.5" />
                 Crawl Website
@@ -606,10 +639,32 @@ export default function AIConfigPage() {
             </div>
           )}
 
+          {knowledgeBase.length > 0 && (
+            <div className="flex items-center gap-3 pb-2 border-b border-gray-100">
+              <input
+                type="checkbox"
+                checked={selectedEntries.size === knowledgeBase.length && knowledgeBase.length > 0}
+                onChange={toggleSelectAll}
+                className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+              />
+              <span className="text-xs text-gray-500">
+                {selectedEntries.size > 0 ? `${selectedEntries.size} of ${knowledgeBase.length} selected` : `Select all (${knowledgeBase.length})`}
+              </span>
+            </div>
+          )}
+
           {knowledgeBase.map((entry, i) => (
-            <div key={entry.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
+            <div key={entry.id} className={cn("border rounded-lg p-4 space-y-3 transition-colors", selectedEntries.has(entry.id) ? "border-emerald-300 bg-emerald-50/30" : "border-gray-200")}>
               <div className="flex items-center justify-between">
-                <Badge variant="secondary">Entry {i + 1}</Badge>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedEntries.has(entry.id)}
+                    onChange={() => toggleSelectEntry(entry.id)}
+                    className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                  />
+                  <Badge variant="secondary">Entry {i + 1}</Badge>
+                </div>
                 <button onClick={() => removeKnowledgeEntry(entry.id)} className="text-gray-400 hover:text-red-500 transition-colors">
                   <Trash2 className="h-4 w-4" />
                 </button>

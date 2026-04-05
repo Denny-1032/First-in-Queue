@@ -180,11 +180,14 @@ export default function ConversationsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      if (res.ok) {
+      if (res.ok || res.status === 207) {
         const saved = await res.json();
         setMessages((prev) => prev.map((m) => m.id === optimisticMsg.id ? saved : m));
+        if (res.status === 207) {
+          toast(saved._deliveryError || "Message saved but WhatsApp delivery failed. Check your WhatsApp integration settings.", "warning");
+        }
       } else {
-        toast("Failed to send message via WhatsApp", "error");
+        toast("Failed to send message. Please try again.", "error");
       }
     } catch {
       toast("Failed to send message", "error");
