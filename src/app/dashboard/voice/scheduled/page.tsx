@@ -37,7 +37,7 @@ interface ScheduledCallRow {
 }
 
 const statusConfig: Record<string, { icon: typeof Clock; color: string; label: string }> = {
-  pending: { icon: Clock, color: "bg-blue-100 text-blue-700", label: "Pending" },
+  pending: { icon: Clock, color: "bg-emerald-100 text-emerald-700", label: "Pending" },
   calling: { icon: PhoneCall, color: "bg-amber-100 text-amber-700", label: "Calling" },
   completed: { icon: CheckCircle2, color: "bg-emerald-100 text-emerald-700", label: "Completed" },
   failed: { icon: AlertTriangle, color: "bg-red-100 text-red-700", label: "Failed" },
@@ -133,7 +133,7 @@ export default function ScheduledCallsPage() {
         </div>
         <Button
           onClick={() => setScheduleModalOpen(true)}
-          className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+          className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
         >
           <Plus className="h-4 w-4" />
           Schedule Call
@@ -171,12 +171,12 @@ export default function ScheduledCallsPage() {
       ) : calls.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center py-12 text-center">
-            <div className="h-16 w-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
-              <Calendar className="h-7 w-7 text-blue-400" />
+            <div className="h-16 w-16 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
+              <Calendar className="h-7 w-7 text-emerald-400" />
             </div>
             <p className="text-gray-900 font-medium">No scheduled calls</p>
             <p className="text-sm text-gray-500 mt-1">Schedule your first AI voice call.</p>
-            <Button onClick={() => setScheduleModalOpen(true)} className="mt-4 gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+            <Button onClick={() => setScheduleModalOpen(true)} className="mt-4 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
               <Plus className="h-4 w-4" />
               Schedule Call
             </Button>
@@ -189,7 +189,7 @@ export default function ScheduledCallsPage() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-blue-600" />
+                  <Clock className="h-4 w-4 text-emerald-600" />
                   Upcoming ({upcoming.length})
                 </CardTitle>
               </CardHeader>
@@ -202,7 +202,7 @@ export default function ScheduledCallsPage() {
 
                     return (
                       <div key={call.id} className="flex items-center gap-4 py-3">
-                        <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+                        <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
                           <span className="text-[10px] font-semibold leading-none">{date.split(" ")[0]}</span>
                           <span className="text-sm font-bold leading-tight">{date.split(" ")[1]}</span>
                         </div>

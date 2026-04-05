@@ -74,10 +74,10 @@ export function ScheduleCallModal({ isOpen, onClose, tenantId, onScheduled }: Sc
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-              <Calendar className="h-5 w-5 text-blue-600" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
+              <Calendar className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Schedule a Call</h2>
@@ -162,7 +162,7 @@ export function ScheduleCallModal({ isOpen, onClose, tenantId, onScheduled }: Sc
               <Button
                 onClick={handleSchedule}
                 disabled={!phone || !date || !time || saving}
-                className="w-full h-11 gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full h-11 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 {saving ? (
                   <><Clock className="h-4 w-4 animate-spin" /> Scheduling...</>

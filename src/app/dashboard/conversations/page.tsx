@@ -108,8 +108,8 @@ export default function ConversationsPage() {
 
   useEffect(() => {
     fetchConversations();
-    // Poll for new conversations every 8 seconds
-    const interval = setInterval(() => fetchConversations(true), 8000);
+    // Poll for new conversations every 5 seconds
+    const interval = setInterval(() => fetchConversations(true), 5000);
     return () => clearInterval(interval);
   }, [fetchConversations]);
 
@@ -135,8 +135,8 @@ export default function ConversationsPage() {
   useEffect(() => {
     if (!selectedId) { setMessages([]); return; }
     fetchMessages(selectedId);
-    // Poll for new messages every 5 seconds
-    const interval = setInterval(() => fetchMessages(selectedId, true), 5000);
+    // Poll for new messages every 3 seconds
+    const interval = setInterval(() => fetchMessages(selectedId, true), 3000);
     return () => clearInterval(interval);
   }, [selectedId, fetchMessages]);
 
@@ -206,6 +206,8 @@ export default function ConversationsPage() {
       prev.map((c) => c.id === selectedId && c.status === "active" ? { ...c, status: "handoff" as ConversationStatus, ai_enabled: false } : c)
     );
     setSending(false);
+    // Refresh conversations list so latest message preview updates
+    fetchConversations(true);
   };
 
   const getInitials = (name?: string) => {

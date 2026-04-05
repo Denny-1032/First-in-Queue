@@ -194,6 +194,24 @@ export default function AIConfigPage() {
                 });
                 if (res.ok) {
                   toast("AI configuration saved successfully");
+                  // Auto-sync voice agent prompts so they use latest knowledge base
+                  try {
+                    const agentsRes = await fetch("/api/voice/agents");
+                    if (agentsRes.ok) {
+                      const agentsData = await agentsRes.json();
+                      const agents = agentsData.agents || [];
+                      for (const agent of agents) {
+                        await fetch("/api/voice/agents", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ agentId: agent.id, syncPrompt: true }),
+                        });
+                      }
+                      if (agents.length > 0) {
+                        toast(`Voice agent${agents.length > 1 ? "s" : ""} synced with latest config`, "success");
+                      }
+                    }
+                  } catch { /* voice sync is best-effort */ }
                 } else {
                   toast("Failed to save configuration", "error");
                 }
@@ -833,75 +851,16 @@ function BotTestChat({
   const simulateResponse = useCallback(
     (userText: string): string => {
       const lower = userText.toLowerCase().trim();
-      // Extract meaningful words (drop common stop words)
-      const stopWords = new Set(["i", "me", "my", "we", "our", "you", "your", "the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "can", "may", "might", "shall", "to", "of", "in", "for", "on", "with", "at", "by", "from", "as", "into", "about", "it", "its", "this", "that", "these", "those", "and", "but", "or", "so", "if", "then", "than", "too", "very", "just", "not", "no", "what", "how", "when", "where", "which", "who", "whom", "why", "hi", "hello", "hey", "thanks", "thank", "please", "help", "need", "want", "know", "tell", "me", "any", "some", "there", "here", "much", "many"]);
-      const userWords = lower.split(/\s+/).filter((w) => w.length > 1 && !stopWords.has(w));
 
-      // Check for escalation / human request first
-      const escalationPhrases = ["speak to a human", "talk to a person", "real person", "human agent", "speak to someone", "talk to agent", "transfer me", "escalate", "manager", "supervisor", "real agent", "human help"];
-      if (escalationPhrases.some((p) => lower.includes(p))) {
-        return `I understand you'd like to speak with a human agent. Let me connect you right away. 🤝\n\nA team member will be with you shortly. Your conversation history will be shared so you won't need to repeat yourself.`;
-      }
-
-      // Check FAQs — fuzzy word overlap matching
-      let bestFaqScore = 0;
-      let bestFaqAnswer = "";
-      for (const faq of faqs) {
-        if (!faq.question || !faq.answer) continue;
-        const faqWords = faq.question.toLowerCase().split(/\s+/).filter((w) => w.length > 1 && !stopWords.has(w));
-        const overlap = userWords.filter((w) => faqWords.some((fw) => fw.includes(w) || w.includes(fw))).length;
-        const score = faqWords.length > 0 ? overlap / Math.max(faqWords.length, 1) : 0;
-        if (score > bestFaqScore && score >= 0.4) {
-          bestFaqScore = score;
-          bestFaqAnswer = faq.answer;
-        }
-      }
-      if (bestFaqAnswer) return bestFaqAnswer;
-
-      // Score each knowledge base entry by word overlap with topic, keywords, AND content
-      const scored: { entry: KnowledgeEntry; score: number }[] = [];
-      for (const kb of knowledgeBase) {
-        let score = 0;
-        const topicWords = (kb.topic || "").toLowerCase().split(/\s+/);
-        const keywordList = (kb.keywords || []).map((k) => k.toLowerCase());
-        const contentWords = (kb.content || "").toLowerCase().split(/\s+/);
-
-        for (const w of userWords) {
-          // Topic match (high weight)
-          if (topicWords.some((tw) => tw.includes(w) || w.includes(tw))) score += 3;
-          // Keyword match (high weight)
-          if (keywordList.some((kw) => kw.includes(w) || w.includes(kw))) score += 3;
-          // Content word match (lower weight)
-          if (contentWords.some((cw) => cw === w || (cw.length > 3 && cw.includes(w)))) score += 1;
-        }
-        if (score > 0) scored.push({ entry: kb, score });
-      }
-
-      // Sort by score descending
-      scored.sort((a, b) => b.score - a.score);
-
+      // ── Tone helpers ──
       const tonePrefix =
         personality.tone === "friendly" ? "Great question! " :
         personality.tone === "casual" ? "Sure thing! " :
         personality.tone === "formal" ? "Thank you for your inquiry. " : "";
-
       const emojiSuffix = personality.emoji_usage === "heavy" ? " 😊" : personality.emoji_usage === "moderate" ? " 🙂" : "";
 
-      // If we have high-confidence match(es), return them
-      if (scored.length > 0 && scored[0].score >= 2) {
-        // Combine top matches (up to 2) if they're both relevant
-        const top = scored.slice(0, scored[1]?.score >= 2 ? 2 : 1);
-        const combined = top.map((s) => s.entry.content).join("\n\n");
-        return `${tonePrefix}${combined}${emojiSuffix}`;
-      }
-
-      // Low-confidence partial match — still try to answer
-      if (scored.length > 0 && scored[0].score >= 1) {
-        return `${tonePrefix}Based on what I know, ${scored[0].entry.content}${emojiSuffix}\n\nWould you like to know more about this?`;
-      }
-
-      // Greeting detection
-      if (/^(hi|hello|hey|howdy|good\s*(morning|afternoon|evening))/.test(lower)) {
+      // ── 1. Greeting detection ──
+      if (/^(hi|hello|hey|howdy|good\s*(morning|afternoon|evening)|yo)\b/.test(lower)) {
         const greetings: Record<string, string> = {
           professional: `Hello! I'm ${personality.name}. How may I assist you today?`,
           friendly: `Hey there! 👋 I'm ${personality.name}. How can I help you today?`,
@@ -911,19 +870,129 @@ function BotTestChat({
         return greetings[personality.tone] || greetings.friendly;
       }
 
-      // If knowledge base has entries, list available topics as guidance
+      // ── 2. Escalation detection ──
+      const escalationPhrases = ["speak to a human", "talk to a person", "real person", "human agent", "speak to someone", "talk to agent", "transfer me", "escalate", "manager", "supervisor", "real agent", "human help"];
+      if (escalationPhrases.some((p) => lower.includes(p))) {
+        return `I understand you'd like to speak with a human agent. Let me connect you right away. 🤝\n\nA team member will be with you shortly. Your conversation history will be shared so you won't need to repeat yourself.`;
+      }
+
+      // ── 3. Intent detection — map common question patterns to search terms ──
+      const intentMap: { patterns: RegExp[]; searchTerms: string[] }[] = [
+        { patterns: [/what (does|do) .*(business|company|you) do/, /what is .*(business|company)/, /about .*(business|company|you)/, /tell me about/, /who are you/, /what (are|is) (this|your|the) (business|company|service)/], searchTerms: ["overview", "about", "description", "company", "service", "what we do", "offer"] },
+        { patterns: [/pric(e|ing|es)/, /how much/, /cost/, /rate/, /plan(s)?/, /package/, /afford/], searchTerms: ["pricing", "price", "cost", "plan", "rate", "package", "basic", "business", "enterprise", "month"] },
+        { patterns: [/service(s)?/, /what .* offer/, /what .* provide/, /feature(s)?/, /capabilit/, /what can you/], searchTerms: ["service", "feature", "offer", "provide", "whatsapp", "voice", "chat", "automation", "capability"] },
+        { patterns: [/hour(s)?/, /open/, /close/, /availab/, /when are you/, /schedule/], searchTerms: ["hours", "open", "available", "schedule", "time", "24/7"] },
+        { patterns: [/contact/, /reach/, /phone/, /email/, /call you/, /get in touch/], searchTerms: ["contact", "phone", "email", "reach", "support", "call"] },
+        { patterns: [/pay(ment)?/, /mobile money/, /airtel/, /mtn/, /zamtel/, /card/, /how.*(pay|subscribe)/], searchTerms: ["payment", "pay", "mobile money", "airtel", "mtn", "zamtel", "card", "billing"] },
+        { patterns: [/demo/, /trial/, /try/, /test/, /free/], searchTerms: ["demo", "trial", "free", "test", "book"] },
+        { patterns: [/setup/, /start/, /begin/, /onboard/, /get started/, /how.*(work|use)/], searchTerms: ["setup", "start", "begin", "onboard", "how it works", "get started", "configure"] },
+        { patterns: [/whatsapp/, /wa\b/, /messaging/], searchTerms: ["whatsapp", "messaging", "message", "chat", "api"] },
+        { patterns: [/voice/, /call(s|ing)?/, /phone agent/], searchTerms: ["voice", "call", "phone", "agent", "inbound", "outbound"] },
+        { patterns: [/return/, /refund/, /cancel/], searchTerms: ["return", "refund", "cancel", "money back"] },
+        { patterns: [/language/, /bemba/, /nyanja/, /tonga/, /multilingual/], searchTerms: ["language", "languages", "multilingual", "bemba", "nyanja", "tonga"] },
+      ];
+
+      // Detect intent and get bonus search terms
+      let intentSearchTerms: string[] = [];
+      for (const intent of intentMap) {
+        if (intent.patterns.some((p) => p.test(lower))) {
+          intentSearchTerms = intent.searchTerms;
+          break;
+        }
+      }
+
+      // ── 4. Build search words from user input + intent terms ──
+      const stopWords = new Set(["i", "me", "my", "we", "our", "you", "your", "the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "can", "may", "might", "shall", "to", "of", "in", "for", "on", "with", "at", "by", "from", "as", "into", "it", "its", "this", "that", "these", "those", "and", "but", "or", "so", "if", "then", "than", "too", "very", "just", "not", "no", "hi", "hello", "hey", "thanks", "thank", "please"]);
+      const userWords = lower.split(/\s+/).filter((w) => w.length > 2 && !stopWords.has(w));
+      const allSearchWords = [...new Set([...userWords, ...intentSearchTerms])];
+
+      // ── 5. Check FAQs first ──
+      let bestFaqScore = 0;
+      let bestFaqAnswer = "";
+      for (const faq of faqs) {
+        if (!faq.question || !faq.answer) continue;
+        const faqLower = faq.question.toLowerCase();
+        // Direct substring match is very strong
+        if (lower.length > 5 && faqLower.includes(lower)) {
+          return `${tonePrefix}${faq.answer}${emojiSuffix}`;
+        }
+        const faqWords = faqLower.split(/\s+/).filter((w) => w.length > 2 && !stopWords.has(w));
+        const overlap = allSearchWords.filter((w) => faqWords.some((fw) => fw.includes(w) || w.includes(fw))).length;
+        const score = faqWords.length > 0 ? overlap / Math.max(faqWords.length, 1) : 0;
+        if (score > bestFaqScore && score >= 0.35) {
+          bestFaqScore = score;
+          bestFaqAnswer = faq.answer;
+        }
+      }
+      if (bestFaqScore >= 0.5) return `${tonePrefix}${bestFaqAnswer}${emojiSuffix}`;
+
+      // ── 6. Score knowledge base entries ──
+      const scored: { entry: KnowledgeEntry; score: number }[] = [];
+      for (const kb of knowledgeBase) {
+        let score = 0;
+        const topicLower = (kb.topic || "").toLowerCase();
+        const topicWords = topicLower.split(/\s+/);
+        const keywordList = (kb.keywords || []).map((k) => k.toLowerCase());
+        const contentLower = (kb.content || "").toLowerCase();
+
+        for (const w of allSearchWords) {
+          // Topic — exact word or substring match
+          if (topicWords.some((tw) => tw === w || (tw.length > 3 && tw.includes(w)) || (w.length > 3 && w.includes(tw)))) score += 4;
+          // Keyword match
+          if (keywordList.some((kw) => kw === w || kw.includes(w) || w.includes(kw))) score += 3;
+          // Content match — word present in content text
+          if (contentLower.includes(w)) score += 1;
+        }
+
+        // Bonus: if the entire user query appears as substring in topic or content
+        if (lower.length > 5 && (topicLower.includes(lower) || contentLower.includes(lower))) score += 10;
+
+        if (score > 0) scored.push({ entry: kb, score });
+      }
+
+      scored.sort((a, b) => b.score - a.score);
+
+      // ── 7. Return best matches ──
+      if (scored.length > 0 && scored[0].score >= 3) {
+        // Combine top matches (up to 3 high-scoring entries) for a richer answer
+        const threshold = Math.max(scored[0].score * 0.5, 3);
+        const top = scored.filter((s) => s.score >= threshold).slice(0, 3);
+        const combined = top.map((s) => {
+          const topic = s.entry.topic ? `${s.entry.topic}: ` : "";
+          return `${topic}${s.entry.content}`;
+        }).join("\n\n");
+        return `${tonePrefix}${combined}${emojiSuffix}`;
+      }
+
+      // Low-confidence partial match
+      if (scored.length > 0 && scored[0].score >= 1) {
+        return `${tonePrefix}${scored[0].entry.content}${emojiSuffix}\n\nWould you like to know more about this?`;
+      }
+
+      // If FAQ had a weaker match, use it
+      if (bestFaqAnswer) return `${tonePrefix}${bestFaqAnswer}${emojiSuffix}`;
+
+      // ── 8. Fallback — list available topics ──
       if (knowledgeBase.length > 0) {
-        const topics = knowledgeBase.slice(0, 5).map((kb) => kb.topic).filter(Boolean).join(", ");
+        // Deduplicate topics and pick first 5 unique short titles
+        const uniqueTopics = [...new Set(knowledgeBase.map((kb) => {
+          const t = kb.topic || "";
+          // Trim long crawled titles to the part after the last " - " if present
+          const dashIdx = t.lastIndexOf(" - ");
+          return dashIdx > 0 ? t.slice(dashIdx + 3).trim() : t;
+        }).filter(Boolean))].slice(0, 5);
+
+        const topicList = uniqueTopics.join(", ");
         const noMatch: Record<string, string> = {
-          professional: `I'd be happy to help! I can assist with: ${topics}. Which topic would you like to know more about?`,
-          friendly: `I'd love to help! 😊 I know about: ${topics}. What would you like to know?`,
-          casual: `Hmm, let me see... I can help with: ${topics}. What are you looking for?`,
-          formal: `I would be pleased to assist. My areas of knowledge include: ${topics}. How may I help?`,
+          professional: `I'd be happy to help! I can assist with: ${topicList}. Which topic would you like to know more about?`,
+          friendly: `I'd love to help! 😊 I can tell you about: ${topicList}. What interests you?`,
+          casual: `Hmm, let me think... I know about: ${topicList}. What are you looking for?`,
+          formal: `I would be pleased to assist. My areas of knowledge include: ${topicList}. How may I help?`,
         };
         return noMatch[personality.tone] || noMatch.friendly;
       }
 
-      // Truly empty knowledge base — generic fallback
+      // Truly empty knowledge base
       const generic: Record<string, string> = {
         professional: "Thank you for reaching out. I don't have specific information on that yet, but our team can help. Would you like me to connect you with someone?",
         friendly: "Hmm, I don't have info on that yet — my knowledge base is still being set up! Want me to connect you with a team member? 😊",
