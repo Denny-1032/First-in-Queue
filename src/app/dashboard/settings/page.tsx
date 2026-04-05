@@ -98,7 +98,7 @@ export default function SettingsPage() {
     if (!tenantId) return;
     async function loadSubscription() {
       try {
-        const res = await fetch(`/api/subscriptions?tenantId=${tenantId}`);
+        const res = await fetch(`/api/subscriptions`);
         if (res.ok) {
           const data = await res.json();
           if (data.subscription) {

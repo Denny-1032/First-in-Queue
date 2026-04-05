@@ -22,9 +22,12 @@ import {
   Upload,
   Wand2,
   UserCheck,
+  Globe,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { parseMarkdownToKnowledgeEntries } from "@/lib/knowledge-parser";
 import type { BotPersonality, FAQ, KnowledgeEntry } from "@/types";
 
 const defaultPersonality: BotPersonality = {
@@ -58,6 +61,12 @@ export default function AIConfigPage() {
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [businessDescription, setBusinessDescription] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Web crawl state
+  const [showCrawl, setShowCrawl] = useState(false);
+  const [crawlUrl, setCrawlUrl] = useState("");
+  const [crawling, setCrawling] = useState(false);
+  const [crawlProgress, setCrawlProgress] = useState("");
 
   // Load config from API on mount
   useEffect(() => {
@@ -116,6 +125,18 @@ export default function AIConfigPage() {
 
   const removeFaq = (id: string) => {
     setFaqs(faqs.filter((f) => f.id !== id));
+  };
+
+  // Helper function to extract keywords from text
+  const extractKeywordsFromText = (text: string): string[] => {
+    const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'shall', 'this', 'that', 'these', 'those']);
+    
+    return text
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter(word => word.length > 2 && !stopWords.has(word))
+      .slice(0, 10); // Limit to 10 keywords
   };
 
   return (
@@ -259,7 +280,11 @@ export default function AIConfigPage() {
               <CardTitle>Knowledge Base</CardTitle>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowBulkImport(!showBulkImport)} className="gap-1.5">
+              <Button variant="outline" size="sm" onClick={() => { setShowCrawl(!showCrawl); setShowBulkImport(false); }} className="gap-1.5">
+                <Globe className="h-3.5 w-3.5" />
+                Crawl Website
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => { setShowBulkImport(!showBulkImport); setShowCrawl(false); }} className="gap-1.5">
                 <Upload className="h-3.5 w-3.5" />
                 Quick Setup
               </Button>
@@ -271,6 +296,96 @@ export default function AIConfigPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Web Crawl Panel */}
+          {showCrawl && (
+            <div className="rounded-xl border-2 border-dashed border-blue-200 bg-blue-50/50 p-5 space-y-4">
+              <div className="flex items-center gap-2 text-blue-700">
+                <Globe className="h-4 w-4" />
+                <p className="text-sm font-semibold">Crawl Website for Knowledge</p>
+              </div>
+              <p className="text-xs text-blue-600">
+                Enter a website URL and we&apos;ll crawl all its pages to automatically extract and structure knowledge for your AI assistant.
+              </p>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={crawlUrl}
+                  onChange={(e) => setCrawlUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  className="flex-1 bg-white border-blue-200 focus:ring-blue-500"
+                  disabled={crawling}
+                />
+                <Button
+                  size="sm"
+                  className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+                  disabled={!crawlUrl.trim() || crawling}
+                  onClick={async () => {
+                    let urlToCrawl = crawlUrl.trim();
+                    if (!urlToCrawl) return;
+                    if (!/^https?:\/\//i.test(urlToCrawl)) {
+                      urlToCrawl = "https://" + urlToCrawl;
+                      setCrawlUrl(urlToCrawl);
+                    }
+
+                    setCrawling(true);
+                    setCrawlProgress("Starting crawl...");
+
+                    try {
+                      const res = await fetch("/api/knowledge/crawl", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ url: urlToCrawl }),
+                      });
+
+                      const data = await res.json();
+
+                      if (!res.ok) {
+                        toast(data.error || "Failed to crawl website", "error");
+                        setCrawlProgress("");
+                        return;
+                      }
+
+                      if (data.entries && data.entries.length > 0) {
+                        setKnowledgeBase((prev) => [...prev, ...data.entries]);
+                        toast(
+                          `Crawled ${data.pagesCrawled} pages and added ${data.entries.length} knowledge entries from ${data.source}`
+                        );
+                        setCrawlUrl("");
+                        setShowCrawl(false);
+                      } else {
+                        toast("No knowledge entries could be extracted from this website", "warning");
+                      }
+                      setCrawlProgress("");
+                    } catch (err) {
+                      toast("Failed to crawl website. Please check the URL and try again.", "error");
+                      setCrawlProgress("");
+                    } finally {
+                      setCrawling(false);
+                    }
+                  }}
+                >
+                  {crawling ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Globe className="h-3.5 w-3.5" />
+                  )}
+                  {crawling ? "Crawling..." : "Start Crawl"}
+                </Button>
+              </div>
+              {crawling && crawlProgress && (
+                <div className="flex items-center gap-2 text-xs text-blue-600">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>{crawlProgress}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-3">
+                <Button variant="outline" size="sm" onClick={() => { setShowCrawl(false); setCrawlProgress(""); }}>
+                  Cancel
+                </Button>
+                <span className="text-[11px] text-blue-400">Crawls up to 30 pages from the same domain</span>
+              </div>
+            </div>
+          )}
+
           {/* Quick Setup: Business Description */}
           {showBulkImport && (
             <div className="rounded-xl border-2 border-dashed border-purple-200 bg-purple-50/50 p-5 space-y-4">
@@ -295,7 +410,7 @@ export default function AIConfigPage() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".txt,.csv,.md,.text"
+                  accept=".txt,.csv,.md,.markdown,.text"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
@@ -303,7 +418,20 @@ export default function AIConfigPage() {
                     const reader = new FileReader();
                     reader.onload = (ev) => {
                       const text = ev.target?.result as string;
-                      if (text) setBusinessDescription((prev) => prev ? prev + "\n\n" + text : text);
+                      if (text) {
+                        // Check if it's a markdown file
+                        if (file.name.endsWith('.md') || file.name.endsWith('.markdown')) {
+                          // Parse markdown directly into knowledge entries
+                          const parsedEntries = parseMarkdownToKnowledgeEntries(text);
+                          if (parsedEntries.length > 0) {
+                            setKnowledgeBase(prev => [...prev, ...parsedEntries]);
+                            toast(`Added ${parsedEntries.length} knowledge entries from ${file.name}`);
+                            return;
+                          }
+                        }
+                        // For other files, add to business description
+                        setBusinessDescription((prev) => prev ? prev + "\n\n" + text : text);
+                      }
                     };
                     reader.readAsText(file);
                     e.target.value = "";
@@ -322,116 +450,107 @@ export default function AIConfigPage() {
                   className="gap-1.5 bg-purple-600 hover:bg-purple-700"
                   disabled={!businessDescription.trim()}
                   onClick={() => {
-                    const lines = businessDescription.split("\n").filter((l) => l.trim());
-                    const entries: KnowledgeEntry[] = [];
-                    let currentTopic = "";
-                    let currentContent = "";
-                    let currentKeywords: string[] = [];
+                    const text = businessDescription.trim();
+                    if (!text) return;
 
-                    for (const line of lines) {
-                      const trimmed = line.trim();
-                      const topicMatch = trimmed.match(/^([A-Za-z\s&\/\-]+):\s*(.*)$/);
-                      if (topicMatch && topicMatch[1].length < 50) {
-                        if (currentTopic && currentContent) {
-                          entries.push({
-                            id: Date.now().toString() + entries.length,
-                            topic: currentTopic,
-                            content: currentContent.trim(),
-                            keywords: currentKeywords,
-                          });
-                        }
-                        currentTopic = topicMatch[1].trim();
-                        currentContent = topicMatch[2] || "";
-                        currentKeywords = currentTopic.toLowerCase().split(/[\s&\/\-]+/).filter((w) => w.length > 2);
-                      } else if (currentTopic) {
-                        currentContent += (currentContent ? " " : "") + trimmed;
-                      } else {
-                        entries.push({
-                          id: Date.now().toString() + entries.length,
-                          topic: "About Us",
-                          content: trimmed,
-                          keywords: ["about", "who", "company", "business"],
-                        });
+                    // Try to parse as markdown first
+                    if (text.includes('#') || text.includes('##')) {
+                      const parsedEntries = parseMarkdownToKnowledgeEntries(text);
+                      if (parsedEntries.length > 0) {
+                        setKnowledgeBase((prev) => [...prev, ...parsedEntries]);
+                        toast(`Added ${parsedEntries.length} knowledge entries from markdown content`);
+                        setBusinessDescription("");
+                        setShowBulkImport(false);
+                        return;
                       }
                     }
-                    if (currentTopic && currentContent) {
-                      entries.push({
-                        id: Date.now().toString() + entries.length,
-                        topic: currentTopic,
-                        content: currentContent.trim(),
-                        keywords: currentKeywords,
-                      });
+
+                    // Parse structured text
+                    const sections = text.split(/\n\s*\n/).filter(section => section.trim());
+                    const entries: KnowledgeEntry[] = [];
+
+                    for (const section of sections) {
+                      const lines = section.split('\n').map(l => l.trim()).filter(l => l);
+                      if (lines.length === 0) continue;
+
+                      // Check if this is a topic:content format
+                      const topicMatch = lines[0].match(/^([^:]+):\s*(.*)$/);
+                      if (topicMatch && topicMatch[1].length < 80) {
+                        const topic = topicMatch[1].trim();
+                        let content = topicMatch[2] || "";
+                        
+                        // Add remaining lines to content
+                        if (lines.length > 1) {
+                          content += (content ? "\n" : "") + lines.slice(1).join("\n");
+                        }
+
+                        if (content.trim()) {
+                          entries.push({
+                            id: Date.now().toString() + entries.length,
+                            topic: topic,
+                            content: content.trim(),
+                            keywords: extractKeywordsFromText(topic + " " + content),
+                          });
+                        }
+                      } else {
+                        // Treat as general information
+                        const content = lines.join("\n");
+                        if (content.length > 20) {
+                          // Try to extract a topic from the first sentence
+                          const firstSentence = content.split(/[.!?]/)[0];
+                          const topic = firstSentence.length < 60 ? firstSentence : "Business Information";
+                          
+                          entries.push({
+                            id: Date.now().toString() + entries.length,
+                            topic: topic,
+                            content: content,
+                            keywords: extractKeywordsFromText(content),
+                          });
+                        }
+                      }
                     }
 
                     if (entries.length === 0) {
-                      toast("Could not parse entries. Try using 'Topic: content' format.", "warning");
+                      toast("Could not parse entries. Try using 'Topic: content' format or markdown headers.", "warning");
                       return;
                     }
 
-                    // --- Auto-generate FAQs from parsed knowledge entries ---
+                    // Generate FAQs from parsed knowledge entries
                     const faqTemplates: Array<{
                       patterns: RegExp;
                       questions: string[];
                     }> = [
                       {
-                        patterns: /shipping|deliver/i,
-                        questions: ["How long does delivery take?", "How much does shipping cost?"],
+                        patterns: /shipping|deliver|dispatch|send/i,
+                        questions: ["How long does delivery take?", "How much does shipping cost?", "Do you offer free shipping?"],
                       },
                       {
-                        patterns: /return|exchange|refund/i,
-                        questions: ["What is your return policy?", "How do I return an item?"],
+                        patterns: /return|exchange|refund|money back/i,
+                        questions: ["What is your return policy?", "How do I return an item?", "Can I get a refund?"],
                       },
                       {
-                        patterns: /warranty|guarantee/i,
+                        patterns: /warranty|guarantee|defect/i,
                         questions: ["What warranty do your products have?", "How do I claim warranty?"],
                       },
                       {
-                        patterns: /payment|pay/i,
-                        questions: ["What payment methods do you accept?", "Do you offer payment plans?"],
+                        patterns: /payment|pay|card|cash|mobile money/i,
+                        questions: ["What payment methods do you accept?", "Do you accept mobile money?"],
                       },
                       {
-                        patterns: /hours|open|schedule/i,
-                        questions: ["What are your operating hours?"],
+                        patterns: /hours|open|schedule|time|when/i,
+                        questions: ["What are your operating hours?", "When are you open?"],
                       },
                       {
-                        patterns: /products?\s*-|products?\s*:/i,
-                        questions: ["What products do you sell?"],
+                        patterns: /products?|sell|offer|service/i,
+                        questions: ["What products do you sell?", "What services do you offer?"],
                       },
                       {
-                        patterns: /promotion|sale|discount|deal|coupon|code/i,
-                        questions: ["Do you have any current promotions or deals?"],
+                        patterns: /contact|email|phone|whatsapp|address|location/i,
+                        questions: ["How can I contact you?", "Where are you located?"],
                       },
                       {
-                        patterns: /contact|email|phone|whatsapp|address/i,
-                        questions: ["How can I contact you?"],
-                      },
-                      {
-                        patterns: /repair|fix|screen|battery/i,
-                        questions: ["Do you offer repair services?"],
-                      },
-                      {
-                        patterns: /loyal|reward|point|vip/i,
-                        questions: ["Do you have a loyalty or rewards program?"],
-                      },
-                      {
-                        patterns: /cancel|cancell/i,
-                        questions: ["Can I cancel my order?"],
-                      },
-                      {
-                        patterns: /track|tracking/i,
-                        questions: ["How do I track my order?"],
-                      },
-                      {
-                        patterns: /price\s*match/i,
-                        questions: ["Do you price match?"],
-                      },
-                      {
-                        patterns: /about\s*us|founded|who\s*are/i,
-                        questions: ["Tell me about your business"],
-                      },
-                      {
-                        patterns: /store|showroom|physical|visit/i,
-                        questions: ["Do you have a physical store I can visit?"],
+                        patterns: /price|cost|expensive|cheap|affordable/i,
+                        questions: ["What are your prices?", "Do you offer discounts?"],
                       },
                     ];
 
@@ -446,10 +565,11 @@ export default function AIConfigPage() {
                           if (usedQuestions.has(q.toLowerCase())) continue;
                           usedQuestions.add(q.toLowerCase());
 
-                          // Build a concise answer from the entry content (first 300 chars)
-                          const answer = entry.content.length > 300
-                            ? entry.content.slice(0, 297).replace(/\s+\S*$/, "") + "..."
-                            : entry.content;
+                          // Build a concise answer from the entry content
+                          let answer = entry.content;
+                          if (answer.length > 200) {
+                            answer = answer.slice(0, 197).replace(/\s+\S*$/, "") + "...";
+                          }
 
                           generatedFaqs.push({
                             id: `faq_${Date.now()}_${generatedFaqs.length}`,
@@ -457,6 +577,7 @@ export default function AIConfigPage() {
                             answer,
                             category: entry.topic.toLowerCase().replace(/[^a-z0-9]+/g, "_"),
                           });
+                          break; // Only one question per template per entry
                         }
                       }
                     }
@@ -470,7 +591,7 @@ export default function AIConfigPage() {
                     if (generatedFaqs.length > 0) {
                       parts.push(`${generatedFaqs.length} FAQs auto-generated`);
                     }
-                    toast(parts.join(" and ") + " from your description");
+                    toast(parts.join(" and "));
                     setBusinessDescription("");
                     setShowBulkImport(false);
                   }}

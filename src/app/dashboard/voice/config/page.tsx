@@ -130,10 +130,15 @@ export default function VoiceConfigPage() {
 
   useEffect(() => { fetchAgents(); }, [fetchAgents]);
 
-  // Auto-scroll transcript
+  // Auto-scroll transcript only when new messages arrive, not during updates
   useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [transcript]);
+    if (transcript.length > 0) {
+      const timeoutId = setTimeout(() => {
+        transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [transcript.length]); // Only trigger on length change, not content updates
 
   const selectAgent = (agent: VoiceAgentRow) => {
     setEditAgent(agent);
@@ -504,7 +509,7 @@ export default function VoiceConfigPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="px-4 pb-4">
-                  <div className="max-h-64 overflow-y-auto space-y-2">
+                  <div className="h-64 overflow-y-auto space-y-2 border border-gray-100 rounded-lg p-3 bg-gray-50">
                     {transcript.length === 0 && testCallActive && (
                       <p className="text-xs text-gray-400 italic text-center py-4">Waiting for conversation...</p>
                     )}
@@ -525,8 +530,8 @@ export default function VoiceConfigPage() {
                           className={cn(
                             "max-w-[85%] rounded-lg px-3 py-1.5",
                             entry.role === "agent"
-                              ? "bg-emerald-50 text-gray-800"
-                              : "bg-gray-100 text-gray-800"
+                              ? "bg-white text-gray-800 border border-emerald-200"
+                              : "bg-gray-200 text-gray-800"
                           )}
                         >
                           {entry.content}
@@ -835,16 +840,16 @@ export default function VoiceConfigPage() {
                 </CardContent>
               </Card>
 
-              {/* Quick info card */}
+              {/* Quick info card - Knowledge Base Integration */}
               <Card>
                 <CardContent className="pt-5 pb-4">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Telephony Setup Required</p>
+                      <p className="text-sm font-medium text-gray-700">Knowledge Base Integration</p>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        For inbound calls, connect your Twilio phone number to Retell AI via Elastic SIP Trunking.
-                        For outbound calls, ensure your <code className="text-xs bg-gray-100 px-1 rounded">TWILIO_VOICE_NUMBER</code> environment variable is set.
+                        Your voice agent automatically uses your business configuration, knowledge base, and FAQs from AI Config.
+                        Use "Sync from Business Config" above to update the system prompt.
                       </p>
                     </div>
                   </div>

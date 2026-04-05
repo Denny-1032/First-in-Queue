@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createOrUpdateLeadScore, getLeads, getHotLeads, getLeadsNeedingFollowUp } from "@/lib/db/operations";
-import { getDefaultTenantId } from "@/lib/db/get-default-tenant";
+import { requireSession, AuthError } from "@/lib/auth/session";
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const tenantId = searchParams.get("tenant_id") || await getDefaultTenantId();
+    const session = await requireSession();
+    const tenantId = session.tenantId;
     const temperature = searchParams.get("temperature");
     const hot = searchParams.get("hot") === "true";
     const followUp = searchParams.get("follow_up") === "true";
@@ -32,6 +33,7 @@ export async function GET(request: NextRequest) {
     );
     return NextResponse.json(leads);
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[API] Error fetching leads:", error);
     return NextResponse.json({ error: "Failed to fetch leads" }, { status: 500 });
   }
@@ -40,7 +42,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const tenantId = body.tenant_id || await getDefaultTenantId();
+    const session = await requireSession();
+    const tenantId = session.tenantId;
 
     if (!body.conversation_id || !body.customer_phone) {
       return NextResponse.json(
@@ -71,6 +74,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(lead, { status: 201 });
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[API] Error creating/updating lead:", error);
     return NextResponse.json({ error: "Failed to create/update lead" }, { status: 500 });
   }

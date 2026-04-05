@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createScheduledMessage, getScheduledMessages } from "@/lib/db/operations";
-import { getDefaultTenantId } from "@/lib/db/get-default-tenant";
+import { requireSession, AuthError } from "@/lib/auth/session";
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const tenantId = searchParams.get("tenant_id") || await getDefaultTenantId();
+    const session = await requireSession();
+    const tenantId = session.tenantId;
     const status = searchParams.get("status");
     const limit = parseInt(searchParams.get("limit") || "50");
 
     const messages = await getScheduledMessages(tenantId, status || undefined, limit);
     return NextResponse.json(messages);
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[API] Error fetching scheduled messages:", error);
     return NextResponse.json({ error: "Failed to fetch scheduled messages" }, { status: 500 });
   }
@@ -20,7 +22,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const tenantId = body.tenant_id || await getDefaultTenantId();
+    const session = await requireSession();
+    const tenantId = session.tenantId;
 
     if (!body.customer_phone || !body.scheduled_at) {
       return NextResponse.json(
@@ -44,6 +47,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(message, { status: 201 });
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[API] Error creating scheduled message:", error);
     return NextResponse.json({ error: "Failed to create scheduled message" }, { status: 500 });
   }

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createBooking, getBookings, getUpcomingBookings } from "@/lib/db/operations";
-import { getDefaultTenantId } from "@/lib/db/get-default-tenant";
+import { requireSession, AuthError } from "@/lib/auth/session";
 import type { BookingStatus } from "@/types";
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const tenantId = searchParams.get("tenant_id") || await getDefaultTenantId();
+    const session = await requireSession();
+    const tenantId = session.tenantId;
     const status = searchParams.get("status") as BookingStatus | null;
     const date = searchParams.get("date");
     const customerPhone = searchParams.get("customer_phone");
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
     );
     return NextResponse.json(bookings);
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[API] Error fetching bookings:", error);
     return NextResponse.json({ error: "Failed to fetch bookings" }, { status: 500 });
   }
@@ -37,7 +39,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const tenantId = body.tenant_id || await getDefaultTenantId();
+    const session = await requireSession();
+    const tenantId = session.tenantId;
 
     if (!body.customer_phone || !body.booking_type || !body.scheduled_date) {
       return NextResponse.json(
@@ -64,6 +67,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(booking, { status: 201 });
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[API] Error creating booking:", error);
     return NextResponse.json({ error: "Failed to create booking" }, { status: 500 });
   }

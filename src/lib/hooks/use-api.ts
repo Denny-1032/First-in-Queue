@@ -32,9 +32,13 @@ export function useApi<T>({ url, fallback, enabled = true }: UseApiOptions<T>): 
       const json = await res.json();
       setData(json);
     } catch (err) {
-      console.warn(`[useApi] Falling back to mock data for ${url}:`, err);
-      setData(fallbackRef.current);
-      setError(null); // Silently use fallback
+      const message = err instanceof Error ? err.message : "Failed to fetch data";
+      console.error(`[useApi] Error fetching ${url}:`, message);
+      setError(message);
+      // Only use fallback on first load if no data has been set yet
+      if (JSON.stringify(data) === JSON.stringify(fallbackRef.current)) {
+        setData(fallbackRef.current);
+      }
     } finally {
       setLoading(false);
     }

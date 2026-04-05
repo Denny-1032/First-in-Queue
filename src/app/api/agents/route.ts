@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAgents } from "@/lib/db/operations";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { getDefaultTenantId } from "@/lib/db/get-default-tenant";
+import { requireSession, AuthError } from "@/lib/auth/session";
 
 export async function GET(request: NextRequest) {
   try {
-    const tenantId = request.nextUrl.searchParams.get("tenant_id") || await getDefaultTenantId();
+    const session = await requireSession();
+    const tenantId = session.tenantId;
     const agents = await getAgents(tenantId);
     return NextResponse.json(agents);
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[API] Error fetching agents:", error);
     return NextResponse.json({ error: "Failed to fetch agents" }, { status: 500 });
   }
@@ -17,7 +19,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const tenantId = body.tenant_id || await getDefaultTenantId();
+    const session = await requireSession();
+    const tenantId = session.tenantId;
     const { data, error } = await getSupabaseAdmin()
       .from("agents")
       .insert({
@@ -37,6 +40,7 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[API] Error creating agent:", error);
     return NextResponse.json({ error: "Failed to create agent" }, { status: 500 });
   }

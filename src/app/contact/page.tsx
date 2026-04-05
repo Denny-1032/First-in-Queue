@@ -49,7 +49,6 @@ export default function ContactPage() {
               <MessageSquare className="h-6 w-6 text-green-600" />
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">WhatsApp</h2>
-            {/* TODO: Replace with your actual Zambian WhatsApp number, e.g. https://wa.me/260XXXXXXXXX */}
             <a
               href="https://wa.me/260960667093"
               target="_blank"

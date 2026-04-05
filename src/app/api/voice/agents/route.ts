@@ -6,6 +6,7 @@ import {
   deleteRetellAgent,
   buildVoiceSystemPrompt,
 } from "@/lib/voice/retell-client";
+import { requireSession, AuthError } from "@/lib/auth/session";
 
 // =============================================
 // Voice Agent Management API
@@ -17,12 +18,8 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get("tenantId");
-
-    if (!tenantId) {
-      return NextResponse.json({ error: "tenantId is required" }, { status: 400 });
-    }
+    const session = await requireSession();
+    const tenantId = session.tenantId;
 
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
@@ -37,6 +34,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ agents: data || [] });
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[Voice Agents] Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
@@ -44,9 +42,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await requireSession();
+    const tenantId = session.tenantId;
     const body = await request.json();
     const {
-      tenantId,
       name,
       voiceId,
       language,
@@ -54,10 +53,6 @@ export async function POST(request: NextRequest) {
       maxCallDurationSeconds,
       transferPhoneNumber,
     } = body;
-
-    if (!tenantId) {
-      return NextResponse.json({ error: "tenantId is required" }, { status: 400 });
-    }
 
     const supabase = getSupabaseAdmin();
 
@@ -120,6 +115,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ agent }, { status: 201 });
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     const msg = error instanceof Error ? error.message : String(error);
     console.error("[Voice Agents] Create error:", msg, error);
     return NextResponse.json({ error: `Failed to create voice agent: ${msg}` }, { status: 500 });
@@ -128,10 +124,11 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const session = await requireSession();
+    const tenantId = session.tenantId;
     const body = await request.json();
     const {
       agentId,
-      tenantId,
       name,
       voiceId,
       language,
@@ -142,8 +139,8 @@ export async function PATCH(request: NextRequest) {
       syncPrompt,
     } = body;
 
-    if (!agentId || !tenantId) {
-      return NextResponse.json({ error: "agentId and tenantId are required" }, { status: 400 });
+    if (!agentId) {
+      return NextResponse.json({ error: "agentId is required" }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();
@@ -225,6 +222,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ agent: updated });
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[Voice Agents] Update error:", error);
     return NextResponse.json({ error: "Failed to update voice agent" }, { status: 500 });
   }
@@ -232,12 +230,13 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const session = await requireSession();
+    const tenantId = session.tenantId;
     const { searchParams } = new URL(request.url);
     const agentId = searchParams.get("agentId");
-    const tenantId = searchParams.get("tenantId");
 
-    if (!agentId || !tenantId) {
-      return NextResponse.json({ error: "agentId and tenantId are required" }, { status: 400 });
+    if (!agentId) {
+      return NextResponse.json({ error: "agentId is required" }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();
@@ -265,6 +264,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ deleted: true });
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[Voice Agents] Delete error:", error);
     return NextResponse.json({ error: "Failed to delete voice agent" }, { status: 500 });
   }

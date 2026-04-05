@@ -2,7 +2,7 @@
 
 import { MessageCircle } from "lucide-react";
 
-const WHATSAPP_NUMBER = "260960667093"; // TODO: Replace with actual FiQ WhatsApp number
+const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "260960667093";
 
 export function WhatsAppButton() {
   return (

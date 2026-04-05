@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { requireSession, AuthError } from "@/lib/auth/session";
 
 // =============================================
 // Voice Call History API
@@ -8,16 +9,13 @@ import { getSupabaseAdmin } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await requireSession();
+    const tenantId = session.tenantId;
     const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get("tenantId");
     const direction = searchParams.get("direction");
     const status = searchParams.get("status");
     const limit = parseInt(searchParams.get("limit") || "50", 10);
     const offset = parseInt(searchParams.get("offset") || "0", 10);
-
-    if (!tenantId) {
-      return NextResponse.json({ error: "tenantId is required" }, { status: 400 });
-    }
 
     const supabase = getSupabaseAdmin();
 
@@ -45,6 +43,7 @@ export async function GET(request: NextRequest) {
       offset,
     });
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[Voice Calls] Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,12 +21,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid admin credentials" }, { status: 401 });
     }
 
+    // Generate a real signed admin token
+    const adminSecret = process.env.AUTH_TOKEN_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "fiq-fallback-secret-change-me";
+    const payload = Buffer.from(JSON.stringify({ email, role: "superadmin", iat: Date.now() })).toString("base64url");
+    const sig = crypto.createHmac("sha256", adminSecret).update(payload).digest("base64url");
+    const adminToken = `${payload}.${sig}`;
+
     const response = NextResponse.json({
       user: { email, name: "FiQ Admin", role: "superadmin" },
       message: "Admin login successful",
     });
 
-    response.cookies.set("fiq-admin-auth", "admin-token-secure", {
+    response.cookies.set("fiq-admin-auth", adminToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

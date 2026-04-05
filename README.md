@@ -139,6 +139,22 @@ WHATSAPP_BUSINESS_ACCOUNT_ID=your-business-account-id
 WHATSAPP_WEBHOOK_VERIFY_TOKEN=your-custom-verify-token
 
 OPENAI_API_KEY=your-openai-api-key
+
+# Auth (uses SUPABASE_SERVICE_ROLE_KEY as fallback if not set)
+AUTH_TOKEN_SECRET=your-random-secret-key
+ADMIN_EMAILS=admin@yourdomain.com
+ADMIN_PASSWORD=your-secure-admin-password
+
+# Payments
+LIPILA_API_KEY=your-lipila-api-key
+LIPILA_CALLBACK_URL=https://your-domain.com/api/webhooks/lipila
+LENGO_PUBLIC_KEY=your-lenco-public-key
+
+# Voice (optional)
+RETELL_API_KEY=your-retell-api-key
+
+# WhatsApp contact number shown on landing/contact pages
+NEXT_PUBLIC_WHATSAPP_NUMBER=260XXXXXXXXX
 ```
 
 ### 3. Setup Database
@@ -176,12 +192,12 @@ Visit:
 First in Queue uses cookie-based authentication with middleware protection:
 
 - **Login page** at `/login` with email/password and demo mode
-- **Auth cookie** (`First in Queue-auth`) set on login, cleared on logout
-- **Middleware** redirects unauthenticated users from `/dashboard/*` to `/login`
+- **Auth cookie** (`fiq-auth`) — HMAC-signed token containing userId, email, and tenantId
+- **Admin cookie** (`fiq-admin-auth`) — HMAC-signed session token
+- **Middleware** validates token signatures and redirects unauthenticated users from `/dashboard/*` to `/login`
+- **Tenant isolation** — all API routes extract tenantId from the signed auth token, not from query params
 - **Rate limiting** on API routes (120 req/min per IP, webhook excluded)
 - **Sign Out** button in dashboard sidebar
-
-For production, replace the demo auth with Supabase Auth or your preferred provider.
 
 ---
 
@@ -343,22 +359,29 @@ CMD ["npm", "start"]
 ## Roadmap
 
 - [x] AI-powered conversation engine (GPT-4o)
-- [x] Full dashboard with 8 pages
-- [x] Authentication & middleware
+- [x] Full dashboard with 8+ pages
+- [x] HMAC-signed cookie auth with tenant isolation
+- [x] Admin panel with signed session tokens
 - [x] Toast notification system
 - [x] Loading skeletons & error boundaries
 - [x] Interactive UI (save, connect, resolve, take over, create)
 - [x] Real-time hooks (Supabase Realtime)
-- [x] API routes with mock fallback
+- [x] Lipila mobile money payments (Airtel, MTN, Zamtel)
+- [x] Lenco card payments
+- [x] Trial management with auto-charge on expiry
+- [x] Voice agents (Retell AI integration)
+- [x] Lead scoring & CRM
+- [x] Booking management
+- [x] Scheduled messages
+- [x] Web crawling for knowledge base population
+- [x] Industry templates (E-Commerce, Healthcare, Restaurant, Real Estate)
 - [ ] Visual flow builder (drag-and-drop)
-- [ ] Supabase Auth integration (replace demo auth)
-- [ ] Stripe integration for payments via WhatsApp
 - [ ] Shopify/WooCommerce order sync
 - [ ] CRM integrations (HubSpot, Salesforce)
 - [ ] Slack/Teams agent notifications
 - [ ] WhatsApp template message management
 - [ ] Customer satisfaction surveys (CSAT)
-- [ ] Voice message transcription
+- [ ] Proactive cart abandonment recovery
 
 ---
 

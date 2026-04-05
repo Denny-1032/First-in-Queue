@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
-    const token = generateAuthToken(user.id, user.email);
+    const token = generateAuthToken(user.id, user.email, user.tenant_id);
     const response = NextResponse.json({
       user: { id: user.id, email: user.email, name: user.name, tenant_id: user.tenant_id },
       message: "Login successful",

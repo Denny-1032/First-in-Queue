@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { PLANS } from "./lipila/plans";
+import { collectMobileMoney, generateReferenceId, formatZambianPhone } from "./lipila/client";
 
 /**
  * Start a free trial for a tenant
@@ -167,23 +168,69 @@ export async function processExpiredTrials() {
       const amount = trial.billing_interval === "yearly" ? plan.yearlyPriceZMW : plan.priceZMW;
       
       // Create payment record
+      const referenceId = generateReferenceId();
+      const narration = `First in Queue - ${plan.name} Plan (${trial.billing_interval}) - Trial ended`;
+      const accountNumber = paymentMethod.account_number || paymentMethod.phone_number || "";
+
       const { data: payment } = await supabase
         .from("payments")
         .insert({
           tenant_id: trial.tenant_id,
+          lipila_reference_id: referenceId,
           amount,
           currency: "ZMW",
           status: "pending",
-          narration: `First in Queue - ${plan.name} Plan (${trial.billing_interval}) - Trial ended`,
+          narration,
           payment_method: paymentMethod.type,
+          account_number: accountNumber,
         })
         .select()
         .single();
 
-      // TODO: Initiate actual payment based on payment method type
-      // This would integrate with Lipila/Lenco based on the saved payment method
-      
-      console.log(`[Trial] Created payment ${payment?.id} for expired trial of tenant ${trial.tenant_id}`);
+      if (!payment) {
+        console.error(`[Trial] Failed to create payment record for tenant ${trial.tenant_id}`);
+        continue;
+      }
+
+      // Initiate actual payment via Lipila mobile money
+      if (paymentMethod.type === "mobile_money" && accountNumber) {
+        try {
+          const lipilaResponse = await collectMobileMoney({
+            referenceId,
+            amount,
+            narration,
+            accountNumber: formatZambianPhone(accountNumber),
+            currency: "ZMW",
+            email: paymentMethod.email || "",
+          });
+
+          // Update payment with Lipila response
+          await supabase
+            .from("payments")
+            .update({
+              payment_type: lipilaResponse.paymentType,
+              lipila_identifier: lipilaResponse.identifier,
+              status: lipilaResponse.status === "Successful" ? "successful" : "pending",
+            })
+            .eq("id", payment.id);
+
+          console.log(`[Trial] Initiated Lipila payment ${payment.id} (${lipilaResponse.status}) for tenant ${trial.tenant_id}`);
+        } catch (payErr) {
+          console.error(`[Trial] Lipila payment failed for tenant ${trial.tenant_id}:`, payErr);
+          await supabase
+            .from("payments")
+            .update({ status: "failed" })
+            .eq("id", payment.id);
+        }
+      } else {
+        // No supported auto-charge method — mark trial as past_due
+        await supabase
+          .from("subscriptions")
+          .update({ status: "past_due" })
+          .eq("id", trial.id);
+
+        console.log(`[Trial] No auto-chargeable method for tenant ${trial.tenant_id}, marked as past_due`);
+      }
       
     } catch (error) {
       console.error(`[Trial] Error processing expired trial for tenant ${trial.tenant_id}:`, error);

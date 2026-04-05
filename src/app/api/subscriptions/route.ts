@@ -1,19 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { requireSession, AuthError } from "@/lib/auth/session";
 
 /**
- * GET /api/subscriptions?tenantId=xxx
- * Returns the active subscription for a tenant.
+ * GET /api/subscriptions
+ * Returns the active subscription for the authenticated tenant.
  */
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const tenantId = searchParams.get("tenantId");
-
-  if (!tenantId) {
-    return NextResponse.json({ error: "Missing tenantId" }, { status: 400 });
-  }
-
+export async function GET() {
   try {
+    const session = await requireSession();
+    const tenantId = session.tenantId;
     const supabase = getSupabaseAdmin();
 
     const { data: subscription } = await supabase
@@ -31,6 +27,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ subscription });
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[Subscriptions] Error:", error);
     return NextResponse.json({ error: "Failed to fetch subscription" }, { status: 500 });
   }
