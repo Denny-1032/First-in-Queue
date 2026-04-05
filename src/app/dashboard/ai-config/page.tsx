@@ -928,6 +928,7 @@ function BotTestChat({
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const prevNameRef = useRef(personality.name);
 
   // Update welcome message when bot name changes
@@ -944,9 +945,9 @@ function BotTestChat({
     }
   }, [personality.name]);
 
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom — only scroll the messages container, not the page
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages, thinking]);
 
   // Simulate AI response locally (no API call — uses current config state)
@@ -1167,7 +1168,7 @@ function BotTestChat({
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} className="h-80 overflow-y-auto p-4 space-y-3">
+          <div ref={scrollRef} className="h-80 overflow-y-auto p-4 space-y-3 scroll-smooth">
             {messages.map((msg) => (
               <div
                 key={msg.id}
@@ -1214,6 +1215,7 @@ function BotTestChat({
                 </div>
               </div>
             )}
+            <div ref={bottomRef} />
           </div>
 
           {/* Input */}

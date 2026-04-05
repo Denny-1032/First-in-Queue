@@ -264,3 +264,156 @@ export async function listVoices() {
   const client = getRetellClient();
   return await client.voice.list();
 }
+
+// =============================================
+// Retell Knowledge Base Management
+// =============================================
+
+/**
+ * Create a Retell Knowledge Base from FiQ knowledge entries and FAQs.
+ * Returns the knowledge_base_id which can then be attached to an LLM.
+ */
+export async function createRetellKnowledgeBase(params: {
+  name: string;
+  knowledgeBase: BusinessConfig["knowledge_base"];
+  faqs: BusinessConfig["faqs"];
+  businessDescription?: string;
+}) {
+  const client = getRetellClient();
+
+  // Convert FiQ knowledge entries to Retell text items
+  const texts: { title: string; text: string }[] = [];
+
+  // Add business description as first entry if available
+  if (params.businessDescription) {
+    texts.push({
+      title: "Business Overview",
+      text: params.businessDescription,
+    });
+  }
+
+  // Add knowledge base entries
+  for (const entry of params.knowledgeBase) {
+    if (!entry.content) continue;
+    const title = (entry.topic || "General Information").slice(0, 100);
+    const keywords = entry.keywords?.length ? `\nKeywords: ${entry.keywords.join(", ")}` : "";
+    texts.push({
+      title,
+      text: `${entry.content}${keywords}`,
+    });
+  }
+
+  // Add FAQs as text entries
+  for (const faq of params.faqs) {
+    if (!faq.question || !faq.answer) continue;
+    texts.push({
+      title: `FAQ: ${faq.question.slice(0, 90)}`,
+      text: `Question: ${faq.question}\nAnswer: ${faq.answer}`,
+    });
+  }
+
+  if (texts.length === 0) {
+    throw new Error("No knowledge base content to sync. Add knowledge entries or FAQs first.");
+  }
+
+  // Retell KB name limit is 40 chars
+  const kbName = params.name.slice(0, 40);
+
+  console.log(`[Retell KB] Creating knowledge base "${kbName}" with ${texts.length} text entries`);
+
+  const kbResponse = await client.knowledgeBase.create({
+    knowledge_base_name: kbName,
+    knowledge_base_texts: texts,
+  });
+
+  console.log(`[Retell KB] Created: ${kbResponse.knowledge_base_id} (status: ${kbResponse.status})`);
+  return kbResponse;
+}
+
+/**
+ * Delete a Retell Knowledge Base by ID.
+ */
+export async function deleteRetellKnowledgeBase(knowledgeBaseId: string) {
+  const client = getRetellClient();
+  console.log(`[Retell KB] Deleting knowledge base ${knowledgeBaseId}`);
+  await client.knowledgeBase.delete(knowledgeBaseId);
+}
+
+/**
+ * List all Retell Knowledge Bases.
+ */
+export async function listRetellKnowledgeBases() {
+  const client = getRetellClient();
+  return await client.knowledgeBase.list();
+}
+
+/**
+ * Get a Retell Knowledge Base by ID.
+ */
+export async function getRetellKnowledgeBase(knowledgeBaseId: string) {
+  const client = getRetellClient();
+  return await client.knowledgeBase.retrieve(knowledgeBaseId);
+}
+
+/**
+ * Attach knowledge base IDs to a Retell LLM so the agent can use RAG retrieval.
+ */
+export async function updateRetellLLMKnowledgeBase(llmId: string, knowledgeBaseIds: string[]) {
+  const client = getRetellClient();
+  console.log(`[Retell KB] Attaching KB IDs [${knowledgeBaseIds.join(", ")}] to LLM ${llmId}`);
+  const response = await client.llm.update(llmId, {
+    knowledge_base_ids: knowledgeBaseIds,
+  });
+  console.log(`[Retell KB] LLM updated successfully`);
+  return response;
+}
+
+/**
+ * Full sync: Create a new Retell KB from FiQ config, delete old one if it exists,
+ * and attach the new KB to the Retell LLM.
+ */
+export async function syncKnowledgeBaseToRetell(params: {
+  config: BusinessConfig;
+  tenantName: string;
+  existingKbId?: string | null;
+}): Promise<{ knowledgeBaseId: string }> {
+  const llmId = process.env.RETELL_LLM_ID;
+  if (!llmId) {
+    throw new Error("RETELL_LLM_ID is not configured. Set it in your .env file.");
+  }
+
+  // Delete old KB if it exists
+  if (params.existingKbId) {
+    try {
+      await deleteRetellKnowledgeBase(params.existingKbId);
+    } catch (err) {
+      console.warn(`[Retell KB] Failed to delete old KB ${params.existingKbId}:`, err);
+    }
+  }
+
+  // Create new KB with current FiQ content
+  const kbResponse = await createRetellKnowledgeBase({
+    name: params.tenantName,
+    knowledgeBase: params.config.knowledge_base,
+    faqs: params.config.faqs,
+    businessDescription: params.config.description,
+  });
+
+  // Get any existing KB IDs on the LLM so we don't remove other tenants' KBs
+  let existingKbIds: string[] = [];
+  try {
+    const llm = await getRetellClient().llm.retrieve(llmId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    existingKbIds = ((llm as any).knowledge_base_ids || []).filter(
+      (id: string) => id !== params.existingKbId
+    );
+  } catch {
+    // If we can't retrieve, just use the new KB alone
+  }
+
+  // Attach new KB to LLM
+  const allKbIds = [...existingKbIds, kbResponse.knowledge_base_id];
+  await updateRetellLLMKnowledgeBase(llmId, allKbIds);
+
+  return { knowledgeBaseId: kbResponse.knowledge_base_id };
+}

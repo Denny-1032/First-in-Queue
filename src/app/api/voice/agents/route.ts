@@ -5,6 +5,7 @@ import {
   updateRetellAgent,
   deleteRetellAgent,
   buildVoiceSystemPrompt,
+  syncKnowledgeBaseToRetell,
 } from "@/lib/voice/retell-client";
 import { requireSession, AuthError } from "@/lib/auth/session";
 
@@ -188,20 +189,36 @@ export async function PATCH(request: NextRequest) {
       dbUpdates.is_active = isActive;
     }
 
-    // Re-sync system prompt from tenant config if requested
+    // Re-sync system prompt AND knowledge base from tenant config if requested
     if (syncPrompt) {
-      console.log(`[Voice Agents] Syncing prompt for agent ${agentId}`);
+      console.log(`[Voice Agents] Syncing prompt + KB for agent ${agentId}`);
       const { data: tenant } = await supabase
         .from("tenants")
-        .select("config")
+        .select("config, name")
         .eq("id", tenantId)
         .single();
 
       if (tenant) {
+        // 1. Update system prompt on the Retell agent
         const newPrompt = buildVoiceSystemPrompt(tenant.config);
-        console.log(`[Voice Agents] Built new prompt (${newPrompt.length} chars):`, newPrompt.slice(0, 200) + "...");
+        console.log(`[Voice Agents] Built new prompt (${newPrompt.length} chars)`);
         dbUpdates.system_prompt = newPrompt;
         retellUpdates.systemPrompt = newPrompt;
+
+        // 2. Sync Knowledge Base to Retell (create KB + attach to LLM)
+        try {
+          const existingKbId = existing.retell_kb_id || null;
+          const kbResult = await syncKnowledgeBaseToRetell({
+            config: tenant.config,
+            tenantName: tenant.name || tenant.config.business_name || "FiQ Business",
+            existingKbId,
+          });
+          dbUpdates.retell_kb_id = kbResult.knowledgeBaseId;
+          console.log(`[Voice Agents] KB synced: ${kbResult.knowledgeBaseId}`);
+        } catch (kbError) {
+          // KB sync failure shouldn't block the prompt sync
+          console.error(`[Voice Agents] KB sync failed (non-blocking):`, kbError);
+        }
       } else {
         console.warn(`[Voice Agents] No tenant config found for ID ${tenantId}`);
       }
