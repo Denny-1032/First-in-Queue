@@ -24,6 +24,7 @@ import {
   UserCheck,
   Globe,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -70,6 +71,70 @@ export default function AIConfigPage() {
   const [crawlUrl, setCrawlUrl] = useState("");
   const [crawling, setCrawling] = useState(false);
   const [crawlProgress, setCrawlProgress] = useState("");
+
+  // Voice agent sync state
+  const [syncingVoice, setSyncingVoice] = useState(false);
+
+  // Manual voice agent sync function
+  const handleSyncVoiceAgents = async () => {
+    if (!tenantId) {
+      toast("No business account found", "error");
+      return;
+    }
+    
+    setSyncingVoice(true);
+    try {
+      const agentsRes = await fetch("/api/voice/agents");
+      if (!agentsRes.ok) {
+        throw new Error("Failed to fetch voice agents");
+      }
+      
+      const agentsData = await agentsRes.json();
+      const agents = agentsData.agents || [];
+      
+      if (agents.length === 0) {
+        toast("No voice agents found. Create a voice agent first.", "error");
+        setSyncingVoice(false);
+        return;
+      }
+      
+      let syncedCount = 0;
+      let syncErrors: string[] = [];
+      
+      for (const agent of agents) {
+        try {
+          const syncRes = await fetch("/api/voice/agents", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agentId: agent.id, syncPrompt: true }),
+          });
+          
+          if (syncRes.ok) {
+            syncedCount++;
+          } else {
+            const errorData = await syncRes.json();
+            syncErrors.push(`${agent.name}: ${errorData.error || "Unknown error"}`);
+          }
+        } catch (err) {
+          syncErrors.push(`${agent.name}: ${err instanceof Error ? err.message : "Network error"}`);
+        }
+      }
+      
+      if (syncedCount > 0) {
+        toast(`✅ ${syncedCount} voice agent${syncedCount > 1 ? "s" : ""} synced successfully!`, "success");
+      }
+      if (syncErrors.length > 0) {
+        console.error("Voice agent sync errors:", syncErrors);
+        toast(`❌ Sync failed: ${syncErrors[0]}${syncErrors.length > 1 ? ` (and ${syncErrors.length - 1} more)` : ""}`, "error");
+      }
+      
+    } catch (err) {
+      console.error("Voice agent sync failed:", err);
+      toast(`❌ Voice sync failed: ${err instanceof Error ? err.message : "Unknown error"}`, "error");
+    } finally {
+      setSyncingVoice(false);
+    }
+  };
 
   // Load config from API on mount
   useEffect(() => {
@@ -173,10 +238,24 @@ export default function AIConfigPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Configuration</h1>
           <p className="text-gray-500 mt-1 text-sm">Configure your AI assistant</p>
         </div>
-        <Button
-          className="gap-2"
-          disabled={saving}
-          onClick={async () => {
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={syncingVoice}
+            onClick={handleSyncVoiceAgents}
+          >
+            {syncingVoice ? (
+              <div className="h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            {syncingVoice ? "Syncing..." : "Sync Voice Agents"}
+          </Button>
+          <Button
+            className="gap-2"
+            disabled={saving}
+            onClick={async () => {
             setSaving(true);
             if (tenantId) {
               try {
@@ -200,18 +279,40 @@ export default function AIConfigPage() {
                     if (agentsRes.ok) {
                       const agentsData = await agentsRes.json();
                       const agents = agentsData.agents || [];
+                      let syncedCount = 0;
+                      let syncErrors: string[] = [];
+                      
                       for (const agent of agents) {
-                        await fetch("/api/voice/agents", {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ agentId: agent.id, syncPrompt: true }),
-                        });
+                        try {
+                          const syncRes = await fetch("/api/voice/agents", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ agentId: agent.id, syncPrompt: true }),
+                          });
+                          
+                          if (syncRes.ok) {
+                            syncedCount++;
+                          } else {
+                            const errorData = await syncRes.json();
+                            syncErrors.push(`${agent.name}: ${errorData.error || "Unknown error"}`);
+                          }
+                        } catch (err) {
+                          syncErrors.push(`${agent.name}: ${err instanceof Error ? err.message : "Network error"}`);
+                        }
                       }
-                      if (agents.length > 0) {
-                        toast(`Voice agent${agents.length > 1 ? "s" : ""} synced with latest config`, "success");
+                      
+                      if (syncedCount > 0) {
+                        toast(`${syncedCount} voice agent${syncedCount > 1 ? "s" : ""} synced with latest config`, "success");
+                      }
+                      if (syncErrors.length > 0) {
+                        console.warn("Voice agent sync errors:", syncErrors);
+                        toast(`Voice sync issues: ${syncErrors[0]}${syncErrors.length > 1 ? ` (and ${syncErrors.length - 1} more)` : ""}`, "error");
                       }
                     }
-                  } catch { /* voice sync is best-effort */ }
+                  } catch (err) {
+                    console.warn("Voice agent sync failed:", err);
+                    toast("Could not sync voice agents - check Retell configuration", "error");
+                  }
                 } else {
                   toast("Failed to save configuration", "error");
                 }
@@ -231,6 +332,7 @@ export default function AIConfigPage() {
           )}
           {saving ? "Saving..." : "Save Changes"}
         </Button>
+        </div>
       </div>
 
       {/* Bot Personality */}

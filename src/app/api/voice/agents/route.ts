@@ -190,6 +190,7 @@ export async function PATCH(request: NextRequest) {
 
     // Re-sync system prompt from tenant config if requested
     if (syncPrompt) {
+      console.log(`[Voice Agents] Syncing prompt for agent ${agentId}`);
       const { data: tenant } = await supabase
         .from("tenants")
         .select("config")
@@ -198,14 +199,39 @@ export async function PATCH(request: NextRequest) {
 
       if (tenant) {
         const newPrompt = buildVoiceSystemPrompt(tenant.config);
+        console.log(`[Voice Agents] Built new prompt (${newPrompt.length} chars):`, newPrompt.slice(0, 200) + "...");
         dbUpdates.system_prompt = newPrompt;
         retellUpdates.systemPrompt = newPrompt;
+      } else {
+        console.warn(`[Voice Agents] No tenant config found for ID ${tenantId}`);
       }
     }
 
     // Update Retell agent if there are Retell-side changes
     if (Object.keys(retellUpdates).length > 0) {
-      await updateRetellAgent(existing.retell_agent_id, retellUpdates as Parameters<typeof updateRetellAgent>[1]);
+      console.log(`[Voice Agents] Updating Retell agent ${existing.retell_agent_id} with:`, Object.keys(retellUpdates));
+      try {
+        const retellResponse = await updateRetellAgent(existing.retell_agent_id, retellUpdates as Parameters<typeof updateRetellAgent>[1]);
+        console.log(`[Voice Agents] Retell update successful:`, retellResponse);
+      } catch (retellError) {
+        console.error(`[Voice Agents] Retell update failed:`, retellError);
+        // Check if it's a configuration error
+        if (retellError instanceof Error && retellError.message.includes("RETELL_API_KEY")) {
+          return NextResponse.json({ 
+            error: "Retell API not configured. Please check RETELL_API_KEY environment variable." 
+          }, { status: 500 });
+        }
+        if (retellError instanceof Error && retellError.message.includes("RETELL_LLM_ID")) {
+          return NextResponse.json({ 
+            error: "Retell LLM not configured. Please check RETELL_LLM_ID environment variable." 
+          }, { status: 500 });
+        }
+        // Return the actual Retell error to help with debugging
+        return NextResponse.json({ 
+          error: "Failed to update Retell agent", 
+          details: retellError instanceof Error ? retellError.message : String(retellError)
+        }, { status: 500 });
+      }
     }
 
     // Update database

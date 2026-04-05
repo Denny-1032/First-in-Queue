@@ -170,8 +170,19 @@ export async function updateRetellAgent(
   if (params.greeting) updatePayload.begin_message = params.greeting;
   if (params.maxDurationSeconds) updatePayload.max_call_duration_ms = params.maxDurationSeconds * 1000;
 
-  const agentResponse = await client.agent.update(agentId, updatePayload);
-  return agentResponse;
+  console.log(`[Retell] Updating agent ${agentId} with payload:`, {
+    ...updatePayload,
+    general_prompt: updatePayload.general_prompt ? `${updatePayload.general_prompt.slice(0, 100)}... (${updatePayload.general_prompt.length} chars)` : undefined
+  });
+
+  try {
+    const agentResponse = await client.agent.update(agentId, updatePayload);
+    console.log(`[Retell] Update successful for agent ${agentId}`);
+    return agentResponse;
+  } catch (error) {
+    console.error(`[Retell] Update failed for agent ${agentId}:`, error);
+    throw error;
+  }
 }
 
 /**
