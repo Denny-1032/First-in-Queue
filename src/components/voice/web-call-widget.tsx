@@ -14,6 +14,13 @@ interface WebCallWidgetProps {
 // Retell Client SDK URL
 const RETELL_CLIENT_SDK = "https://cdn.retellai.com/retell-client-sdk.js";
 
+// Extend Window interface for Retell
+declare global {
+  interface Window {
+    Retell?: any;
+  }
+}
+
 export function WebCallWidget({ agentId: propAgentId, greeting }: WebCallWidgetProps) {
   const [isCallActive, setIsCallActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -56,31 +63,79 @@ export function WebCallWidget({ agentId: propAgentId, greeting }: WebCallWidgetP
     fetchSupportAgent();
   }, [propAgentId]);
 
-  // Load Retell Client SDK
+  // Load Retell Client SDK with retry logic
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     // Check if SDK is already loaded
-    if ((window as any).Retell) {
+    if (window.Retell) {
+      console.log("[WebCall] SDK already loaded");
       setSdkLoaded(true);
       return;
     }
 
-    const script = document.createElement("script");
-    script.src = RETELL_CLIENT_SDK;
-    script.async = true;
-    script.onload = () => setSdkLoaded(true);
-    script.onerror = () => setError("Failed to load calling SDK");
-    document.body.appendChild(script);
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    const loadScript = () => {
+      const existingScript = document.querySelector(`script[src="${RETELL_CLIENT_SDK}"]`);
+      if (existingScript) {
+        console.log("[WebCall] Script already exists, checking if loaded...");
+        // Check if it's already loaded
+        if (window.Retell) {
+          setSdkLoaded(true);
+          return;
+        }
+        // Remove existing script and retry
+        existingScript.remove();
+      }
+
+      const script = document.createElement("script");
+      script.src = RETELL_CLIENT_SDK;
+      script.async = true;
+      script.crossOrigin = "anonymous";
+      
+      script.onload = () => {
+        console.log("[WebCall] SDK loaded successfully");
+        // Give it a moment to initialize
+        setTimeout(() => {
+          if (window.Retell) {
+            setSdkLoaded(true);
+          } else {
+            console.error("[WebCall] SDK script loaded but Retell not available");
+            handleError();
+          }
+        }, 500);
+      };
+      
+      script.onerror = (e) => {
+        console.error("[WebCall] Failed to load SDK:", e);
+        handleError();
+      };
+      
+      document.body.appendChild(script);
+    };
+
+    const handleError = () => {
+      retryCount++;
+      if (retryCount < maxRetries) {
+        console.log(`[WebCall] Retrying SDK load (${retryCount}/${maxRetries})...`);
+        setTimeout(loadScript, 1000 * retryCount);
+      } else {
+        setError("Failed to load calling SDK. Please refresh the page or try again later.");
+      }
+    };
+
+    loadScript();
 
     return () => {
-      document.body.removeChild(script);
+      // Don't remove script on unmount to allow reuse
     };
   }, []);
 
   // Start a call using Retell Client SDK
   const startCall = async () => {
-    if (!sdkLoaded || !(window as any).Retell) {
+    if (!sdkLoaded || !window.Retell) {
       setError("Calling SDK not loaded. Please refresh the page.");
       return;
     }
@@ -111,7 +166,10 @@ export function WebCallWidget({ agentId: propAgentId, greeting }: WebCallWidgetP
       const { access_token } = await res.json();
 
       // 2. Create Retell client and start call
-      const Retell = (window as any).Retell;
+      const Retell = window.Retell;
+      if (!Retell) {
+        throw new Error("Retell SDK not available");
+      }
       clientRef.current = new Retell({
         accessToken: access_token,
       });
@@ -213,7 +271,18 @@ export function WebCallWidget({ agentId: propAgentId, greeting }: WebCallWidgetP
             {isCallActive ? "● On Call" : isLoadingAgent ? "Loading support agent..." : status}
           </p>
           {error && (
-            <p className="text-xs text-red-500 mt-1">{error}</p>
+            <div className="space-y-2">
+              <p className="text-xs text-red-500 mt-1">{error}</p>
+              <button
+                onClick={() => {
+                  setError(null);
+                  window.location.reload();
+                }}
+                className="text-xs text-emerald-600 hover:text-emerald-700 underline"
+              >
+                Click to retry
+              </button>
+            </div>
           )}
           {isLoadingAgent && !error && (
             <div className="flex items-center justify-center gap-2 mt-2">
