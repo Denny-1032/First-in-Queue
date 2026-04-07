@@ -34,6 +34,8 @@ export interface BusinessConfig {
   flows: ConversationFlow[];
   escalation_rules: EscalationRule[];
   custom_instructions: string;
+  voice_callback_enabled?: boolean;
+  voice_callback_agent_id?: string;
 }
 
 export type Industry =

@@ -171,6 +171,13 @@ async function processIncomingMessage(
       return;
     }
 
+    // --- Voice Callback Request Check ---
+    const voiceCallbackRequest = checkVoiceCallbackRequest(tenant, content.text || "");
+    if (voiceCallbackRequest) {
+      await handleVoiceCallbackRequest(tenant, conversation, message, whatsapp);
+      return;
+    }
+
     // --- Active flow: progress through steps ---
     const flowState = getFlowState(conversation);
     if (flowState) {
@@ -935,4 +942,123 @@ async function processFlowStep(
     metadata: buildFlowMetadata(updatedFlowState, conversation.metadata as Record<string, unknown>),
   });
   await sendFlowStep(tenant, conversation, message.from, flow, nextIndex, updatedFlowState, whatsapp);
+}
+
+// --- Voice Callback Functions ---
+
+function checkVoiceCallbackRequest(tenant: Tenant, text: string): boolean {
+  if (!text) return false;
+  if (!tenant.config.voice_callback_enabled) return false;
+
+  const normalizedText = text.toLowerCase().trim();
+  
+  // Patterns that indicate a voice callback request
+  const callbackPatterns = [
+    /^call me$/,
+    /^call me please$/,
+    /^please call me$/,
+    /^can you call me$/,
+    /^can you call me[?]?$/,
+    /call me back/,
+    /call back/,
+    /phone call/,
+    /voice call/,
+    /speak to someone on the phone/,
+    /talk on the phone/,
+    /need a call/,
+    /request a call/,
+  ];
+
+  return callbackPatterns.some((pattern) => pattern.test(normalizedText));
+}
+
+async function handleVoiceCallbackRequest(
+  tenant: Tenant,
+  conversation: Conversation,
+  message: WhatsAppIncomingMessage,
+  whatsapp: ReturnType<typeof createWhatsAppClient>
+): Promise<void> {
+  const customerPhone = message.from;
+
+  try {
+    // Send confirmation message
+    const confirmMsg = "I'll call you right now! Please keep your phone ready. 📞";
+    const waMessageId = await whatsapp.sendText(customerPhone, confirmMsg);
+    await saveMessage({
+      conversation_id: conversation.id,
+      tenant_id: tenant.id,
+      direction: "outbound",
+      sender_type: "bot",
+      message_type: "text",
+      content: { text: confirmMsg },
+      whatsapp_message_id: waMessageId,
+      status: "sent",
+    });
+
+    // Initiate the voice callback
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/voice/callback`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        // In a real implementation, you'd need to pass authentication
+        // This is a simplified version - in production use proper auth
+      },
+      body: JSON.stringify({
+        customerPhone,
+        conversationId: conversation.id,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("[VoiceCallback] Failed to initiate:", errorData);
+      
+      const failMsg = "Sorry, I couldn't place the call right now. Please try again in a few minutes or contact us via WhatsApp.";
+      const failWaId = await whatsapp.sendText(customerPhone, failMsg);
+      await saveMessage({
+        conversation_id: conversation.id,
+        tenant_id: tenant.id,
+        direction: "outbound",
+        sender_type: "bot",
+        message_type: "text",
+        content: { text: failMsg },
+        whatsapp_message_id: failWaId,
+        status: "sent",
+      });
+      return;
+    }
+
+    const result = await response.json();
+    console.log("[VoiceCallback] Successfully initiated:", result.call_id);
+
+    // Send follow-up with call details
+    const followUpMsg = `I'm calling you now! The call will come from ${process.env.TWILIO_VOICE_NUMBER || "our business number"}. Please answer to speak with our AI assistant. 🤖📞`;
+    const followUpId = await whatsapp.sendText(customerPhone, followUpMsg);
+    await saveMessage({
+      conversation_id: conversation.id,
+      tenant_id: tenant.id,
+      direction: "outbound",
+      sender_type: "bot",
+      message_type: "text",
+      content: { text: followUpMsg },
+      whatsapp_message_id: followUpId,
+      status: "sent",
+    });
+
+  } catch (error) {
+    console.error("[VoiceCallback] Error handling request:", error);
+    
+    const errorMsg = "Sorry, there was an issue placing the call. Please try again later.";
+    const errorWaId = await whatsapp.sendText(customerPhone, errorMsg);
+    await saveMessage({
+      conversation_id: conversation.id,
+      tenant_id: tenant.id,
+      direction: "outbound",
+      sender_type: "bot",
+      message_type: "text",
+      content: { text: errorMsg },
+      whatsapp_message_id: errorWaId,
+      status: "sent",
+    });
+  }
 }

@@ -378,42 +378,65 @@ export async function syncKnowledgeBaseToRetell(params: {
   existingKbId?: string | null;
 }): Promise<{ knowledgeBaseId: string }> {
   const llmId = process.env.RETELL_LLM_ID;
+  console.log(`[Retell KB Sync] Starting sync. LLM_ID: ${llmId ? 'set' : 'NOT SET'}`);
+  
   if (!llmId) {
     throw new Error("RETELL_LLM_ID is not configured. Set it in your .env file.");
   }
 
   // Delete old KB if it exists
   if (params.existingKbId) {
+    console.log(`[Retell KB Sync] Deleting old KB: ${params.existingKbId}`);
     try {
       await deleteRetellKnowledgeBase(params.existingKbId);
+      console.log(`[Retell KB Sync] Old KB deleted successfully`);
     } catch (err) {
-      console.warn(`[Retell KB] Failed to delete old KB ${params.existingKbId}:`, err);
+      console.warn(`[Retell KB Sync] Failed to delete old KB ${params.existingKbId}:`, err);
     }
   }
 
   // Create new KB with current FiQ content
-  const kbResponse = await createRetellKnowledgeBase({
-    name: params.tenantName,
-    knowledgeBase: params.config.knowledge_base,
-    faqs: params.config.faqs,
-    businessDescription: params.config.description,
-  });
+  console.log(`[Retell KB Sync] Creating new KB for tenant: ${params.tenantName}`);
+  let kbResponse;
+  try {
+    kbResponse = await createRetellKnowledgeBase({
+      name: params.tenantName,
+      knowledgeBase: params.config.knowledge_base,
+      faqs: params.config.faqs,
+      businessDescription: params.config.description,
+    });
+    console.log(`[Retell KB Sync] KB created: ${kbResponse.knowledge_base_id}`);
+  } catch (err) {
+    console.error(`[Retell KB Sync] KB creation failed:`, err);
+    throw new Error(`Failed to create Knowledge Base: ${err instanceof Error ? err.message : String(err)}`);
+  }
 
   // Get any existing KB IDs on the LLM so we don't remove other tenants' KBs
   let existingKbIds: string[] = [];
   try {
+    console.log(`[Retell KB Sync] Retrieving current LLM config: ${llmId}`);
     const llm = await getRetellClient().llm.retrieve(llmId);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     existingKbIds = ((llm as any).knowledge_base_ids || []).filter(
       (id: string) => id !== params.existingKbId
     );
-  } catch {
+    console.log(`[Retell KB Sync] Current LLM has ${existingKbIds.length} other KBs`);
+  } catch (err) {
+    console.warn(`[Retell KB Sync] Could not retrieve LLM config:`, err);
     // If we can't retrieve, just use the new KB alone
   }
 
   // Attach new KB to LLM
   const allKbIds = [...existingKbIds, kbResponse.knowledge_base_id];
-  await updateRetellLLMKnowledgeBase(llmId, allKbIds);
+  console.log(`[Retell KB Sync] Attaching ${allKbIds.length} KBs to LLM: ${allKbIds.join(', ')}`);
+  
+  try {
+    await updateRetellLLMKnowledgeBase(llmId, allKbIds);
+    console.log(`[Retell KB Sync] LLM updated successfully`);
+  } catch (err) {
+    console.error(`[Retell KB Sync] LLM update failed:`, err);
+    throw new Error(`Failed to attach KB to LLM: ${err instanceof Error ? err.message : String(err)}`);
+  }
 
   return { knowledgeBaseId: kbResponse.knowledge_base_id };
 }

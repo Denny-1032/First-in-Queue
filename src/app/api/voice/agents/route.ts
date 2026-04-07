@@ -208,16 +208,33 @@ export async function PATCH(request: NextRequest) {
         // 2. Sync Knowledge Base to Retell (create KB + attach to LLM)
         try {
           const existingKbId = existing.retell_kb_id || null;
+          console.log(`[Voice Agents] Starting KB sync. Existing KB: ${existingKbId || 'none'}`);
+          console.log(`[Voice Agents] Tenant config has ${tenant.config.knowledge_base?.length || 0} KB entries, ${tenant.config.faqs?.length || 0} FAQs`);
+          
           const kbResult = await syncKnowledgeBaseToRetell({
             config: tenant.config,
             tenantName: tenant.name || tenant.config.business_name || "FiQ Business",
             existingKbId,
           });
           dbUpdates.retell_kb_id = kbResult.knowledgeBaseId;
-          console.log(`[Voice Agents] KB synced: ${kbResult.knowledgeBaseId}`);
+          console.log(`[Voice Agents] KB synced successfully: ${kbResult.knowledgeBaseId}`);
         } catch (kbError) {
-          // KB sync failure shouldn't block the prompt sync
-          console.error(`[Voice Agents] KB sync failed (non-blocking):`, kbError);
+          // Log detailed error and return it to the user
+          const errorMsg = kbError instanceof Error ? kbError.message : String(kbError);
+          console.error(`[Voice Agents] KB sync FAILED:`, kbError);
+          
+          // Return the error so user knows what went wrong
+          return NextResponse.json({ 
+            error: "Knowledge Base sync failed", 
+            details: errorMsg,
+            tip: errorMsg.includes("RETELL_LLM_ID") 
+              ? "Set RETELL_LLM_ID in your .env file" 
+              : errorMsg.includes("RETELL_API_KEY")
+              ? "Set RETELL_API_KEY in your .env file"
+              : errorMsg.includes("knowledge_base_texts") || errorMsg.includes("empty")
+              ? "Add some knowledge base entries or FAQs first"
+              : "Check server logs for more details"
+          }, { status: 500 });
         }
       } else {
         console.warn(`[Voice Agents] No tenant config found for ID ${tenantId}`);

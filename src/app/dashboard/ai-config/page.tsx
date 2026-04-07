@@ -25,6 +25,7 @@ import {
   Globe,
   Loader2,
   RefreshCw,
+  Phone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -74,6 +75,25 @@ export default function AIConfigPage() {
 
   // Voice agent sync state
   const [syncingVoice, setSyncingVoice] = useState(false);
+
+  // Voice callback state
+  const [voiceCallbackEnabled, setVoiceCallbackEnabled] = useState(false);
+  const [voiceCallbackAgentId, setVoiceCallbackAgentId] = useState<string>("");
+  const [availableVoiceAgents, setAvailableVoiceAgents] = useState<{id: string; name: string}[]>([]);
+
+  // Load voice agents when component mounts
+  useEffect(() => {
+    async function loadVoiceAgents() {
+      try {
+        const res = await fetch("/api/voice/agents");
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableVoiceAgents(data.agents?.map((a: {id: string; name: string}) => ({ id: a.id, name: a.name })) || []);
+        }
+      } catch { /* ignore */ }
+    }
+    loadVoiceAgents();
+  }, []);
 
   // Manual voice agent sync function
   const handleSyncVoiceAgents = async () => {
@@ -152,6 +172,8 @@ export default function AIConfigPage() {
             if (cfg.knowledge_base?.length) setKnowledgeBase(cfg.knowledge_base);
             if (cfg.faqs?.length) setFaqs(cfg.faqs);
             if (cfg.custom_instructions) setCustomInstructions(cfg.custom_instructions);
+            if (cfg.voice_callback_enabled !== undefined) setVoiceCallbackEnabled(cfg.voice_callback_enabled);
+            if (cfg.voice_callback_agent_id) setVoiceCallbackAgentId(cfg.voice_callback_agent_id);
           }
         }
       } catch { /* use defaults */ }
@@ -268,6 +290,8 @@ export default function AIConfigPage() {
                       knowledge_base: knowledgeBase,
                       faqs,
                       custom_instructions: customInstructions,
+                      voice_callback_enabled: voiceCallbackEnabled,
+                      voice_callback_agent_id: voiceCallbackAgentId || null,
                     },
                   }),
                 });
@@ -884,6 +908,73 @@ export default function AIConfigPage() {
             placeholder="e.g., Always mention our current promotion. Never discuss competitor products..."
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[120px] resize-y"
           />
+        </CardContent>
+      </Card>
+
+      {/* Voice Callback Settings */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Phone className="h-5 w-5 text-blue-600" />
+              <CardTitle>WhatsApp "Call Me" Feature</CardTitle>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">Enable</span>
+              <input
+                type="checkbox"
+                checked={voiceCallbackEnabled}
+                onChange={(e) => setVoiceCallbackEnabled(e.target.checked)}
+                className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 h-5 w-5"
+              />
+            </div>
+          </div>
+          <CardDescription>
+            Allow customers to request a voice call by typing "call me" in WhatsApp chat
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {voiceCallbackEnabled && (
+            <>
+              <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>How it works:</strong> When a customer types "call me" in WhatsApp, your AI voice agent will automatically call their phone number. This is perfect for businesses without local phone numbers — you can still offer voice support by calling customers back!
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Voice Agent for Callbacks
+                </label>
+                <select
+                  value={voiceCallbackAgentId}
+                  onChange={(e) => setVoiceCallbackAgentId(e.target.value)}
+                  className="block w-full max-w-md rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                >
+                  <option value="">Auto-select (use first available)</option>
+                  {availableVoiceAgents.map((agent) => (
+                    <option key={agent.id} value={agent.id}>
+                      {agent.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Select which voice agent will handle the callback calls
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <MessageCircle className="h-4 w-4" />
+                <span>Customer trigger phrases: "call me", "call me back", "phone call", "voice call"</span>
+              </div>
+            </>
+          )}
+
+          {!voiceCallbackEnabled && (
+            <p className="text-sm text-gray-500">
+              Enable this to let customers request voice callbacks via WhatsApp. Great for businesses without local inbound phone numbers.
+            </p>
+          )}
         </CardContent>
       </Card>
 
