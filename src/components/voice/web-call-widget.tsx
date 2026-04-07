@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { RetellClient } from "retell-client-js-sdk";
+import { RetellWebClient } from "retell-client-js-sdk";
 
 interface WebCallWidgetProps {
   agentId?: string;
@@ -85,11 +85,9 @@ export function WebCallWidget({ agentId: propAgentId, greeting }: WebCallWidgetP
       const { access_token } = await res.json();
 
       // 2. Create Retell client and start call
-      clientRef.current = new RetellClient({
-        accessToken: access_token,
-      });
+      clientRef.current = new RetellWebClient();
 
-      // Set up event listeners
+      // Set up event listeners before starting
       clientRef.current.on("call_started", () => {
         setIsCallActive(true);
         setIsConnecting(false);
@@ -106,8 +104,8 @@ export function WebCallWidget({ agentId: propAgentId, greeting }: WebCallWidgetP
         endCall();
       });
 
-      // Start the call - this handles WebRTC internally
-      await clientRef.current.start();
+      // Start the call with access token
+      await clientRef.current.start({ accessToken: access_token });
 
     } catch (err) {
       console.error("[WebCall] Failed to start call:", err);
