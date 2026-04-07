@@ -1,14 +1,14 @@
-import type { Metadata } from "next";
-import { Mail, MessageSquare, Clock, MapPin } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { Mail, MessageSquare, Clock, MapPin, Phone, X } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
-
-export const metadata: Metadata = {
-  title: "Contact",
-  description: "Get in touch with First in Queue. Questions, demos, or custom plans.",
-};
+import { WebCallWidget } from "@/components/voice/web-call-widget";
 
 export default function ContactPage() {
+  const [showCallModal, setShowCallModal] = useState(false);
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -31,18 +31,20 @@ export default function ContactPage() {
       {/* Contact Cards */}
       <section className="py-12 px-6">
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="rounded-2xl border border-gray-200 p-8">
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 mb-6">
-              <Mail className="h-6 w-6 text-emerald-600" />
+          {/* Talk to Support - Voice Call */}
+          <button
+            onClick={() => setShowCallModal(true)}
+            className="rounded-2xl border border-gray-200 p-8 text-left hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-500/10 transition-all group"
+          >
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 mb-6 group-hover:bg-emerald-200 transition-colors">
+              <Phone className="h-6 w-6 text-emerald-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Email Us</h2>
-            <a
-              href="mailto:copperjetofficial@gmail.com"
-              className="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors"
-            >
-              copperjetofficial@gmail.com
-            </a>
-          </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Talk to Support</h2>
+            <p className="text-gray-600 text-sm">
+              Speak directly with our AI support agent. No phone number needed — just your browser and microphone.
+            </p>
+            <p className="text-emerald-600 font-semibold mt-3 text-sm">Click to start →</p>
+          </button>
 
           <div className="rounded-2xl border border-gray-200 p-8">
             <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-green-100 mb-6">
@@ -95,6 +97,24 @@ export default function ContactPage() {
           </a>
         </div>
       </section>
+
+      {/* Call Modal */}
+      {showCallModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="relative w-full max-w-md">
+            <button
+              onClick={() => setShowCallModal(false)}
+              className="absolute -top-12 right-0 p-2 text-white hover:text-gray-200 transition-colors"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <WebCallWidget 
+              agentId=""
+              greeting="Talk to our AI support agent directly from your browser"
+            />
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

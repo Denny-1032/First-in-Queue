@@ -7,14 +7,14 @@ import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, Loader2 } from "lucide-
 import { cn } from "@/lib/utils";
 
 interface WebCallWidgetProps {
-  agentId: string;
+  agentId?: string;
   greeting?: string;
 }
 
 // Retell Client SDK URL
 const RETELL_CLIENT_SDK = "https://cdn.retellai.com/retell-client-sdk.js";
 
-export function WebCallWidget({ agentId, greeting }: WebCallWidgetProps) {
+export function WebCallWidget({ agentId: propAgentId, greeting }: WebCallWidgetProps) {
   const [isCallActive, setIsCallActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -22,9 +22,39 @@ export function WebCallWidget({ agentId, greeting }: WebCallWidgetProps) {
   const [status, setStatus] = useState<string>("Ready to call");
   const [error, setError] = useState<string | null>(null);
   const [sdkLoaded, setSdkLoaded] = useState(false);
+  const [agentId, setAgentId] = useState<string>(propAgentId || "");
+  const [isLoadingAgent, setIsLoadingAgent] = useState(!propAgentId);
 
   const clientRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Fetch support agent if not provided
+  useEffect(() => {
+    if (propAgentId) return;
+
+    async function fetchSupportAgent() {
+      try {
+        const res = await fetch("/api/voice/agents");
+        if (res.ok) {
+          const data = await res.json();
+          const agents = data.agents || [];
+          if (agents.length > 0) {
+            setAgentId(agents[0].retell_agent_id);
+          } else {
+            setError("No voice agents available");
+          }
+        } else {
+          setError("Failed to load voice agents");
+        }
+      } catch {
+        setError("Failed to load voice agents");
+      } finally {
+        setIsLoadingAgent(false);
+      }
+    }
+
+    fetchSupportAgent();
+  }, [propAgentId]);
 
   // Load Retell Client SDK
   useEffect(() => {
@@ -52,6 +82,11 @@ export function WebCallWidget({ agentId, greeting }: WebCallWidgetProps) {
   const startCall = async () => {
     if (!sdkLoaded || !(window as any).Retell) {
       setError("Calling SDK not loaded. Please refresh the page.");
+      return;
+    }
+
+    if (!agentId) {
+      setError("No support agent available. Please try again later.");
       return;
     }
 
@@ -175,12 +210,18 @@ export function WebCallWidget({ agentId, greeting }: WebCallWidgetProps) {
             "text-sm font-medium",
             isCallActive ? "text-emerald-600" : error ? "text-red-600" : "text-gray-500"
           )}>
-            {isCallActive ? "● On Call" : status}
+            {isCallActive ? "● On Call" : isLoadingAgent ? "Loading support agent..." : status}
           </p>
           {error && (
             <p className="text-xs text-red-500 mt-1">{error}</p>
           )}
-          {!sdkLoaded && !error && (
+          {isLoadingAgent && !error && (
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+              <span className="text-xs text-gray-400">Loading support agent...</span>
+            </div>
+          )}
+          {!sdkLoaded && !isLoadingAgent && !error && (
             <div className="flex items-center justify-center gap-2 mt-2">
               <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
               <span className="text-xs text-gray-400">Loading calling SDK...</span>
@@ -196,11 +237,11 @@ export function WebCallWidget({ agentId, greeting }: WebCallWidgetProps) {
           {!isCallActive && !isConnecting && (
             <Button
               onClick={startCall}
-              disabled={!sdkLoaded}
-              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-6 text-lg"
+              disabled={!sdkLoaded || isLoadingAgent || !agentId}
+              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-6 text-lg disabled:opacity-50"
             >
               <Phone className="h-5 w-5" />
-              Call FiQ Support
+              {isLoadingAgent ? "Loading..." : "Call FiQ Support"}
             </Button>
           )}
 
