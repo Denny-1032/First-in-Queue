@@ -5,20 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RetellClient } from "retell-client-js-sdk";
 
 interface WebCallWidgetProps {
   agentId?: string;
   greeting?: string;
-}
-
-// Retell Client SDK URL
-const RETELL_CLIENT_SDK = "https://cdn.retellai.com/retell-client-sdk.js";
-
-// Extend Window interface for Retell
-declare global {
-  interface Window {
-    Retell?: any;
-  }
 }
 
 export function WebCallWidget({ agentId: propAgentId, greeting }: WebCallWidgetProps) {
@@ -28,7 +19,7 @@ export function WebCallWidget({ agentId: propAgentId, greeting }: WebCallWidgetP
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
   const [status, setStatus] = useState<string>("Ready to call");
   const [error, setError] = useState<string | null>(null);
-  const [sdkLoaded, setSdkLoaded] = useState(false);
+  const [sdkLoaded, setSdkLoaded] = useState(true); // SDK is now imported, not loaded dynamically
   const [agentId, setAgentId] = useState<string>(propAgentId || "");
   const [isLoadingAgent, setIsLoadingAgent] = useState(!propAgentId);
 
@@ -48,7 +39,7 @@ export function WebCallWidget({ agentId: propAgentId, greeting }: WebCallWidgetP
           if (agents.length > 0) {
             setAgentId(agents[0].retell_agent_id);
           } else {
-            setError("No voice agents available");
+            setError("No voice agents available. Please create a voice agent in your dashboard.");
           }
         } else {
           setError("Failed to load voice agents");
@@ -63,83 +54,11 @@ export function WebCallWidget({ agentId: propAgentId, greeting }: WebCallWidgetP
     fetchSupportAgent();
   }, [propAgentId]);
 
-  // Load Retell Client SDK with retry logic
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    // Check if SDK is already loaded
-    if (window.Retell) {
-      console.log("[WebCall] SDK already loaded");
-      setSdkLoaded(true);
-      return;
-    }
-
-    let retryCount = 0;
-    const maxRetries = 3;
-
-    const loadScript = () => {
-      const existingScript = document.querySelector(`script[src="${RETELL_CLIENT_SDK}"]`);
-      if (existingScript) {
-        console.log("[WebCall] Script already exists, checking if loaded...");
-        // Check if it's already loaded
-        if (window.Retell) {
-          setSdkLoaded(true);
-          return;
-        }
-        // Remove existing script and retry
-        existingScript.remove();
-      }
-
-      const script = document.createElement("script");
-      script.src = RETELL_CLIENT_SDK;
-      script.async = true;
-      script.crossOrigin = "anonymous";
-      
-      script.onload = () => {
-        console.log("[WebCall] SDK loaded successfully");
-        // Give it a moment to initialize
-        setTimeout(() => {
-          if (window.Retell) {
-            setSdkLoaded(true);
-          } else {
-            console.error("[WebCall] SDK script loaded but Retell not available");
-            handleError();
-          }
-        }, 500);
-      };
-      
-      script.onerror = (e) => {
-        console.error("[WebCall] Failed to load SDK:", e);
-        handleError();
-      };
-      
-      document.body.appendChild(script);
-    };
-
-    const handleError = () => {
-      retryCount++;
-      if (retryCount < maxRetries) {
-        console.log(`[WebCall] Retrying SDK load (${retryCount}/${maxRetries})...`);
-        setTimeout(loadScript, 1000 * retryCount);
-      } else {
-        setError("Failed to load calling SDK. Please refresh the page or try again later.");
-      }
-    };
-
-    loadScript();
-
-    return () => {
-      // Don't remove script on unmount to allow reuse
-    };
-  }, []);
+  // SDK is imported directly, no need to load dynamically
+  // Remove the old SDK loading useEffect
 
   // Start a call using Retell Client SDK
   const startCall = async () => {
-    if (!sdkLoaded || !window.Retell) {
-      setError("Calling SDK not loaded. Please refresh the page.");
-      return;
-    }
-
     if (!agentId) {
       setError("No support agent available. Please try again later.");
       return;
@@ -166,11 +85,7 @@ export function WebCallWidget({ agentId: propAgentId, greeting }: WebCallWidgetP
       const { access_token } = await res.json();
 
       // 2. Create Retell client and start call
-      const Retell = window.Retell;
-      if (!Retell) {
-        throw new Error("Retell SDK not available");
-      }
-      clientRef.current = new Retell({
+      clientRef.current = new RetellClient({
         accessToken: access_token,
       });
 
