@@ -1,5 +1,7 @@
 import { createWhatsAppClient } from "@/lib/whatsapp/client";
 import { createAIEngine } from "@/lib/ai/engine";
+import { makeOutboundCallViaTwilio } from "@/lib/voice/twilio-client";
+import { getSupabaseAdmin } from "@/lib/supabase/server";
 import {
   getTenantByPhoneNumberId,
   getOrCreateConversation,
@@ -957,8 +959,9 @@ function checkVoiceCallbackRequest(tenant: Tenant, text: string): boolean {
     /^call me$/,
     /^call me please$/,
     /^please call me$/,
-    /^can you call me$/,
     /^can you call me[?]?$/,
+    /^call$/,
+    /^call me back$/,
     /call me back/,
     /call back/,
     /phone call/,
@@ -967,6 +970,15 @@ function checkVoiceCallbackRequest(tenant: Tenant, text: string): boolean {
     /talk on the phone/,
     /need a call/,
     /request a call/,
+    /i want a call/,
+    /give me a call/,
+    /make a call/,
+    /want to talk/,
+    /want to speak/,
+    /speak to a person/,
+    /speak to someone/,
+    /talk to someone/,
+    /talk to a person/,
   ];
 
   return callbackPatterns.some((pattern) => pattern.test(normalizedText));
@@ -979,10 +991,68 @@ async function handleVoiceCallbackRequest(
   whatsapp: ReturnType<typeof createWhatsAppClient>
 ): Promise<void> {
   const customerPhone = message.from;
+  const supabase = getSupabaseAdmin();
 
   try {
-    // Send confirmation message
-    const confirmMsg = "I'll call you right now! Please keep your phone ready. 📞";
+    // Resolve which voice agent to use
+    let retellAgentId: string | null = null;
+    let voiceAgentId: string | null = null;
+
+    if (tenant.config.voice_callback_agent_id) {
+      const { data: agent } = await supabase
+        .from("voice_agents")
+        .select("id, retell_agent_id")
+        .eq("id", tenant.config.voice_callback_agent_id)
+        .eq("tenant_id", tenant.id)
+        .eq("is_active", true)
+        .single();
+      if (agent) {
+        voiceAgentId = agent.id;
+        retellAgentId = agent.retell_agent_id;
+      }
+    }
+
+    if (!retellAgentId) {
+      const { data: agent } = await supabase
+        .from("voice_agents")
+        .select("id, retell_agent_id")
+        .eq("tenant_id", tenant.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      if (agent) {
+        voiceAgentId = agent.id;
+        retellAgentId = agent.retell_agent_id;
+      }
+    }
+
+    if (!retellAgentId) {
+      const noAgentMsg = "Sorry, our voice call service isn't set up yet. Please contact us here on WhatsApp and we'll help you shortly.";
+      const noAgentId = await whatsapp.sendText(customerPhone, noAgentMsg);
+      await saveMessage({
+        conversation_id: conversation.id,
+        tenant_id: tenant.id,
+        direction: "outbound",
+        sender_type: "bot",
+        message_type: "text",
+        content: { text: noAgentMsg },
+        whatsapp_message_id: noAgentId,
+        status: "sent",
+      });
+      return;
+    }
+
+    // Resolve from number
+    let fromNumber = process.env.TWILIO_VOICE_NUMBER || tenant.whatsapp_phone_number_id || "";
+    if (fromNumber && !fromNumber.startsWith("+")) {
+      fromNumber = "+" + fromNumber;
+    }
+
+    const toNumber = customerPhone.startsWith("+") ? customerPhone : "+" + customerPhone;
+
+    // Send confirmation BEFORE placing the call
+    const confirmMsg = "Sure! I'll call you right now — please keep your phone ready. 📞";
     const waMessageId = await whatsapp.sendText(customerPhone, confirmMsg);
     await saveMessage({
       conversation_id: conversation.id,
@@ -995,44 +1065,39 @@ async function handleVoiceCallbackRequest(
       status: "sent",
     });
 
-    // Initiate the voice callback
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/voice/callback`, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        // In a real implementation, you'd need to pass authentication
-        // This is a simplified version - in production use proper auth
+    // Place the outbound call directly (no HTTP — avoids session auth issues)
+    const callResult = await makeOutboundCallViaTwilio({
+      fromNumber,
+      toNumber,
+      retellAgentId,
+      metadata: {
+        tenant_id: tenant.id,
+        conversation_id: conversation.id,
+        call_type: "whatsapp_callback",
+        customer_phone: customerPhone,
       },
-      body: JSON.stringify({
-        customerPhone,
-        conversationId: conversation.id,
-      }),
+      dynamicVariables: {
+        customer_phone: customerPhone,
+        conversation_id: conversation.id,
+      },
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("[VoiceCallback] Failed to initiate:", errorData);
-      
-      const failMsg = "Sorry, I couldn't place the call right now. Please try again in a few minutes or contact us via WhatsApp.";
-      const failWaId = await whatsapp.sendText(customerPhone, failMsg);
-      await saveMessage({
-        conversation_id: conversation.id,
-        tenant_id: tenant.id,
-        direction: "outbound",
-        sender_type: "bot",
-        message_type: "text",
-        content: { text: failMsg },
-        whatsapp_message_id: failWaId,
-        status: "sent",
-      });
-      return;
-    }
+    console.log(`[VoiceCallback] Call initiated: ${callResult.call_id}`);
 
-    const result = await response.json();
-    console.log("[VoiceCallback] Successfully initiated:", result.call_id);
+    // Log the callback
+    await supabase.from("voice_callbacks").insert({
+      tenant_id: tenant.id,
+      conversation_id: conversation.id,
+      customer_phone: customerPhone,
+      voice_agent_id: voiceAgentId,
+      retell_call_id: callResult.retell_call_id,
+      twilio_call_id: callResult.call_id,
+      status: "initiated",
+      initiated_at: new Date().toISOString(),
+    });
 
-    // Send follow-up with call details
-    const followUpMsg = `I'm calling you now! The call will come from ${process.env.TWILIO_VOICE_NUMBER || "our business number"}. Please answer to speak with our AI assistant. 🤖📞`;
+    // Follow-up message
+    const followUpMsg = `Calling you now from ${fromNumber}! Please answer — you'll be connected to our AI assistant. 🤖📞`;
     const followUpId = await whatsapp.sendText(customerPhone, followUpMsg);
     await saveMessage({
       conversation_id: conversation.id,
@@ -1048,7 +1113,7 @@ async function handleVoiceCallbackRequest(
   } catch (error) {
     console.error("[VoiceCallback] Error handling request:", error);
     
-    const errorMsg = "Sorry, there was an issue placing the call. Please try again later.";
+    const errorMsg = "Sorry, there was an issue placing the call. Please try again later or continue chatting here.";
     const errorWaId = await whatsapp.sendText(customerPhone, errorMsg);
     await saveMessage({
       conversation_id: conversation.id,
