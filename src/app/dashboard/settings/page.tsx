@@ -366,7 +366,7 @@ export default function SettingsPage() {
             </div>
           </div>
           <p className="text-xs text-gray-400">
-            Need help? Contact us at <span className="text-emerald-600 font-medium">copperjetofficial@gmail.com</span>
+            Need help? Contact us at <span className="text-emerald-600 font-medium">support@codarti.com</span>
           </p>
         </CardContent>
       </Card>

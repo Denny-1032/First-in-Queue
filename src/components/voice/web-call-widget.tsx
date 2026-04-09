@@ -105,7 +105,7 @@ export function WebCallWidget({ agentId: propAgentId, greeting }: WebCallWidgetP
       });
 
       // Start the call with access token
-      await clientRef.current.start({ accessToken: access_token });
+      await clientRef.current.startCall({ accessToken: access_token });
 
     } catch (err) {
       console.error("[WebCall] Failed to start call:", err);
@@ -118,7 +118,7 @@ export function WebCallWidget({ agentId: propAgentId, greeting }: WebCallWidgetP
   const endCall = () => {
     if (clientRef.current) {
       try {
-        clientRef.current.stop();
+        clientRef.current.stopCall();
       } catch {
         // Ignore cleanup errors
       }
@@ -155,7 +155,7 @@ export function WebCallWidget({ agentId: propAgentId, greeting }: WebCallWidgetP
     return () => {
       if (clientRef.current) {
         try {
-          clientRef.current.stop();
+          clientRef.current.stopCall();
         } catch {
           // Ignore cleanup errors
         }

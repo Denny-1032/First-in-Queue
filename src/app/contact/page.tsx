@@ -89,7 +89,7 @@ export default function ContactPage() {
             Unlimited messages, custom integrations, or SLA guarantees? Let&apos;s talk.
           </p>
           <a
-            href="mailto:copperjetofficial@gmail.com"
+            href="mailto:support@codarti.com"
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-8 py-4 text-base font-semibold text-white hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/25"
           >
             <Mail className="h-5 w-5" />
