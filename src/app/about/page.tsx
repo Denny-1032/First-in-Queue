@@ -18,9 +18,9 @@ export default function AboutPage() {
       <section className="pt-32 pb-16 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">
-            Nobody waits.{" "}
+            Fast. Efficient.{" "}
             <span className="bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
-              Everyone&apos;s first.
+              Instant.
             </span>
           </h1>
           <p className="text-lg text-gray-500 mt-6 max-w-2xl mx-auto">
