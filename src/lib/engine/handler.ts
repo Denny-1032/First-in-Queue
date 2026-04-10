@@ -310,11 +310,25 @@ async function processIncomingMessage(
     }
 
     // --- AI-powered response for all ongoing conversations ---
-    const history = await getRecentMessageHistory(conversation.id, 20);
+    let history = await getRecentMessageHistory(conversation.id, 20);
     console.log(`[Handler] AI response path: history.length=${history.length}, ai_enabled=${conversation.ai_enabled}`);
 
+    // --- Repetition guard: detect poisoned history ---
+    // If the last 3+ bot responses are identical, the AI is stuck in a loop.
+    // Strip the corrupted history so the AI gets a clean slate.
+    const assistantMsgs = history.filter(h => h.role === "assistant").map(h => h.content);
+    if (assistantMsgs.length >= 3) {
+      const tail = assistantMsgs.slice(-3);
+      if (tail.every(m => m === tail[0])) {
+        console.warn(`[Handler] REPETITION DETECTED: Last 3+ bot responses are identical ("${tail[0].substring(0, 60)}..."). Stripping poisoned history.`);
+        // Keep only the current user message so the AI responds to it directly
+        const lastUserMsg = history.filter(h => h.role === "user").pop();
+        history = lastUserMsg ? [lastUserMsg] : [];
+      }
+    }
+
     if (conversation.ai_enabled) {
-      console.log(`[Handler] Response path: AI — generating AI response`);
+      console.log(`[Handler] Response path: AI — generating AI response (history=${history.length} msgs)`);
       whatsapp.sendTypingIndicator(message.from).catch(() => {});
       await handleAIResponse(tenant, conversation, message, content, history, whatsapp);
     } else {
