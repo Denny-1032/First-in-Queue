@@ -1085,10 +1085,17 @@ async function handleVoiceCallbackRequest(
       return;
     }
 
-    // Resolve from number — MUST be a real Twilio phone number, not a WhatsApp phone_number_id
-    let fromNumber = process.env.TWILIO_VOICE_NUMBER || "";
+    // Resolve telephony provider (default: twilio)
+    const voiceProvider = process.env.VOICE_PROVIDER || "twilio";
+    const isTelnyx = voiceProvider === "telnyx";
+
+    let fromNumber = isTelnyx
+      ? (process.env.TELNYX_VOICE_NUMBER || "")
+      : (process.env.TWILIO_VOICE_NUMBER || "");
+
     if (!fromNumber) {
-      console.error("[VoiceCallback] TWILIO_VOICE_NUMBER not configured — cannot place call");
+      const providerLabel = isTelnyx ? "Telnyx (TELNYX_VOICE_NUMBER)" : "Twilio (TWILIO_VOICE_NUMBER)";
+      console.error(`[VoiceCallback] ${providerLabel} not configured — cannot place call`);
       const noNumberMsg = "Sorry, our voice call service isn't fully configured yet. Please continue chatting here and we'll help you.";
       const noNumberId = await whatsapp.sendText(customerPhone, noNumberMsg);
       await saveMessage({
@@ -1107,6 +1114,25 @@ async function handleVoiceCallbackRequest(
       fromNumber = "+" + fromNumber;
     }
 
+    // Validate phone number format
+    const phoneRegex = /^\+[1-9]\d{6,14}$/;
+    if (!phoneRegex.test(fromNumber)) {
+      console.error(`[VoiceCallback] Invalid fromNumber format: ${fromNumber}`);
+      const invalidNumMsg = "Sorry, our voice call number isn't configured correctly. Please continue chatting here.";
+      const invalidNumId = await whatsapp.sendText(customerPhone, invalidNumMsg);
+      await saveMessage({
+        conversation_id: conversation.id,
+        tenant_id: tenant.id,
+        direction: "outbound",
+        sender_type: "bot",
+        message_type: "text",
+        content: { text: invalidNumMsg },
+        whatsapp_message_id: invalidNumId,
+        status: "sent",
+      });
+      return;
+    }
+
     const toNumber = customerPhone.startsWith("+") ? customerPhone : "+" + customerPhone;
 
     // Send confirmation BEFORE placing the call
@@ -1123,26 +1149,53 @@ async function handleVoiceCallbackRequest(
       status: "sent",
     });
 
-    // Place the outbound call directly (no HTTP — avoids session auth issues)
+    // Place the outbound call — provider determined by VOICE_PROVIDER env var
     // Cap WhatsApp callbacks at 3 minutes to prevent runaway charges
-    const callResult = await makeOutboundCallViaTwilio({
-      fromNumber,
-      toNumber,
-      retellAgentId,
-      maxCallDurationSeconds: 180,
-      metadata: {
-        tenant_id: tenant.id,
-        conversation_id: conversation.id,
-        call_type: "whatsapp_callback",
-        customer_phone: customerPhone,
-      },
-      dynamicVariables: {
-        customer_phone: customerPhone,
-        conversation_id: conversation.id,
-      },
-    });
+    let retellCallId: string;
+    let providerCallId: string;
 
-    console.log(`[VoiceCallback] Call initiated: ${callResult.call_id}`);
+    if (isTelnyx) {
+      const { makeOutboundCallViaTelnyx } = await import("@/lib/voice/telnyx-client");
+      const telnyxResult = await makeOutboundCallViaTelnyx({
+        fromNumber,
+        toNumber,
+        retellAgentId,
+        maxCallDurationSeconds: 180,
+        metadata: {
+          tenant_id: tenant.id,
+          conversation_id: conversation.id,
+          call_type: "whatsapp_callback",
+          customer_phone: customerPhone,
+        },
+        dynamicVariables: {
+          customer_phone: customerPhone,
+          conversation_id: conversation.id,
+        },
+      });
+      retellCallId = telnyxResult.retell_call_id;
+      providerCallId = telnyxResult.call_id;
+      console.log(`[VoiceCallback] Telnyx call initiated: id=${providerCallId} retellCallId=${retellCallId}`);
+    } else {
+      const twilioResult = await makeOutboundCallViaTwilio({
+        fromNumber,
+        toNumber,
+        retellAgentId,
+        maxCallDurationSeconds: 180,
+        metadata: {
+          tenant_id: tenant.id,
+          conversation_id: conversation.id,
+          call_type: "whatsapp_callback",
+          customer_phone: customerPhone,
+        },
+        dynamicVariables: {
+          customer_phone: customerPhone,
+          conversation_id: conversation.id,
+        },
+      });
+      retellCallId = twilioResult.retell_call_id;
+      providerCallId = twilioResult.call_id;
+      console.log(`[VoiceCallback] Twilio call initiated: sid=${providerCallId} retellCallId=${retellCallId}`);
+    }
 
     // Log the callback
     await supabase.from("voice_callbacks").insert({
@@ -1150,10 +1203,12 @@ async function handleVoiceCallbackRequest(
       conversation_id: conversation.id,
       customer_phone: customerPhone,
       voice_agent_id: voiceAgentId,
-      retell_call_id: callResult.retell_call_id,
-      twilio_call_id: callResult.call_id,
+      retell_call_id: retellCallId,
+      twilio_call_id: providerCallId,
       status: "initiated",
       initiated_at: new Date().toISOString(),
+      metadata: { telephony_provider: voiceProvider },
+
     });
 
     // Follow-up message

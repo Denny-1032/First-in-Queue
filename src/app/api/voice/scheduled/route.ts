@@ -180,9 +180,17 @@ export async function PATCH(request: NextRequest) {
           .update({ status: "calling", updated_at: new Date().toISOString() })
           .eq("id", call.id);
 
-        const fromNumber = process.env.TWILIO_VOICE_NUMBER;
+        const voiceProvider = process.env.VOICE_PROVIDER || "twilio";
+        const isTelnyx = voiceProvider === "telnyx";
+
+        const fromNumber = isTelnyx
+          ? process.env.TELNYX_VOICE_NUMBER
+          : process.env.TWILIO_VOICE_NUMBER;
+
         if (!fromNumber) {
-          throw new Error("TWILIO_VOICE_NUMBER not configured");
+          throw new Error(
+            isTelnyx ? "TELNYX_VOICE_NUMBER not configured" : "TWILIO_VOICE_NUMBER not configured"
+          );
         }
 
         // Create voice call record
@@ -199,44 +207,83 @@ export async function PATCH(request: NextRequest) {
               scheduled_call_id: call.id,
               customer_name: call.customer_name,
               purpose: call.purpose,
+              telephony_provider: voiceProvider,
             },
           })
           .select()
           .single();
 
-        // Initiate via Twilio (connects to Retell agent via SIP)
-        const twilioCall = await makeOutboundCallViaTwilio({
-          fromNumber,
-          toNumber: call.customer_phone,
-          retellAgentId: voiceAgent.retell_agent_id,
-          metadata: {
-            scheduled_call_id: call.id,
-            fiq_call_id: callRecord?.id || "",
-            tenant_id: call.tenant_id,
-          },
-          dynamicVariables: call.customer_name
-            ? { customer_name: call.customer_name }
-            : undefined,
-        });
+        let finalRetellCallId: string;
+        let providerCallId: string;
 
-        // Update records with Retell call ID and Twilio SID
-        if (callRecord) {
-          await supabase
-            .from("voice_calls")
-            .update({
-              retell_call_id: twilioCall.retell_call_id,
-              metadata: {
-                ...callRecord.metadata,
-                twilio_call_sid: twilioCall.call_id,
-              },
-            })
-            .eq("id", callRecord.id);
+        if (isTelnyx) {
+          const { makeOutboundCallViaTelnyx } = await import("@/lib/voice/telnyx-client");
+          const telnyxCall = await makeOutboundCallViaTelnyx({
+            fromNumber,
+            toNumber: call.customer_phone,
+            retellAgentId: voiceAgent.retell_agent_id,
+            metadata: {
+              scheduled_call_id: call.id,
+              fiq_call_id: callRecord?.id || "",
+              tenant_id: call.tenant_id,
+            },
+            dynamicVariables: call.customer_name
+              ? { customer_name: call.customer_name }
+              : undefined,
+          });
+          finalRetellCallId = telnyxCall.retell_call_id;
+          providerCallId = telnyxCall.call_id;
+
+          if (callRecord) {
+            await supabase
+              .from("voice_calls")
+              .update({
+                retell_call_id: telnyxCall.retell_call_id,
+                metadata: {
+                  ...callRecord.metadata,
+                  telnyx_call_id: telnyxCall.call_id,
+                },
+              })
+              .eq("id", callRecord.id);
+          }
+        } else {
+          const twilioCall = await makeOutboundCallViaTwilio({
+            fromNumber,
+            toNumber: call.customer_phone,
+            retellAgentId: voiceAgent.retell_agent_id,
+            metadata: {
+              scheduled_call_id: call.id,
+              fiq_call_id: callRecord?.id || "",
+              tenant_id: call.tenant_id,
+            },
+            dynamicVariables: call.customer_name
+              ? { customer_name: call.customer_name }
+              : undefined,
+          });
+          finalRetellCallId = twilioCall.retell_call_id;
+          providerCallId = twilioCall.call_id;
+
+          if (callRecord) {
+            await supabase
+              .from("voice_calls")
+              .update({
+                retell_call_id: twilioCall.retell_call_id,
+                metadata: {
+                  ...callRecord.metadata,
+                  twilio_call_sid: twilioCall.call_id,
+                },
+              })
+              .eq("id", callRecord.id);
+          }
         }
+
+        console.log(`[Scheduled Calls] ${voiceProvider} call initiated: id=${providerCallId} retellCallId=${finalRetellCallId}`);
+        void providerCallId;
 
         await supabase
           .from("scheduled_calls")
           .update({
-            retell_call_id: twilioCall.retell_call_id,
+            retell_call_id: finalRetellCallId,
             updated_at: new Date().toISOString(),
           })
           .eq("id", call.id);

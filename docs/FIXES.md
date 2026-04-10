@@ -6,9 +6,308 @@ A chronological record of all critical fixes, their root causes, and preventive 
 
 ## Table of Contents
 
+- [Double Billing Fix (Apr 10, 2026)](#double-billing-fix-apr-10-2026)
+- [Greeting Loop Fix (Apr 10, 2026)](#greeting-loop-fix-apr-10-2026)
+- [Africa's Talking Provider (Apr 10, 2026)](#africas-talking-provider-apr-10-2026)
+- [Voice Call Cost Protection (Apr 10, 2026)](#voice-call-cost-protection-apr-10-2026)
 - [Voice Call Fixes (Apr 10, 2026)](#voice-call-fixes-apr-10-2026)
 - [AI Agent Fixes (Apr 10, 2026)](#ai-agent-fixes-apr-10-2026)
 - [Voice Test Call Error (Apr 10, 2026)](#voice-test-call-error-apr-10-2026)
+
+---
+
+## Double Billing Fix (Apr 10, 2026)
+
+### Problem
+Each voice call was being billed twice — once in the telephony provider status callback (Twilio/Telnyx) and once in the Retell webhook.
+
+### Symptoms
+- Voice usage was 2x the actual call duration
+- Customers were running out of voice minutes faster than expected
+- Subscription voice usage showed inflated numbers
+
+### Root Cause
+Both webhooks were recording usage for the same call:
+
+1. **Twilio status callback** (`/api/voice/twilio-status`): Called `recordVoiceUsage()` when `callStatus === "completed"`
+2. **Telnyx status callback** (`/api/voice/telnyx-status`): Called `recordVoiceUsage()` when `event_type === "call.hangup"`
+3. **Retell webhook** (`/api/voice/webhook`): Called `recordVoiceUsage()` when `event === "call_ended"`
+
+Since both the telephony provider AND Retell fire webhooks for the same call, usage was being double-counted.
+
+### Fix Applied
+Removed `recordVoiceUsage()` calls from telephony provider status callbacks. Only the Retell webhook records usage now (single source of truth).
+
+**Files Changed:**
+- `src/app/api/voice/twilio-status/route.ts` — Removed usage recording, kept only status updates
+- `src/app/api/voice/telnyx-status/route.ts` — Removed usage recording, kept only status updates
+
+**Before (twilio-status):**
+```typescript
+if (callStatus === "completed" && duration && voiceCall.tenant_id) {
+  const durationSec = parseInt(duration, 10);
+  if (durationSec > 0) {
+    await recordVoiceUsage(voiceCall.tenant_id, durationSec);
+  }
+}
+```
+
+**After (twilio-status):**
+```typescript
+// Note: Voice usage is recorded by the Retell webhook (voice/webhook/route.ts)
+// to avoid double-counting since both webhooks fire for the same call.
+```
+
+### Prevention
+- **Single source of truth**: Only one webhook should record usage
+- Retell is the authoritative source since it knows the actual conversation duration
+- Telephony provider webhooks should only update call metadata/status
+- Document this architecture clearly to prevent regression
+
+---
+
+## Greeting Loop Fix (Apr 10, 2026)
+
+### Problem
+Returning customers were receiving welcome/greeting messages repeatedly instead of AI responses.
+
+### Symptoms
+- User sends "Hello" → gets welcome message
+- User sends "How's it going?" → gets welcome message again
+- User sends "What products do you offer?" → gets welcome message again
+- Welcome messages accumulated instead of conversation continuing normally
+
+### Root Cause
+Race condition handling in `getOrCreateConversation()` was returning a **hybrid conversation object** instead of the actual oldest conversation. When duplicate conversations were detected (race condition), the code returned:
+
+```typescript
+// BUG: Created a hybrid with wrong timestamps and potentially wrong metadata
+return { conversation: { ...created, id: oldest.id, metadata: oldest.metadata }, isNew: false };
+```
+
+This hybrid had the `created` object's timestamps (fresh) with only the ID and metadata swapped. If the `welcome_sent` flag wasn't properly preserved or if other fields were mismatched, the welcome logic could re-trigger.
+
+### Fix Applied
+Changed race condition handling to return the **actual oldest conversation object** from the database:
+
+**File:** `src/lib/db/operations.ts`
+
+**Before:**
+```typescript
+if (dupes && dupes.length > 1) {
+  const oldest = dupes[0];
+  if (oldest.id !== created.id) {
+    await db.from("conversations").delete().eq("id", created.id);
+    // BUG: Hybrid object - could cause metadata issues
+    return { conversation: { ...created, id: oldest.id, metadata: oldest.metadata }, isNew: false };
+  }
+}
+```
+
+**After:**
+```typescript
+if (dupes && dupes.length > 1) {
+  const oldest = dupes[0];
+  if (oldest.id !== created.id) {
+    await db.from("conversations").delete().eq("id", created.id);
+    // Fix: Update oldest and return the actual object
+    const updates = { last_message_at: new Date().toISOString() };
+    await db.from("conversations").update(updates).eq("id", oldest.id);
+    return { conversation: { ...oldest, ...updates }, isNew: false };
+  }
+}
+```
+
+### Prevention
+- Always return complete database objects, not hybrids
+- When handling race conditions, fetch/update the actual winning record
+- Belt-and-suspenders: The welcome logic already checks `isNew` AND `welcome_sent` flag
+- Test race conditions with concurrent requests during load testing
+
+---
+
+## Africa's Talking Provider (Apr 10, 2026)
+
+### Context: Why Africa's Talking Was Added
+
+Twilio was charging **~$0.51/min** for outbound calls to Zambia (+260) — international PSTN rates from a US number. With voice included in subscription plans, every Business plan customer using full voice allocation cost more than they paid.
+
+**Africa's Talking (AT)** is a pan-African communications platform with local interconnects across Zambia, providing:
+- Local/regional calling rates (estimated 70-90% cheaper than Twilio for African numbers)
+- Native Zambia coverage
+- Same SIP bridge architecture as Twilio (fully compatible with Retell AI)
+
+### Architecture (AT + Retell)
+
+```
+1. FiQ calls AT REST API → AT dials customer (+260 number)
+2. Customer picks up → AT POSTs to /api/voice/at-action?retellCallId=xxx
+3. We respond with XML: <Dial><Sip>sip:{retellCallId}@sip.retellai.com</Sip></Dial>
+4. Retell AI takes over the audio (STT → LLM → TTS)
+5. Call ends → AT POSTs to /api/voice/at-status with duration + cost
+6. We record usage and update the call record
+```
+
+This is identical to the Twilio flow — only the PSTN provider changes.
+
+### Files Created
+
+| File | Purpose |
+|------|---------|
+| `src/lib/voice/at-client.ts` | AT client: `makeOutboundCallViaAT`, `buildATActionXml`, `parseATStatus`, `mapATStatusToFiQ` |
+| `src/app/api/voice/at-action/route.ts` | ActionURL webhook — AT calls this when customer picks up, we return SIP XML |
+| `src/app/api/voice/at-status/route.ts` | Status callback — AT calls this when call ends, records usage |
+| `src/app/api/voice/at-call/route.ts` | Outbound call API (AT equivalent of `/api/voice/call`) |
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/lib/engine/handler.ts` | WhatsApp `handleVoiceCallbackRequest` reads `VOICE_PROVIDER` env var to choose AT or Twilio |
+| `src/app/api/voice/scheduled/route.ts` | Scheduled calls cron supports AT provider |
+| `.env.example` | Added `AT_USERNAME`, `AT_API_KEY`, `AT_VOICE_NUMBER`, `VOICE_PROVIDER` |
+
+### Provider Switching
+
+Switching providers requires **only one environment variable change**. No code changes needed.
+
+```bash
+# Use Africa's Talking (recommended for Zambia)
+VOICE_PROVIDER=africastalking
+AT_USERNAME=your-username
+AT_API_KEY=your-api-key
+AT_VOICE_NUMBER=+260xxxxxxxxx
+
+# Use Twilio (fallback / international)
+VOICE_PROVIDER=twilio
+```
+
+### Key Implementation Details
+
+**ActionURL must include the Retell call ID as a query param:**
+```typescript
+const actionUrl = `${appUrl}/api/voice/at-action?retellCallId=${retellCallId}`;
+```
+AT doesn't support custom headers so the retellCallId is passed in the URL.
+
+**AT uses `clientRequestId` to correlate callbacks:**
+```typescript
+formParams.set("clientRequestId", retellCallId);
+// AT sends this back in the status callback so we can look up the call record
+```
+
+**AT XML format differs from Twilio TwiML:**
+```xml
+<!-- AT -->
+<Response>
+  <Dial record="false" sequential="true" maxDuration="300">
+    <Sip>sip:{retellCallId}@sip.retellai.com;transport=tcp</Sip>
+  </Dial>
+</Response>
+
+<!-- Twilio -->
+<Response>
+  <Dial timeout="30" timeLimit="300">
+    <Sip>sip:{retellCallId}@sip.retellai.com;transport=tcp</Sip>
+  </Dial>
+</Response>
+```
+
+### Testing Notes
+- AT voice is **LIVE ONLY** — no sandbox mode for voice calls
+- Use real phone numbers when testing
+- Webhook URLs must be publicly accessible (use ngrok for local dev)
+  - ActionURL: `https://yourdomain.com/api/voice/at-action?retellCallId={id}`
+  - CallbackURL: `https://yourdomain.com/api/voice/at-status`
+- Register with Africa's Talking: https://account.africastalking.com
+- Get a Zambian virtual number from AT dashboard under Voice → Phone Numbers
+
+### Cost Comparison
+
+| Provider | Outbound to +260 (Zambia) | Notes |
+|----------|---------------------------|-------|
+| Twilio | ~$0.51/min | International PSTN from US |
+| Africa's Talking | ~$0.02-0.08/min (est.) | Local African interconnect |
+| **Saving** | **~85-95%** | Switch via `VOICE_PROVIDER=africastalking` |
+
+---
+
+## Voice Call Cost Protection (Apr 10, 2026)
+
+### Problem: $26 Twilio Charges from 10-Minute Calls
+
+**Symptoms:**
+- User requested calls via WhatsApp "Call me"
+- Twilio showed 51 voice units totalling $26.30 in April 2026
+- Calls showed "Completed" status with 10-minute durations
+- Customer never heard anything / voicemail answered — AI talked for full 10 min
+
+**Root Causes (6 separate issues):**
+
+| # | Issue | Impact |
+|---|-------|--------|
+| 1 | No voice minutes check in WhatsApp callback handler | Calls placed ignoring plan limits |
+| 2 | Default `max_call_duration_ms` was 600s (10 min) | Voicemail/silence ran for 10 min |
+| 3 | No `timeLimit` or `timeout` on Twilio `<Dial>` TwiML | No hard call duration cap |
+| 4 | No answering machine detection (AMD) | Voicemail answered, AI talked to it |
+| 5 | `recordVoiceUsage()` never called | Minutes used not deducted from plan |
+| 6 | `asyncAmd` bool vs string type error | TypeScript fix required |
+
+**Files Changed:**
+- `src/lib/voice/twilio-client.ts`
+- `src/lib/engine/handler.ts`
+- `src/app/api/voice/twilio-status/route.ts`
+- `src/app/api/voice/call/route.ts`
+- `src/lib/voice/retell-client.ts`
+
+**Fixes Applied:**
+
+1. **Voice minutes gate** — Added to `handleVoiceCallbackRequest` in `handler.ts`:
+```typescript
+const usage = await checkVoiceMinutes(tenant.id);
+if (!usage.allowed) { /* send polite message, return */ }
+```
+
+2. **TwiML limits** — Added to `makeOutboundCallViaTwilio` in `twilio-client.ts`:
+```xml
+<Dial timeout="30" timeLimit="180">
+```
+- `timeout="30"`: Ring for max 30 seconds, then give up
+- `timeLimit="180"`: Connected call hard cap of 3 minutes (WhatsApp callbacks)
+
+3. **Answering machine detection (AMD):**
+```typescript
+machineDetection: "DetectMessageEnd",
+asyncAmd: "true",  // string, not boolean
+asyncAmdStatusCallback: statusCallbackUrl,
+```
+
+4. **Auto-hangup on voicemail** — Added to `twilio-status/route.ts`:
+```typescript
+const answeredBy = formData.get("AnsweredBy");
+if (answeredBy && answeredBy !== "human") {
+  await client.calls(callSid).update({ status: "completed" });
+}
+```
+
+5. **Voice usage tracking** — Added to `twilio-status/route.ts`:
+```typescript
+if (callStatus === "completed" && duration && voiceCall.tenant_id) {
+  await recordVoiceUsage(voiceCall.tenant_id, parseInt(duration, 10));
+}
+```
+
+6. **Reduced default Retell agent duration** — `retell-client.ts`:
+```typescript
+max_call_duration_ms: (params.maxDurationSeconds || 300) * 1000  // was 600
+```
+
+**Prevention:**
+- Always check plan limits before executing paid operations
+- Always set `timeLimit` on `<Dial>` TwiML
+- Always enable AMD for outbound calls to human phones
+- Always record usage in completion callbacks
+- Test with short durations first when setting up new telephony providers
 
 ---
 
@@ -286,7 +585,9 @@ Based on the fixes above, follow these principles:
 
 | Date | Author | Changes |
 |------|--------|---------|
-| Apr 10, 2026 | Cascade | Documented all fixes from session: voice call protections, greeting loop fix, Test Your Bot improvements, KB sync error handling, test call field naming |
+| Apr 10, 2026 | Cascade | Initial documentation: voice call protections, greeting loop fix, Test Your Bot improvements, KB sync error handling, test call field naming |
+| Apr 10, 2026 | Cascade | Added: Africa's Talking provider implementation, voice cost protection (AMD, timeLimit, usage tracking, minutes gate) |
+| Apr 10, 2026 | Cascade | Added: Double billing fix (removed duplicate usage recording from Twilio/Telnyx webhooks), Greeting loop fix (race condition handling in getOrCreateConversation), Voice callback validation improvements |
 
 ---
 

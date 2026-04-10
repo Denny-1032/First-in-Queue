@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { recordVoiceUsage } from "@/lib/voice/usage";
 
 /**
  * Twilio Call Status Callback
@@ -85,16 +84,8 @@ export async function POST(request: NextRequest) {
         .update(updateData)
         .eq("id", voiceCall.id);
 
-      // Record voice minutes usage when call completes
-      if (callStatus === "completed" && duration && voiceCall.tenant_id) {
-        const durationSec = parseInt(duration, 10);
-        if (durationSec > 0) {
-          console.log(`[Twilio Status] Recording ${durationSec}s voice usage for tenant ${voiceCall.tenant_id}`);
-          await recordVoiceUsage(voiceCall.tenant_id, durationSec).catch((err) => {
-            console.error(`[Twilio Status] Failed to record voice usage:`, err);
-          });
-        }
-      }
+      // Note: Voice usage is recorded by the Retell webhook (voice/webhook/route.ts)
+      // to avoid double-counting since both webhooks fire for the same call.
 
       // Also update scheduled_calls if applicable (match by retell_call_id)
       if (

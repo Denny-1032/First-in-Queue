@@ -162,8 +162,11 @@ export async function getOrCreateConversation(
     if (oldest.id !== created.id) {
       console.log(`[DB] Race condition detected: using older conversation ${oldest.id}, removing duplicate ${created.id}`);
       await db.from("conversations").delete().eq("id", created.id);
-      // The oldest conversation already had welcome sent — treat as not new
-      return { conversation: { ...created, id: oldest.id, metadata: oldest.metadata } as Conversation, isNew: false };
+      // Update the oldest conversation's last_message_at and return it
+      const updates = { last_message_at: new Date().toISOString() };
+      await db.from("conversations").update(updates).eq("id", oldest.id);
+      // Return the actual oldest conversation object (not a hybrid) to preserve all metadata
+      return { conversation: { ...oldest, ...updates } as Conversation, isNew: false };
     }
   }
 
