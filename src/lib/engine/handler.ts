@@ -120,7 +120,7 @@ async function processIncomingMessage(
 
     // Check if conversation is in handoff mode (human agent)
     if (conversation.status === "handoff") {
-      console.log(`[Handler] Conversation ${conversation.id} is in handoff mode — skipping bot response`);
+      console.log(`[Handler] Response path: HANDOFF — conversation ${conversation.id} in handoff mode, skipping bot`);
       return;
     }
 
@@ -141,6 +141,7 @@ async function processIncomingMessage(
         whatsapp_message_id: waLimitId,
         status: "sent",
       });
+      console.log(`[Handler] Response path: LIMIT — message limit reached`);
       return;
     }
 
@@ -162,6 +163,7 @@ async function processIncomingMessage(
         whatsapp_message_id: waMessageId,
         status: "sent",
       });
+      console.log(`[Handler] Response path: OUTSIDE_HOURS`);
       return;
     }
 
@@ -180,6 +182,7 @@ async function processIncomingMessage(
     // --- Voice Callback Request Check ---
     const voiceCallbackRequest = checkVoiceCallbackRequest(tenant, content.text || "");
     if (voiceCallbackRequest) {
+      console.log(`[Handler] Response path: VOICE_CALLBACK`);
       await handleVoiceCallbackRequest(tenant, conversation, message, whatsapp);
       return;
     }
@@ -215,21 +218,32 @@ async function processIncomingMessage(
       return;
     }
 
-    // Check for quick replies first (instant, no AI needed)
+    // Check for quick replies (instant, no AI needed)
     const quickReply = matchQuickReply(tenant, content.text || "", customerName);
     if (quickReply) {
-      const waMessageId = await whatsapp.sendText(message.from, quickReply);
-      await saveMessage({
-        conversation_id: conversation.id,
-        tenant_id: tenant.id,
-        direction: "outbound",
-        sender_type: "bot",
-        message_type: "text",
-        content: { text: quickReply },
-        whatsapp_message_id: waMessageId,
-        status: "sent",
-      });
-      return;
+      // For existing conversations, skip greeting-type quick replies
+      // so the AI can give contextual responses instead of repeating greetings
+      const GREETING_TRIGGERS = ["hi", "hello", "hey", "hola", "greetings"];
+      const normalizedInput = (content.text || "").toLowerCase().trim();
+      const isGreetingInput = GREETING_TRIGGERS.includes(normalizedInput);
+
+      if (!isNew && isGreetingInput) {
+        console.log(`[Handler] Skipping greeting quick reply for existing conversation — falling through to AI`);
+      } else {
+        console.log(`[Handler] Response path: QUICK_REPLY for input="${normalizedInput}"`);
+        const waMessageId = await whatsapp.sendText(message.from, quickReply);
+        await saveMessage({
+          conversation_id: conversation.id,
+          tenant_id: tenant.id,
+          direction: "outbound",
+          sender_type: "bot",
+          message_type: "text",
+          content: { text: quickReply },
+          whatsapp_message_id: waMessageId,
+          status: "sent",
+        });
+        return;
+      }
     }
 
     // --- Welcome message: ONLY for brand-new conversations ---
@@ -300,16 +314,18 @@ async function processIncomingMessage(
     console.log(`[Handler] AI response path: history.length=${history.length}, ai_enabled=${conversation.ai_enabled}`);
 
     if (conversation.ai_enabled) {
+      console.log(`[Handler] Response path: AI — generating AI response`);
       whatsapp.sendTypingIndicator(message.from).catch(() => {});
       await handleAIResponse(tenant, conversation, message, content, history, whatsapp);
     } else {
-      console.log(`[Handler] AI disabled for conversation ${conversation.id} — no response sent`);
+      console.log(`[Handler] Response path: AI_DISABLED — ai_enabled=${conversation.ai_enabled} for conversation ${conversation.id}`);
     }
   } catch (error) {
-    console.error("[Handler] Error processing message:", error);
+    console.error("[Handler] Response path: FALLBACK — error processing message:", error);
     // Send fallback message
     try {
       const fallback = tenant.config.fallback_message || "Sorry, something went wrong. Please try again.";
+      console.log(`[Handler] Sending fallback: "${fallback.substring(0, 80)}..."`);
       await whatsapp.sendText(message.from, fallback);
     } catch {
       console.error("[Handler] Failed to send fallback message");
@@ -540,7 +556,20 @@ function matchQuickReply(tenant: Tenant, text: string, customerName?: string): s
   const normalizedText = text.toLowerCase().trim();
 
   for (const qr of tenant.config.quick_replies) {
-    const trigger = qr.trigger.toLowerCase();
+    const trigger = qr.trigger.toLowerCase().trim();
+
+    // Skip empty triggers — they match everything with "contains" (JS: "".includes("") === true)
+    if (!trigger) {
+      console.warn(`[Handler] Skipping quick reply "${qr.id}" with empty trigger`);
+      continue;
+    }
+
+    // For non-exact matches, require minimum trigger length to prevent overly broad matching
+    if (qr.match_type !== "exact" && trigger.length < 3) {
+      console.warn(`[Handler] Skipping quick reply "${qr.id}" — trigger "${trigger}" too short for ${qr.match_type} match`);
+      continue;
+    }
+
     let matched = false;
     switch (qr.match_type) {
       case "exact":
@@ -556,6 +585,7 @@ function matchQuickReply(tenant: Tenant, text: string, customerName?: string): s
         break;
     }
     if (matched) {
+      console.log(`[Handler] Quick reply matched: id="${qr.id}" trigger="${qr.trigger}" (${qr.match_type}) for input="${normalizedText}"`);
       return replaceTemplateVars(qr.response, tenant, customerName);
     }
   }

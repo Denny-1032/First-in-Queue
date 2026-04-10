@@ -6,6 +6,7 @@ A chronological record of all critical fixes, their root causes, and preventive 
 
 ## Table of Contents
 
+- [Greeting Loop Definitive Fix (Apr 11, 2026)](#greeting-loop-definitive-fix-apr-11-2026)
 - [Double Billing Fix (Apr 10, 2026)](#double-billing-fix-apr-10-2026)
 - [Greeting Loop Fix (Apr 10, 2026)](#greeting-loop-fix-apr-10-2026)
 - [Africa's Talking Provider (Apr 10, 2026)](#africas-talking-provider-apr-10-2026)
@@ -13,6 +14,81 @@ A chronological record of all critical fixes, their root causes, and preventive 
 - [Voice Call Fixes (Apr 10, 2026)](#voice-call-fixes-apr-10-2026)
 - [AI Agent Fixes (Apr 10, 2026)](#ai-agent-fixes-apr-10-2026)
 - [Voice Test Call Error (Apr 10, 2026)](#voice-test-call-error-apr-10-2026)
+
+---
+
+## Greeting Loop Definitive Fix (Apr 11, 2026)
+
+### Problem
+WhatsApp bot stuck in a greeting loop — every customer message receives the same greeting/welcome response instead of an AI-generated contextual reply. Persisted all day despite previous fixes.
+
+### Symptoms
+- Messages like "How's it going?", "What products do you offer?", "The call did not come" all return the same: "Hey there! 👋 Welcome to First in Queue. How can I help you today?"
+- Some messages receive NO response at all (silent failure)
+- Only "call me" triggers the correct voice callback
+
+### Root Causes (3 bugs found)
+
+| # | Bug | Impact | File |
+|---|-----|--------|------|
+| 1 | **Race condition SELECT returns partial object** | `ai_enabled` is `undefined` → AI path skipped → NO response | `src/lib/db/operations.ts` |
+| 2 | **matchQuickReply vulnerable to empty/short triggers** | Empty trigger with `contains` match → `"".includes("") === true` → catches ALL messages | `src/lib/engine/handler.ts` |
+| 3 | **Greeting quick replies fire on existing conversations** | "hi"/"hello" QRs send welcome text instead of AI response for returning customers | `src/lib/engine/handler.ts` |
+
+### Fix Applied
+
+**Bug 1: Race condition SELECT** (`src/lib/db/operations.ts`)
+
+Before:
+```typescript
+const { data: dupes } = await db
+    .from("conversations")
+    .select("id, created_at, metadata")  // Only 3 fields!
+```
+
+After:
+```typescript
+const { data: dupes } = await db
+    .from("conversations")
+    .select("*")  // All fields — ensures ai_enabled, status, etc. are present
+```
+
+**Bug 2: Quick reply trigger protection** (`src/lib/engine/handler.ts`)
+
+```typescript
+// Skip empty triggers — they match everything with "contains"
+if (!trigger) continue;
+
+// For non-exact matches, require minimum trigger length
+if (qr.match_type !== "exact" && trigger.length < 3) continue;
+```
+
+**Bug 3: Skip greeting QRs for existing conversations** (`src/lib/engine/handler.ts`)
+
+```typescript
+const GREETING_TRIGGERS = ["hi", "hello", "hey", "hola", "greetings"];
+const isGreetingInput = GREETING_TRIGGERS.includes(normalizedInput);
+
+if (!isNew && isGreetingInput) {
+  // Fall through to AI for contextual response
+} else {
+  // Send quick reply as normal
+}
+```
+
+**Diagnostic logging** added at every response path:
+- `HANDOFF`, `LIMIT`, `OUTSIDE_HOURS`, `ESCALATION`, `VOICE_CALLBACK`, `QUICK_REPLY`, `WELCOME`, `AI`, `AI_DISABLED`, `FALLBACK`
+- Each path now prints `[Handler] Response path: <LABEL>` for production debugging
+
+### Files Changed
+- `src/lib/db/operations.ts` — Fixed `.select("*")` in dupes query
+- `src/lib/engine/handler.ts` — Fixed `matchQuickReply`, added greeting skip, added path logging
+
+### Prevention
+1. **Always use `.select("*")` when returning a full typed object** — partial selects break TypeScript's type assertions silently
+2. **Validate user-configurable trigger patterns** — empty/short strings cause catch-all matching
+3. **Greeting responses should use the welcome_message system** — not quick replies, which fire on every match regardless of conversation state
+4. **Label every response exit path** — critical for debugging webhook-driven systems where you can't attach a debugger
 
 ---
 
@@ -588,6 +664,7 @@ Based on the fixes above, follow these principles:
 | Apr 10, 2026 | Cascade | Initial documentation: voice call protections, greeting loop fix, Test Your Bot improvements, KB sync error handling, test call field naming |
 | Apr 10, 2026 | Cascade | Added: Africa's Talking provider implementation, voice cost protection (AMD, timeLimit, usage tracking, minutes gate) |
 | Apr 10, 2026 | Cascade | Added: Double billing fix (removed duplicate usage recording from Twilio/Telnyx webhooks), Greeting loop fix (race condition handling in getOrCreateConversation), Voice callback validation improvements |
+| Apr 11, 2026 | Cascade | Greeting loop definitive fix: 3 bugs (partial SELECT in race condition, empty QR triggers, greeting QRs on existing convos), added response path logging |
 
 ---
 

@@ -150,7 +150,7 @@ export async function getOrCreateConversation(
   // If another conversation was created concurrently, use the older one
   const { data: dupes } = await db
     .from("conversations")
-    .select("id, created_at, metadata")
+    .select("*")
     .eq("tenant_id", tenantId)
     .eq("customer_phone", customerPhone)
     .in("status", ["active", "waiting", "handoff"])
