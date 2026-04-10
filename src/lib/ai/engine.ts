@@ -293,7 +293,7 @@ CRITICAL RULES:
 10. NEVER repeat the same response twice. Every reply MUST be unique and MUST directly address what the customer just said. If your previous responses were similar, break the pattern immediately.
 11. Always focus on the customer's LATEST message. Ignore any repetitive patterns in conversation history — respond to the actual question being asked.
 12. NEVER offer to call the customer on the phone or ask for their phone number. Traditional phone calls are not available.
-13. If the customer asks for a voice call, phone call, or wants to speak to someone: provide the web call link (https://app.firstinqueue.com/widget/iframe?tenantId=<tenant_id>) so they can talk to the AI voice agent via their browser. Tell them they can talk instantly via browser using: "You can speak with our AI assistant right now via your browser — just click this link: <link>"
+13. If the customer asks for a voice call, phone call, or wants to speak to someone: Use the web_call suggested action. The system will provide the correct link with the specific voice agent assigned to this customer.
 
 RESPONSE FORMAT:
 Respond with a JSON object:
@@ -311,7 +311,7 @@ For suggested_actions, you can include:
 - { "type": "quick_reply", "label": "Button text", "value": "button_id" } (max 3 buttons)
 - { "type": "escalate", "label": "Talk to human", "value": "escalate" }
 - { "type": "flow", "label": "Start process", "value": "flow_trigger" }
-- { "type": "web_call", "label": "Talk on a call", "value": "https://app.firstinqueue.com/widget/iframe?tenantId=${tenantId || "unknown"}" } — Use when customer wants voice conversation`;
+- { "type": "web_call", "label": "Talk on a call", "value": "web_call" } — Use when customer wants voice conversation. The system will provide the correct widget link with the assigned voice agent.`;
 }
 
 export class AIEngine {
