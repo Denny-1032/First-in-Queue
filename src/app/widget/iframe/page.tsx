@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { RetellWebClient } from "retell-client-js-sdk";
 import { Phone, PhoneOff, X, MessageCircle, Loader2 } from "lucide-react";
 
-export default function WidgetIframe() {
+function WidgetIframeContent() {
   const searchParams = useSearchParams();
   
   // Widget configuration from URL params
@@ -151,7 +151,7 @@ export default function WidgetIframe() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: config.backgroundColor }}>
-      <div className="max-w-sm mx-auto h-screen flex flex-col">
+      <div className="max-w-sm mx-auto h-screen flex flex-col">  
         {/* Header */}
         <div
           className="flex items-center justify-between p-4 border-b"
@@ -258,5 +258,19 @@ export default function WidgetIframe() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function WidgetIframe() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="w-8 h-8 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <WidgetIframeContent />
+    </Suspense>
   );
 }
