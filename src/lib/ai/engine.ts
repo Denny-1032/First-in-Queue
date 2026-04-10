@@ -227,7 +227,7 @@ When you detect that the customer's request matches a flow, suggest it via sugge
 Prefer triggering a flow over giving a generic answer when the customer's intent clearly matches. Flows collect structured data and provide better service.`;
 }
 
-function buildSystemPrompt(config: BusinessConfig): string {
+function buildSystemPrompt(config: BusinessConfig, tenantId?: string): string {
   const personality = config.personality;
   const toneMap = {
     professional: "Maintain a professional, polished tone at all times.",
@@ -292,6 +292,8 @@ CRITICAL RULES:
 9. For urgent escalation triggers, provide any critical safety information FIRST, then escalate.
 10. NEVER repeat the same response twice. Every reply MUST be unique and MUST directly address what the customer just said. If your previous responses were similar, break the pattern immediately.
 11. Always focus on the customer's LATEST message. Ignore any repetitive patterns in conversation history — respond to the actual question being asked.
+12. NEVER offer to call the customer on the phone or ask for their phone number. Traditional phone calls are not available.
+13. If the customer asks for a voice call, phone call, or wants to speak to someone: provide the web call link (https://app.firstinqueue.com/widget/iframe?tenantId=<tenant_id>) so they can talk to the AI voice agent via their browser. Tell them they can talk instantly via browser using: "You can speak with our AI assistant right now via your browser — just click this link: <link>"
 
 RESPONSE FORMAT:
 Respond with a JSON object:
@@ -308,7 +310,8 @@ Respond with a JSON object:
 For suggested_actions, you can include:
 - { "type": "quick_reply", "label": "Button text", "value": "button_id" } (max 3 buttons)
 - { "type": "escalate", "label": "Talk to human", "value": "escalate" }
-- { "type": "flow", "label": "Start process", "value": "flow_trigger" }`;
+- { "type": "flow", "label": "Start process", "value": "flow_trigger" }
+- { "type": "web_call", "label": "Talk on a call", "value": "https://app.firstinqueue.com/widget/iframe?tenantId=${tenantId || "unknown"}" } — Use when customer wants voice conversation`;
 }
 
 export class AIEngine {
@@ -323,7 +326,7 @@ export class AIEngine {
   }
 
   async generateResponse(context: AIContext): Promise<AIResponse> {
-    const systemPrompt = buildSystemPrompt(context.tenant_config);
+    const systemPrompt = buildSystemPrompt(context.tenant_config, context.tenant_id);
 
     const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
       { role: "system", content: systemPrompt },

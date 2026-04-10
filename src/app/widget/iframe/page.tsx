@@ -18,6 +18,7 @@ function WidgetIframeContent() {
     title: searchParams.get("title") || "Need Help?",
     subtitle: searchParams.get("subtitle") || "Talk to our AI assistant",
     showBranding: searchParams.get("showBranding") !== "false",
+    isMobile: searchParams.get("mobile") === "true",
   };
 
   const [isOpen, setIsOpen] = useState(true); // Always open in iframe

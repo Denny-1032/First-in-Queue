@@ -387,6 +387,7 @@ export interface LeadScore {
 // --- AI Engine Types ---
 export interface AIContext {
   tenant_config: BusinessConfig;
+  tenant_id: string;
   conversation_history: Array<{ role: "user" | "assistant"; content: string }>;
   customer_name?: string;
   current_flow?: ConversationFlow;
@@ -397,7 +398,7 @@ export interface AIContext {
 export interface AIResponse {
   text: string;
   suggested_actions?: Array<{
-    type: "quick_reply" | "escalate" | "flow";
+    type: "quick_reply" | "escalate" | "flow" | "web_call";
     label: string;
     value: string;
   }>;

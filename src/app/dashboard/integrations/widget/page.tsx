@@ -27,6 +27,7 @@ export default function WidgetConfigPage() {
   });
   const [embedCode, setEmbedCode] = useState("");
   const [iframeCode, setIframeCode] = useState("");
+  const [iframeUrl, setIframeUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState("");
 
@@ -76,6 +77,7 @@ export default function WidgetConfigPage() {
         const data = await response.json();
         setEmbedCode(data.embedCode);
         setIframeCode(data.iframeCode);
+        setIframeUrl(data.iframeUrl || "");
       }
     } catch (error) {
       console.error("Failed to generate embed code:", error);
@@ -398,6 +400,62 @@ export default function WidgetConfigPage() {
                       {copied === "iframe" ? "Copied!" : <Copy className="w-4 h-4" />}
                     </Button>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Mobile Apps (iOS & Android)</CardTitle>
+                  <CardDescription>
+                    Use WebView or system browser for mobile app integration
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Direct Widget URL</Label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Load this URL in a WebView or open in system browser
+                    </p>
+                    <div className="relative">
+                      <pre className="bg-gray-100 p-4 rounded-lg text-xs overflow-x-auto">
+                        {iframeUrl}&mobile=true
+                      </pre>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="absolute top-2 right-2"
+                        onClick={() => copyToClipboard(`${iframeUrl}&mobile=true`, "mobile-url")}
+                      >
+                        {copied === "mobile-url" ? "Copied!" : <Copy className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <h4 className="text-sm font-medium text-blue-900 mb-1">iOS Options</h4>
+                      <ul className="text-xs text-blue-700 space-y-1">
+                        <li>• WKWebView (embedded)</li>
+                        <li>• SFSafariViewController (system browser)</li>
+                      </ul>
+                    </div>
+                    <div className="p-3 bg-green-50 rounded-lg">
+                      <h4 className="text-sm font-medium text-green-900 mb-1">Android Options</h4>
+                      <ul className="text-xs text-green-700 space-y-1">
+                        <li>• WebView (embedded)</li>
+                        <li>• Chrome Custom Tabs</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <Alert className="mt-2">
+                    <Globe className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      <strong>Permissions Required:</strong> Add microphone permission to your app manifest.
+                      iOS: <code>NSMicrophoneUsageDescription</code> in Info.plist.
+                      Android: <code>RECORD_AUDIO</code> in AndroidManifest.xml.
+                    </AlertDescription>
+                  </Alert>
                 </CardContent>
               </Card>
 

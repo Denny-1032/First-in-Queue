@@ -365,6 +365,7 @@ async function handleAIResponse(
 
   const aiContext: AIContext = {
     tenant_config: tenant.config,
+    tenant_id: tenant.id,
     conversation_history: history,
     customer_name: conversation.customer_name || undefined,
     current_flow: activeFlow,
@@ -389,6 +390,41 @@ async function handleAIResponse(
       });
     }
     await handleEscalation(tenant, conversation, message, aiResponse, whatsapp);
+    return;
+  }
+
+  // Handle web_call suggestion from AI
+  const webCallSuggestion = aiResponse.suggested_actions?.find((a) => a.type === "web_call");
+  if (webCallSuggestion) {
+    console.log(`[Handler] Response path: WEB_CALL — sending web call link`);
+    // Send AI text first
+    if (aiResponse.text) {
+      const textMsgId = await whatsapp.sendText(message.from, aiResponse.text);
+      await saveMessage({
+        conversation_id: conversation.id,
+        tenant_id: tenant.id,
+        direction: "outbound",
+        sender_type: "bot",
+        message_type: "text",
+        content: { text: aiResponse.text },
+        whatsapp_message_id: textMsgId,
+        status: "sent",
+      });
+    }
+    // Send the web call link separately for clarity
+    const webCallUrl = webCallSuggestion.value || `https://app.firstinqueue.com/widget/iframe?tenantId=${tenant.id}`;
+    const linkMessage = `🎙️ Click here to start your voice call:\n${webCallUrl}`;
+    const linkMsgId = await whatsapp.sendText(message.from, linkMessage);
+    await saveMessage({
+      conversation_id: conversation.id,
+      tenant_id: tenant.id,
+      direction: "outbound",
+      sender_type: "bot",
+      message_type: "text",
+      content: { text: linkMessage },
+      whatsapp_message_id: linkMsgId,
+      status: "sent",
+    });
     return;
   }
 
