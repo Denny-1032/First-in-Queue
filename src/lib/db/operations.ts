@@ -255,12 +255,15 @@ export async function getRecentMessageHistory(
   conversationId: string,
   limit = 20
 ): Promise<Array<{ role: "user" | "assistant"; content: string }>> {
-  const { data } = await getSupabaseAdmin()
+  const { data: rawData } = await getSupabaseAdmin()
     .from("messages")
     .select("direction, sender_type, content, message_type")
     .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: false })
     .limit(limit);
+
+  // Reverse so history is in chronological order (oldest → newest)
+  const data = rawData ? [...rawData].reverse() : null;
 
   if (!data) return [];
 
