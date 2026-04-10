@@ -57,8 +57,16 @@ export async function POST(
         waMessageId = await whatsapp.sendText(conversation.customer_phone, text);
       } catch (waErr) {
         deliveryFailed = true;
-        deliveryError = waErr instanceof Error ? waErr.message : "WhatsApp API error";
-        console.error("[API] WhatsApp delivery failed:", deliveryError);
+        const rawError = waErr instanceof Error ? waErr.message : "WhatsApp API error";
+        console.error("[API] WhatsApp delivery failed:", rawError);
+        // Provide actionable error messages
+        if (rawError.includes("401")) {
+          deliveryError = "WhatsApp access token has expired. Go to Settings → Integrations to reconnect WhatsApp.";
+        } else if (rawError.includes("400")) {
+          deliveryError = "WhatsApp rejected the message. The customer's number may be invalid or they haven't messaged in 24 hours.";
+        } else {
+          deliveryError = `WhatsApp delivery failed: ${rawError}`;
+        }
       }
     }
 

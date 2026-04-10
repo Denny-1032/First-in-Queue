@@ -77,7 +77,7 @@ export async function getOrCreateConversation(
   tenantId: string,
   customerPhone: string,
   customerName?: string
-): Promise<Conversation> {
+): Promise<{ conversation: Conversation; isNew: boolean }> {
   // Try to find active conversation
   const { data: existing } = await getSupabaseAdmin()
     .from("conversations")
@@ -94,7 +94,7 @@ export async function getOrCreateConversation(
     const updates: Record<string, unknown> = { last_message_at: new Date().toISOString() };
     if (customerName && !existing.customer_name) updates.customer_name = customerName;
     await getSupabaseAdmin().from("conversations").update(updates).eq("id", existing.id);
-    return { ...existing, ...updates } as Conversation;
+    return { conversation: { ...existing, ...updates } as Conversation, isNew: false };
   }
 
   // Create new conversation
@@ -115,7 +115,7 @@ export async function getOrCreateConversation(
     .single();
 
   if (error) throw new Error(`Failed to create conversation: ${error.message}`);
-  return created as Conversation;
+  return { conversation: created as Conversation, isNew: true };
 }
 
 export async function getConversation(conversationId: string): Promise<Conversation | null> {

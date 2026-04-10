@@ -92,12 +92,14 @@ async function processIncomingMessage(
     // Mark as read immediately
     await whatsapp.markAsRead(message.id);
 
-    // Get or create conversation
-    const conversation = await getOrCreateConversation(
+    // Get or create conversation — isNew definitively tells us if this is a brand-new conversation
+    const { conversation, isNew } = await getOrCreateConversation(
       tenant.id,
       message.from,
       customerName
     );
+
+    console.log(`[Handler] Conversation ${conversation.id}: isNew=${isNew}, status=${conversation.status}, ai_enabled=${conversation.ai_enabled}`);
 
     // Extract message content
     const content = extractMessageContent(message);
@@ -116,7 +118,7 @@ async function processIncomingMessage(
 
     // Check if conversation is in handoff mode (human agent)
     if (conversation.status === "handoff") {
-      // Don't auto-reply, agent handles it
+      console.log(`[Handler] Conversation ${conversation.id} is in handoff mode — skipping bot response`);
       return;
     }
 
@@ -228,13 +230,9 @@ async function processIncomingMessage(
       return;
     }
 
-    // Check if this is a new conversation → send welcome
-    const history = await getRecentMessageHistory(conversation.id, 20);
-    const hasWelcomeBeenSent = !!(conversation.metadata as Record<string, unknown>)?.welcome_sent;
-    
-    console.log(`[Handler] Welcome check: history.length=${history.length}, hasWelcomeBeenSent=${hasWelcomeBeenSent}, ai_enabled=${conversation.ai_enabled}`);
-    
-    if (history.length <= 1 && tenant.config.welcome_message && !hasWelcomeBeenSent) {
+    // --- Welcome message: ONLY for brand-new conversations ---
+    if (isNew && tenant.config.welcome_message) {
+      console.log(`[Handler] New conversation — sending welcome message`);
       const welcomeMsg = tenant.config.welcome_message
         .replace("{customer_name}", customerName || "there")
         .replace("{business_name}", tenant.config.business_name);
@@ -249,15 +247,6 @@ async function processIncomingMessage(
         content: { text: welcomeMsg },
         whatsapp_message_id: waMessageId,
         status: "sent",
-      });
-
-      // Mark welcome as sent in conversation metadata to prevent duplicates
-      await updateConversation(conversation.id, {
-        metadata: {
-          ...(conversation.metadata as Record<string, unknown> || {}),
-          welcome_sent: true,
-          welcome_sent_at: new Date().toISOString(),
-        },
       });
 
       // If welcome message has quick reply buttons, send them
@@ -294,11 +283,15 @@ async function processIncomingMessage(
       return;
     }
 
-    // AI-powered response
+    // --- AI-powered response for all ongoing conversations ---
+    const history = await getRecentMessageHistory(conversation.id, 20);
+    console.log(`[Handler] AI response path: history.length=${history.length}, ai_enabled=${conversation.ai_enabled}`);
+
     if (conversation.ai_enabled) {
-      // Show typing indicator while AI processes
       whatsapp.sendTypingIndicator(message.from).catch(() => {});
       await handleAIResponse(tenant, conversation, message, content, history, whatsapp);
+    } else {
+      console.log(`[Handler] AI disabled for conversation ${conversation.id} — no response sent`);
     }
   } catch (error) {
     console.error("[Handler] Error processing message:", error);
