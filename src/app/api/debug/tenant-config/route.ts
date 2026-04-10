@@ -50,6 +50,23 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false })
     .limit(10);
 
+  // Get message history for the most recent conversation
+  let messageHistory = null;
+  if (recentConvos && recentConvos.length > 0) {
+    const latestConvo = recentConvos[0];
+    const { data: messages } = await getSupabaseAdmin()
+      .from("messages")
+      .select("id, direction, sender_type, message_type, content, created_at, status")
+      .eq("conversation_id", latestConvo.id)
+      .order("created_at", { ascending: false })
+      .limit(30);
+    messageHistory = {
+      conversation_id: latestConvo.id,
+      total_shown: messages?.length || 0,
+      messages: messages?.reverse(),
+    };
+  }
+
   return NextResponse.json({
     tenant_id: tenant.id,
     tenant_name: tenant.name,
@@ -62,5 +79,30 @@ export async function GET(request: NextRequest) {
       voice_callback_enabled: config.voice_callback_enabled,
     },
     recent_conversations: recentConvos,
+    message_history: messageHistory,
   });
+}
+
+// POST: Archive a conversation to force fresh start
+// Usage: POST /api/debug/tenant-config { "action": "archive", "conversation_id": "..." }
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    if (body.action === "archive" && body.conversation_id) {
+      const { error } = await getSupabaseAdmin()
+        .from("conversations")
+        .update({ status: "archived", metadata: { archived_reason: "debug_reset", archived_at: new Date().toISOString() } })
+        .eq("id", body.conversation_id);
+
+      if (error) {
+        return NextResponse.json({ error: "Failed to archive", details: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, message: `Conversation ${body.conversation_id} archived. Next message will create a fresh conversation.` });
+    }
+
+    return NextResponse.json({ error: "Invalid action. Use: { action: 'archive', conversation_id: '...' }" }, { status: 400 });
+  } catch (err) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 }
