@@ -1,44 +1,26 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { RetellWebClient } from "retell-client-js-sdk";
 import { Phone, PhoneOff, X, MessageCircle, Loader2 } from "lucide-react";
 
-interface CallUsWidgetProps {
-  // Widget configuration
-  tenantId: string;
-  agentId: string;
-  primaryColor?: string;
-  backgroundColor?: string;
-  textColor?: string;
-  position?: "bottom-right" | "bottom-left" | "top-right" | "top-left";
-  title?: string;
-  subtitle?: string;
-  showBranding?: boolean;
-}
+export default function WidgetIframe() {
+  const searchParams = useSearchParams();
+  
+  // Widget configuration from URL params
+  const config = {
+    tenantId: searchParams.get("tenantId") || "",
+    agentId: searchParams.get("agentId") || "",
+    primaryColor: searchParams.get("primaryColor") || "#3b82f6",
+    backgroundColor: searchParams.get("backgroundColor") || "#ffffff",
+    textColor: searchParams.get("textColor") || "#1f2937",
+    title: searchParams.get("title") || "Need Help?",
+    subtitle: searchParams.get("subtitle") || "Talk to our AI assistant",
+    showBranding: searchParams.get("showBranding") !== "false",
+  };
 
-interface WidgetConfig {
-  primaryColor: string;
-  backgroundColor: string;
-  textColor: string;
-  position: string;
-  title: string;
-  subtitle: string;
-  showBranding: boolean;
-}
-
-export default function CallUsWidget({
-  tenantId,
-  agentId,
-  primaryColor = "#3b82f6",
-  backgroundColor = "#ffffff",
-  textColor = "#1f2937",
-  position = "bottom-right",
-  title = "Need Help?",
-  subtitle = "Talk to our AI assistant",
-  showBranding = true,
-}: CallUsWidgetProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true); // Always open in iframe
   const [isCallActive, setIsCallActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -47,24 +29,6 @@ export default function CallUsWidget({
   const [accessToken, setAccessToken] = useState("");
   
   const retellClientRef = useRef<RetellWebClient | null>(null);
-
-  const config: WidgetConfig = {
-    primaryColor,
-    backgroundColor,
-    textColor,
-    position,
-    title,
-    subtitle,
-    showBranding,
-  };
-
-  // Position classes for the widget
-  const positionClasses = {
-    "bottom-right": "bottom-4 right-4",
-    "bottom-left": "bottom-4 left-4",
-    "top-right": "top-4 right-4",
-    "top-left": "top-4 left-4",
-  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -78,16 +42,30 @@ export default function CallUsWidget({
     if (!client) return;
 
     client.on("call_started", () => {
-      console.log("[CallUsWidget] Call started");
+      console.log("[WidgetIframe] Call started");
       setIsCallActive(true);
       setIsConnecting(false);
+      
+      // Notify parent window about call state
+      window.parent.postMessage({
+        type: "fiq-widget-call-started",
+        tenantId: config.tenantId,
+        agentId: config.agentId,
+      }, "*");
     });
 
     client.on("call_ended", () => {
-      console.log("[CallUsWidget] Call ended");
+      console.log("[WidgetIframe] Call ended");
       setIsCallActive(false);
       setAgentIsSpeaking(false);
       setTranscript("");
+      
+      // Notify parent window
+      window.parent.postMessage({
+        type: "fiq-widget-call-ended",
+        tenantId: config.tenantId,
+        agentId: config.agentId,
+      }, "*");
     });
 
     client.on("agent_start_talking", () => {
@@ -108,7 +86,7 @@ export default function CallUsWidget({
     });
 
     client.on("error", (error) => {
-      console.error("[CallUsWidget] Error:", error);
+      console.error("[WidgetIframe] Error:", error);
       setIsConnecting(false);
       setIsCallActive(false);
       setError(error.message || "Call error occurred");
@@ -126,8 +104,8 @@ export default function CallUsWidget({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          tenantId,
-          agentId,
+          tenantId: config.tenantId,
+          agentId: config.agentId,
         }),
       });
 
@@ -139,7 +117,7 @@ export default function CallUsWidget({
       const data = await response.json();
       setAccessToken(data.accessToken);
       
-      // Start the call immediately after getting access token
+      // Start the call immediately
       if (retellClientRef.current) {
         await retellClientRef.current.startCall({
           accessToken: data.accessToken,
@@ -147,7 +125,7 @@ export default function CallUsWidget({
         });
       }
     } catch (err) {
-      console.error("[CallUsWidget] Failed to initialize call:", err);
+      console.error("[WidgetIframe] Failed to initialize call:", err);
       setError(err instanceof Error ? err.message : "Failed to start call");
       setIsConnecting(false);
     }
@@ -159,57 +137,28 @@ export default function CallUsWidget({
     }
   };
 
-  const toggleWidget = () => {
-    setIsOpen(!isOpen);
-    if (!isOpen) {
-      setError("");
-    }
-  };
-
-  if (!isOpen) {
-    // Floating button when closed
+  // Validate required params
+  if (!config.tenantId || !config.agentId) {
     return (
-      <div
-        className={`fixed ${positionClasses[position]} z-50`}
-        style={{ zIndex: 9999 }}
-      >
-        <button
-          onClick={toggleWidget}
-          className="flex items-center justify-center w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
-          style={{ backgroundColor: config.primaryColor }}
-          title={config.title}
-        >
-          {isCallActive ? (
-            <div className="relative">
-              <Phone className="w-6 h-6 text-white" />
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse" />
-            </div>
-          ) : (
-            <MessageCircle className="w-6 h-6 text-white" />
-          )}
-        </button>
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="text-center p-6 bg-white rounded-lg shadow">
+          <p className="text-red-600">Invalid widget configuration</p>
+          <p className="text-sm text-gray-600 mt-2">Missing tenantId or agentId</p>
+        </div>
       </div>
     );
   }
 
-  // Expanded widget when open
   return (
-    <div
-      className={`fixed ${positionClasses[position]} z-50`}
-      style={{ zIndex: 9999 }}
-    >
-      <div
-        className="rounded-lg shadow-2xl border border-gray-200"
-        style={{
-          backgroundColor: config.backgroundColor,
-          width: "320px",
-          maxHeight: "500px",
-        }}
-      >
+    <div className="min-h-screen" style={{ backgroundColor: config.backgroundColor }}>
+      <div className="max-w-sm mx-auto h-screen flex flex-col">
         {/* Header */}
         <div
-          className="flex items-center justify-between p-4 border-b border-gray-200"
-          style={{ borderColor: `${config.primaryColor}20` }}
+          className="flex items-center justify-between p-4 border-b"
+          style={{ 
+            borderColor: `${config.primaryColor}20`,
+            backgroundColor: config.backgroundColor 
+          }}
         >
           <div>
             <h3 className="font-semibold" style={{ color: config.textColor }}>
@@ -219,16 +168,10 @@ export default function CallUsWidget({
               {config.subtitle}
             </p>
           </div>
-          <button
-            onClick={toggleWidget}
-            className="p-1 rounded hover:bg-gray-100 transition-colors"
-          >
-            <X className="w-4 h-4" style={{ color: config.textColor }} />
-          </button>
         </div>
 
         {/* Content */}
-        <div className="p-4">
+        <div className="flex-1 p-4">
           {!isCallActive && !isConnecting && (
             <div className="text-center py-6">
               <div
@@ -316,11 +259,4 @@ export default function CallUsWidget({
       </div>
     </div>
   );
-}
-
-// Helper function to embed the widget on any website
-export function embedCallUsWidget(config: CallUsWidgetProps) {
-  // This function can be called from external websites to embed the widget
-  // The external site would need to load this component via a script tag
-  console.log("Call Us Widget embedded with config:", config);
 }

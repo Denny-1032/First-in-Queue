@@ -1,17 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth/session";
 import { checkVoiceMinutes } from "@/lib/voice/usage";
 import Retell from "retell-sdk";
 
 // =============================================
 // Web Call Registration API
 // Creates a Retell web call and returns access token for browser WebRTC connection
+//
+// Supports two modes:
+// 1. Authenticated (dashboard): tenantId from session cookie, agentId in body
+// 2. Public (widget/iframe): tenantId + agentId both in body
 // =============================================
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { tenantId, agentId, customerName, purpose } = body;
+    const { tenantId: bodyTenantId, agentId, customerName, purpose } = body;
+
+    // Resolve tenantId: prefer session (authenticated), fall back to body (public widget)
+    const session = await getSession();
+    const tenantId = session?.tenantId || bodyTenantId;
 
     if (!tenantId || !agentId) {
       return NextResponse.json({ error: "tenantId and agentId are required" }, { status: 400 });
@@ -45,21 +54,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Determine caller identity
+    const isPublic = !session;
+    const callerLabel = isPublic ? "widget-visitor" : session.email || "dashboard-user";
+
     // Create web call record in DB
     const { data: callRecord, error: insertError } = await supabase
       .from("voice_calls")
       .insert({
         tenant_id: tenantId,
         voice_agent_id: voiceAgent.id,
-        direction: "outbound",
-        caller_phone: "web-client",
+        direction: isPublic ? "inbound" : "outbound",
+        caller_phone: callerLabel,
         callee_phone: "web-client",
         status: "registered",
         metadata: {
           customer_name: customerName || null,
           purpose: purpose || null,
           telephony_provider: "web",
-          call_type: "web",
+          call_type: isPublic ? "widget" : "dashboard",
         },
       })
       .select()
@@ -84,15 +97,14 @@ export async function POST(request: NextRequest) {
         metadata: {
           fiq_call_id: callRecord.id,
           tenant_id: tenantId,
-          call_type: "web",
+          call_type: isPublic ? "widget" : "dashboard",
           customer_name: customerName || "",
           purpose: purpose || "",
         },
       });
-      console.log(`[Web Call] Retell web call created: call_id=${webCallResponse.call_id}`);
+      console.log(`[Web Call] Retell web call created: call_id=${webCallResponse.call_id} type=${isPublic ? "widget" : "dashboard"}`);
     } catch (retellErr) {
       console.error("[Web Call] Retell web call creation FAILED:", retellErr);
-      // Mark call as error in DB
       await supabase
         .from("voice_calls")
         .update({ status: "error" })
@@ -131,7 +143,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[WebCall] Registration error:", error);
     
-    // Handle specific Retell errors
     if (error instanceof Error) {
       if (error.message.includes("agent_id")) {
         return NextResponse.json({ error: "Invalid agent ID" }, { status: 400 });
@@ -149,14 +160,27 @@ export async function POST(request: NextRequest) {
 }
 
 // Get available voice agents for web calling
-export async function GET() {
+// Authenticated: returns agents for the session tenant
+// Public with ?tenantId=xxx: returns agents for that tenant (widget embed)
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const queryTenantId = searchParams.get("tenantId");
+
+    const session = await getSession();
+    const tenantId = session?.tenantId || queryTenantId;
+
+    if (!tenantId) {
+      return NextResponse.json({ error: "Tenant context required" }, { status: 400 });
+    }
+
     const supabase = getSupabaseAdmin();
     
-    // Get active voice agents
+    // Get active voice agents scoped to tenant
     const { data: agents, error } = await supabase
       .from("voice_agents")
       .select("id, name, retell_agent_id, greeting_message")
+      .eq("tenant_id", tenantId)
       .eq("is_active", true);
 
     if (error) {

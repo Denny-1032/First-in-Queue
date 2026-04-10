@@ -1086,7 +1086,25 @@ async function handleVoiceCallbackRequest(
     }
 
     // Resolve telephony provider (default: twilio)
+    // When set to "web" or "none", phone callbacks are disabled — suggest web call instead
     const voiceProvider = process.env.VOICE_PROVIDER || "twilio";
+    if (voiceProvider === "web" || voiceProvider === "none") {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.firstinqueue.com";
+      const webCallMsg = `Phone calls aren't available right now, but you can talk to our AI assistant instantly via your browser! 🎙️\n\n${appUrl}/widget/iframe?tenantId=${tenant.id}`;
+      const webCallId = await whatsapp.sendText(customerPhone, webCallMsg);
+      await saveMessage({
+        conversation_id: conversation.id,
+        tenant_id: tenant.id,
+        direction: "outbound",
+        sender_type: "bot",
+        message_type: "text",
+        content: { text: webCallMsg },
+        whatsapp_message_id: webCallId,
+        status: "sent",
+      });
+      return;
+    }
+
     const isTelnyx = voiceProvider === "telnyx";
 
     let fromNumber = isTelnyx

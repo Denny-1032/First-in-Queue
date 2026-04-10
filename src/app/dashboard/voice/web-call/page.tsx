@@ -27,7 +27,7 @@ export default function WebCallPage() {
   const [error, setError] = useState("");
   const [transcript, setTranscript] = useState("");
 
-  // Load available voice agents
+  // Load available voice agents (scoped to authenticated tenant via cookie)
   useEffect(() => {
     const loadAgents = async () => {
       try {
@@ -40,6 +40,8 @@ export default function WebCallPage() {
           const agentId = searchParams.get("agent");
           if (agentId && data.agents?.some((a: any) => a.id === agentId)) {
             setSelectedAgent(agentId);
+          } else if (data.agents?.length === 1) {
+            setSelectedAgent(data.agents[0].id);
           }
         }
       } catch (err) {
@@ -63,16 +65,12 @@ export default function WebCallPage() {
     setError("");
 
     try {
-      // Get tenant ID from current session (you'll need to implement this)
-      const tenantId = "current-tenant-id"; // This should come from auth context
-      
       const response = await fetch("/api/voice/web-call", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          tenantId,
           agentId: selectedAgent,
           customerName: customerName.trim() || undefined,
           purpose: purpose.trim() || undefined,

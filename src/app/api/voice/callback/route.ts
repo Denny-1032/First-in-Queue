@@ -103,7 +103,16 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Get the Twilio/Twilio voice number
+    // Check if telephony is available
+    const voiceProvider = process.env.VOICE_PROVIDER || "twilio";
+    if (voiceProvider === "web" || voiceProvider === "none") {
+      return NextResponse.json({
+        error: "Phone callbacks unavailable",
+        message: "Voice provider is set to web-only mode. Phone callbacks require Twilio or Telnyx. Use web calls instead.",
+      }, { status: 400 });
+    }
+
+    // Get the Twilio/Telnyx voice number
     fromNumber = process.env.TWILIO_VOICE_NUMBER || tenant.whatsapp_phone_number_id;
     if (!fromNumber?.startsWith("+")) {
       fromNumber = "+" + fromNumber;

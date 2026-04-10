@@ -77,7 +77,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // Protect tenant API routes with user auth (validate signature)
-    const isPublicApi = pathname.startsWith("/api/auth/") || pathname.startsWith("/api/webhook") || pathname.startsWith("/api/webhooks/") || pathname.startsWith("/api/voice/webhook") || pathname.startsWith("/api/voice/inbound") || pathname.startsWith("/api/voice/twilio-status") || pathname.startsWith("/api/admin") || pathname.startsWith("/api/setup") || pathname === "/api/voice/web-call";
+    const isPublicApi = pathname.startsWith("/api/auth/") || pathname.startsWith("/api/webhook") || pathname.startsWith("/api/webhooks/") || pathname.startsWith("/api/voice/webhook") || pathname.startsWith("/api/voice/inbound") || pathname.startsWith("/api/voice/twilio-status") || pathname.startsWith("/api/voice/telnyx-status") || pathname.startsWith("/api/admin") || pathname.startsWith("/api/setup") || pathname.startsWith("/api/voice/web-call") || pathname.startsWith("/api/widget/");
     if (!isPublicApi) {
       const authToken = request.cookies.get("fiq-auth")?.value;
       if (!authToken || !(await isValidSignedToken(authToken))) {

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { RetellWebClient } from "retell-client-js-sdk";
-import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { Phone, PhoneOff } from "lucide-react";
 
 interface WebCallClientProps {
   accessToken: string;
+  autoStart?: boolean;
   onCallStart?: () => void;
   onCallEnd?: () => void;
   onTranscriptUpdate?: (transcript: string) => void;
@@ -14,6 +15,7 @@ interface WebCallClientProps {
 
 export default function WebCallClient({
   accessToken,
+  autoStart = true,
   onCallStart,
   onCallEnd,
   onTranscriptUpdate,
@@ -21,21 +23,36 @@ export default function WebCallClient({
 }: WebCallClientProps) {
   const [isCallActive, setIsCallActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isSpeakerOff, setIsSpeakerOff] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [agentIsSpeaking, setAgentIsSpeaking] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [callEnded, setCallEnded] = useState(false);
   
   const retellClientRef = useRef<RetellWebClient | null>(null);
   const callStartTimeRef = useRef<Date | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const hasStartedRef = useRef(false);
+
+  const startCall = useCallback(async () => {
+    if (!retellClientRef.current || !accessToken || hasStartedRef.current) return;
+    hasStartedRef.current = true;
+
+    try {
+      setIsConnecting(true);
+      await retellClientRef.current.startCall({
+        accessToken,
+        sampleRate: 24000,
+      });
+    } catch (error) {
+      console.error("[WebCall] Failed to start call:", error);
+      setIsConnecting(false);
+      hasStartedRef.current = false;
+      onError?.(error instanceof Error ? error.message : "Failed to start call. Check microphone permissions.");
+    }
+  }, [accessToken, onError]);
 
   useEffect(() => {
-    // Initialize Retell Web Client
     retellClientRef.current = new RetellWebClient();
-    
-    // Set up event listeners
     const client = retellClientRef.current;
 
     client.on("call_started", () => {
@@ -44,7 +61,6 @@ export default function WebCallClient({
       setIsConnecting(false);
       callStartTimeRef.current = new Date();
       
-      // Start duration timer
       durationIntervalRef.current = setInterval(() => {
         if (callStartTimeRef.current) {
           const duration = Math.floor(
@@ -61,8 +77,8 @@ export default function WebCallClient({
       console.log("[WebCall] Call ended");
       setIsCallActive(false);
       setAgentIsSpeaking(false);
+      setCallEnded(true);
       
-      // Clear duration timer
       if (durationIntervalRef.current) {
         clearInterval(durationIntervalRef.current);
         durationIntervalRef.current = null;
@@ -71,15 +87,8 @@ export default function WebCallClient({
       onCallEnd?.();
     });
 
-    client.on("agent_start_talking", () => {
-      console.log("[WebCall] Agent started talking");
-      setAgentIsSpeaking(true);
-    });
-
-    client.on("agent_stop_talking", () => {
-      console.log("[WebCall] Agent stopped talking");
-      setAgentIsSpeaking(false);
-    });
+    client.on("agent_start_talking", () => setAgentIsSpeaking(true));
+    client.on("agent_stop_talking", () => setAgentIsSpeaking(false));
 
     client.on("update", (update) => {
       if (update.transcript) {
@@ -98,8 +107,12 @@ export default function WebCallClient({
       onError?.(error.message || "Call error occurred");
     });
 
+    // Auto-start call if configured
+    if (autoStart && accessToken) {
+      startCall();
+    }
+
     return () => {
-      // Cleanup
       if (durationIntervalRef.current) {
         clearInterval(durationIntervalRef.current);
       }
@@ -107,45 +120,12 @@ export default function WebCallClient({
         client.stopCall();
       }
     };
-  }, [onCallStart, onCallEnd, onTranscriptUpdate, onError]);
-
-  const startCall = async () => {
-    if (!retellClientRef.current || !accessToken) {
-      onError?.("Invalid access token");
-      return;
-    }
-
-    try {
-      setIsConnecting(true);
-      await retellClientRef.current.startCall({
-        accessToken,
-        sampleRate: 24000,
-      });
-    } catch (error) {
-      console.error("[WebCall] Failed to start call:", error);
-      setIsConnecting(false);
-      onError?.(error instanceof Error ? error.message : "Failed to start call");
-    }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const stopCall = () => {
     if (retellClientRef.current) {
       retellClientRef.current.stopCall();
-    }
-  };
-
-  const toggleMute = () => {
-    if (retellClientRef.current) {
-      // Note: RetellWebClient doesn't have built-in mute/unmute
-      // This would need to be implemented at the audio stream level
-      setIsMuted(!isMuted);
-    }
-  };
-
-  const toggleSpeaker = () => {
-    if (retellClientRef.current) {
-      // Note: Speaker control would need audio context manipulation
-      setIsSpeakerOff(!isSpeakerOff);
     }
   };
 
@@ -166,14 +146,23 @@ export default function WebCallClient({
           {isCallActive && (
             <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse" />
           )}
-          {!isConnecting && !isCallActive && (
+          {callEnded && !isCallActive && (
             <div className="w-3 h-3 bg-gray-400 rounded-full mr-2" />
           )}
+          {!isConnecting && !isCallActive && !callEnded && (
+            <div className="w-3 h-3 bg-blue-400 rounded-full mr-2 animate-pulse" />
+          )}
           <span className="text-sm font-medium text-gray-600">
-            {isConnecting ? "Connecting..." : isCallActive ? "On Call" : "Ready"}
+            {isConnecting
+              ? "Connecting..."
+              : isCallActive
+              ? "On Call"
+              : callEnded
+              ? "Call Ended"
+              : "Starting..."}
           </span>
         </div>
-        {isCallActive && (
+        {(isCallActive || callEnded) && (
           <div className="text-2xl font-bold text-gray-800">
             {formatDuration(callDuration)}
           </div>
@@ -183,8 +172,12 @@ export default function WebCallClient({
       {/* Agent Speaking Indicator */}
       {agentIsSpeaking && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-          <div className="flex items-center">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-2" />
+          <div className="flex items-center justify-center">
+            <div className="flex space-x-1 mr-2">
+              <div className="w-1.5 h-3 bg-blue-500 rounded-full animate-pulse" />
+              <div className="w-1.5 h-4 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: "0.15s" }} />
+              <div className="w-1.5 h-2 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: "0.3s" }} />
+            </div>
             <span className="text-sm text-blue-700">Agent is speaking...</span>
           </div>
         </div>
@@ -192,45 +185,38 @@ export default function WebCallClient({
 
       {/* Call Controls */}
       <div className="flex justify-center items-center space-x-4 mb-6">
-        {!isCallActive ? (
+        {!isCallActive && !isConnecting && !callEnded ? (
           <button
             onClick={startCall}
-            disabled={isConnecting || !accessToken}
+            disabled={!accessToken}
             className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white rounded-full p-4 transition-colors"
           >
             <Phone className="w-6 h-6" />
           </button>
-        ) : (
+        ) : isCallActive ? (
           <button
             onClick={stopCall}
-            className="bg-red-500 hover:bg-red-600 text-white rounded-full p-4 transition-colors"
+            className="bg-red-500 hover:bg-red-600 text-white rounded-full p-4 transition-colors animate-pulse"
           >
             <PhoneOff className="w-6 h-6" />
           </button>
-        )}
-
-        <button
-          onClick={toggleMute}
-          disabled={!isCallActive}
-          className="bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 rounded-full p-3 transition-colors"
-        >
-          {isMuted ? <MicOff className="w-5 h-5 text-gray-600" /> : <Mic className="w-5 h-5 text-gray-600" />}
-        </button>
-
-        <button
-          onClick={toggleSpeaker}
-          disabled={!isCallActive}
-          className="bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 rounded-full p-3 transition-colors"
-        >
-          {isSpeakerOff ? <VolumeX className="w-5 h-5 text-gray-600" /> : <Volume2 className="w-5 h-5 text-gray-600" />}
-        </button>
+        ) : null}
       </div>
 
       {/* Transcript */}
       {transcript && (
-        <div className="bg-gray-50 rounded-lg p-4 max-h-32 overflow-y-auto">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Transcript</h3>
-          <pre className="text-xs text-gray-600 whitespace-pre-wrap">{transcript}</pre>
+        <div className="bg-gray-50 rounded-lg p-4 max-h-48 overflow-y-auto">
+          <h3 className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Transcript</h3>
+          <div className="space-y-1">
+            {transcript.split("\n").map((line, i) => {
+              const isAgent = line.startsWith("agent:");
+              return (
+                <p key={i} className={`text-xs ${isAgent ? "text-blue-700" : "text-gray-700"}`}>
+                  {line}
+                </p>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
