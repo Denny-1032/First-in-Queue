@@ -936,12 +936,6 @@ export default function AIConfigPage() {
         <CardContent className="space-y-4">
           {voiceCallbackEnabled && (
             <>
-              <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
-                <p className="text-sm text-blue-800">
-                  <strong>How it works:</strong> When a customer types "call me" in WhatsApp, your AI voice agent will automatically call their phone number. This is perfect for businesses without local phone numbers — you can still offer voice support by calling customers back!
-                </p>
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Voice Agent for Callbacks
