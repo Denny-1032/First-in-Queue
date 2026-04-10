@@ -6,6 +6,7 @@ A chronological record of all critical fixes, their root causes, and preventive 
 
 ## Table of Contents
 
+- [AI History Poisoning Loop Fix (Apr 10, 2026)](#ai-history-poisoning-loop-fix-apr-10-2026)
 - [Greeting Loop Definitive Fix (Apr 11, 2026)](#greeting-loop-definitive-fix-apr-11-2026)
 - [Double Billing Fix (Apr 10, 2026)](#double-billing-fix-apr-10-2026)
 - [Greeting Loop Fix (Apr 10, 2026)](#greeting-loop-fix-apr-10-2026)
@@ -14,6 +15,71 @@ A chronological record of all critical fixes, their root causes, and preventive 
 - [Voice Call Fixes (Apr 10, 2026)](#voice-call-fixes-apr-10-2026)
 - [AI Agent Fixes (Apr 10, 2026)](#ai-agent-fixes-apr-10-2026)
 - [Voice Test Call Error (Apr 10, 2026)](#voice-test-call-error-apr-10-2026)
+
+---
+
+## AI History Poisoning Loop Fix (Apr 10, 2026)
+
+### Problem
+After the 3-bug greeting loop fix was deployed, the bot continued sending the same greeting (`"Hey there! 👋 Welcome to First in Queue. How can I help you today?"`) to every message regardless of content — even questions like "What industries do you cover?" or "Do you offer discounts?".
+
+### Root Cause
+Vercel logs confirmed the `Response path: AI` label was firing, and the AI's `detected_intent` was always `"greeting"` with `confidence=0.95`. This was **AI history poisoning** — a self-reinforcing feedback loop:
+
+1. Early in the conversation, `"Hi"` correctly triggered the qr1 quick reply, sending the greeting
+2. `getRecentMessageHistory()` was fetching the **oldest** 20 messages (ascending order) — not the most recent
+3. When the conversation accumulated many messages, the AI loaded 20 slots of all-greeting history
+4. GPT-4o saw the pattern and imitated it: every response → greeting → more poisoned history → repeat
+
+### Fixes Applied
+
+**Fix 1: `getRecentMessageHistory` ordering** (`src/lib/db/operations.ts`)
+
+Changed from `ascending: true` (oldest first) to `ascending: false` + `.reverse()` so the AI always receives the **most recent** 20 messages as context, not the oldest:
+
+```typescript
+.order("created_at", { ascending: false })
+.limit(limit);
+const data = rawData ? [...rawData].reverse() : null;
+```
+
+**Fix 2: Repetition guard** (`src/lib/engine/handler.ts`)
+
+Before calling `handleAIResponse`, checks if the last 3+ assistant messages in history are identical. If so, strips all history and keeps only the current user message:
+
+```typescript
+const assistantMsgs = history.filter(h => h.role === "assistant").map(h => h.content);
+if (assistantMsgs.length >= 3) {
+  const tail = assistantMsgs.slice(-3);
+  if (tail.every(m => m === tail[0])) {
+    console.warn(`[Handler] REPETITION DETECTED — stripping poisoned history.`);
+    const lastUserMsg = history.filter(h => h.role === "user").pop();
+    history = lastUserMsg ? [lastUserMsg] : [];
+  }
+}
+```
+
+**Fix 3: Anti-repetition rules in system prompt** (`src/lib/ai/engine.ts`)
+
+Added two new CRITICAL RULES to the AI system prompt:
+- Rule 10: "NEVER repeat the same response twice. Every reply MUST be unique and MUST directly address what the customer just said."
+- Rule 11: "Always focus on the customer's LATEST message. Ignore any repetitive patterns in conversation history."
+
+**Fix 4: Archive poisoned conversation**
+
+The existing conversation `f9412592-94e2-4f2e-8509-fa8125370091` had 30+ identical greeting messages. Archived it via the debug endpoint so a fresh conversation would be created, breaking the loop immediately.
+
+### Files Changed
+- `src/lib/db/operations.ts` — Fixed message history ordering (descending + reverse)
+- `src/lib/engine/handler.ts` — Added repetition guard before AI call
+- `src/lib/ai/engine.ts` — Added anti-repetition rules 10-11 to CRITICAL RULES
+- `src/middleware.ts` — Exposed `/api/debug/` as public route for operational tooling
+
+### Prevention
+1. **Always fetch history in descending order then reverse** — `ORDER BY created_at DESC LIMIT N` then reverse gives the N most recent messages in chronological order
+2. **Guard against AI pattern imitation** — When conversation history is heavily skewed toward one type of response, the AI will imitate it. A repetition check before inference prevents this.
+3. **Poisoned conversations must be archived** — Code fixes alone don't repair existing corrupted conversations; the conversation must be reset to clear the bad history from the AI's context window
+4. **Add anti-repetition to system prompt** — Explicitly instruct the AI to address the latest message and never repeat previous responses
 
 ---
 
