@@ -89,10 +89,12 @@ async function processIncomingMessage(
   const whatsapp = createWhatsAppClient(tenant.whatsapp_access_token, tenant.whatsapp_phone_number_id);
 
   try {
+    console.log(`[Handler] Processing message from ${message.from} (type=${message.type}) for tenant ${tenant.id} (${tenant.name})`);
+
     // Mark as read immediately
     await whatsapp.markAsRead(message.id);
 
-    // Get or create conversation — isNew definitively tells us if this is a brand-new conversation
+    // Get or create conversation — isNew only true for brand-new customers
     const { conversation, isNew } = await getOrCreateConversation(
       tenant.id,
       message.from,
@@ -313,6 +315,8 @@ async function handleAIResponse(
   history: Array<{ role: "user" | "assistant"; content: string }>,
   whatsapp: ReturnType<typeof createWhatsAppClient>
 ): Promise<void> {
+  const keySource = tenant.openai_api_key ? "tenant" : "env";
+  console.log(`[Handler] AI engine: keySource=${keySource}, model=${process.env.OPENAI_MODEL || "gpt-4o"}`);
   const aiEngine = createAIEngine(tenant.openai_api_key);
 
   // Build AI context — include flow state if active
@@ -329,6 +333,7 @@ async function handleAIResponse(
   };
 
   const aiResponse: AIResponse = await aiEngine.generateResponse(aiContext);
+  console.log(`[Handler] AI response: intent=${aiResponse.detected_intent}, escalate=${aiResponse.should_escalate}, confidence=${aiResponse.confidence}, text_len=${aiResponse.text?.length || 0}`);
 
   // Update conversation sentiment
   if (aiResponse.sentiment) {

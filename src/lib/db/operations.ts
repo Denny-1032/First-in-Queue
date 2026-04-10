@@ -78,8 +78,10 @@ export async function getOrCreateConversation(
   customerPhone: string,
   customerName?: string
 ): Promise<{ conversation: Conversation; isNew: boolean }> {
-  // Try to find active conversation
-  const { data: existing } = await getSupabaseAdmin()
+  const db = getSupabaseAdmin();
+
+  // Try to find an active/waiting/handoff conversation
+  const { data: existing, error: lookupErr } = await db
     .from("conversations")
     .select("*")
     .eq("tenant_id", tenantId)
@@ -87,18 +89,33 @@ export async function getOrCreateConversation(
     .in("status", ["active", "waiting", "handoff"])
     .order("created_at", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
+
+  if (lookupErr) {
+    console.error("[DB] Conversation lookup error:", lookupErr);
+  }
 
   if (existing) {
     // Update last message time and customer name if we have it
     const updates: Record<string, unknown> = { last_message_at: new Date().toISOString() };
     if (customerName && !existing.customer_name) updates.customer_name = customerName;
-    await getSupabaseAdmin().from("conversations").update(updates).eq("id", existing.id);
+    await db.from("conversations").update(updates).eq("id", existing.id);
+    console.log(`[DB] Found existing conversation ${existing.id} (status=${existing.status})`);
     return { conversation: { ...existing, ...updates } as Conversation, isNew: false };
   }
 
+  // No active conversation — check if this is a returning customer
+  // (has ANY prior conversations, even resolved/archived)
+  const { count: priorCount } = await db
+    .from("conversations")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", tenantId)
+    .eq("customer_phone", customerPhone);
+
+  const isReturningCustomer = (priorCount || 0) > 0;
+
   // Create new conversation
-  const { data: created, error } = await getSupabaseAdmin()
+  const { data: created, error } = await db
     .from("conversations")
     .insert({
       tenant_id: tenantId,
@@ -115,7 +132,10 @@ export async function getOrCreateConversation(
     .single();
 
   if (error) throw new Error(`Failed to create conversation: ${error.message}`);
-  return { conversation: created as Conversation, isNew: true };
+
+  // isNew=true ONLY for brand-new customers (no prior conversations at all)
+  console.log(`[DB] Created conversation ${created.id} (returning=${isReturningCustomer}, priorCount=${priorCount})`);
+  return { conversation: created as Conversation, isNew: !isReturningCustomer };
 }
 
 export async function getConversation(conversationId: string): Promise<Conversation | null> {

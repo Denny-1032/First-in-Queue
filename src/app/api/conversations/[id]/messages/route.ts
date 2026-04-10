@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMessages, saveMessage, getConversation } from "@/lib/db/operations";
+import { getMessages, saveMessage, getConversation, updateConversation } from "@/lib/db/operations";
 import { createWhatsAppClient } from "@/lib/whatsapp/client";
 import { getTenantById } from "@/lib/db/operations";
 
@@ -81,6 +81,9 @@ export async function POST(
       whatsapp_message_id: waMessageId || undefined,
       status: deliveryFailed ? "failed" : "sent",
     });
+
+    // Update conversation timestamp so it appears at top of list
+    await updateConversation(id, { last_message_at: new Date().toISOString() });
 
     if (deliveryFailed) {
       return NextResponse.json({ ...message, _deliveryError: deliveryError }, { status: 207 });
