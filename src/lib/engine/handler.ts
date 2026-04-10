@@ -355,6 +355,7 @@ async function handleAIResponse(
   history: Array<{ role: "user" | "assistant"; content: string }>,
   whatsapp: ReturnType<typeof createWhatsAppClient>
 ): Promise<void> {
+  const supabase = getSupabaseAdmin();
   const keySource = tenant.openai_api_key ? "tenant" : "env";
   console.log(`[Handler] AI engine: keySource=${keySource}, model=${process.env.OPENAI_MODEL || "gpt-4o"}`);
   const aiEngine = createAIEngine(tenant.openai_api_key);
