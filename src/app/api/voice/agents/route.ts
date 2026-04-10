@@ -161,6 +161,7 @@ export async function PATCH(request: NextRequest) {
     // Build update payload
     const dbUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     const retellUpdates: Record<string, unknown> = {};
+    const warnings: string[] = []; // Track non-fatal errors
 
     if (name) {
       dbUpdates.name = name;
@@ -219,22 +220,12 @@ export async function PATCH(request: NextRequest) {
           dbUpdates.retell_kb_id = kbResult.knowledgeBaseId;
           console.log(`[Voice Agents] KB synced successfully: ${kbResult.knowledgeBaseId}`);
         } catch (kbError) {
-          // Log detailed error and return it to the user
+          // Log error but don't fail the save — KB sync is not critical for chat functionality
           const errorMsg = kbError instanceof Error ? kbError.message : String(kbError);
-          console.error(`[Voice Agents] KB sync FAILED:`, kbError);
+          console.error(`[Voice Agents] KB sync FAILED (non-fatal):`, kbError);
           
-          // Return the error so user knows what went wrong
-          return NextResponse.json({ 
-            error: "Knowledge Base sync failed", 
-            details: errorMsg,
-            tip: errorMsg.includes("RETELL_LLM_ID") 
-              ? "Set RETELL_LLM_ID in your .env file" 
-              : errorMsg.includes("RETELL_API_KEY")
-              ? "Set RETELL_API_KEY in your .env file"
-              : errorMsg.includes("knowledge_base_texts") || errorMsg.includes("empty")
-              ? "Add some knowledge base entries or FAQs first"
-              : "Check server logs for more details"
-          }, { status: 500 });
+          // Store warning but continue with save
+          warnings.push(`Voice agent "${existing.name}": Knowledge base sync failed — ${errorMsg.includes("RETELL_LLM_ID") ? "RETELL_LLM_ID not configured" : errorMsg.includes("RETELL_API_KEY") ? "RETELL_API_KEY not configured" : "check server logs"}`);
         }
       } else {
         console.warn(`[Voice Agents] No tenant config found for ID ${tenantId}`);
@@ -280,7 +271,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Failed to update voice agent" }, { status: 500 });
     }
 
-    return NextResponse.json({ agent: updated });
+    return NextResponse.json({ 
+      agent: updated,
+      ...(warnings.length > 0 && { warnings })
+    });
   } catch (error) {
     if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[Voice Agents] Update error:", error);

@@ -230,7 +230,11 @@ async function processIncomingMessage(
 
     // Check if this is a new conversation → send welcome
     const history = await getRecentMessageHistory(conversation.id, 20);
-    if (history.length <= 1 && tenant.config.welcome_message) {
+    const hasWelcomeBeenSent = !!(conversation.metadata as Record<string, unknown>)?.welcome_sent;
+    
+    console.log(`[Handler] Welcome check: history.length=${history.length}, hasWelcomeBeenSent=${hasWelcomeBeenSent}, ai_enabled=${conversation.ai_enabled}`);
+    
+    if (history.length <= 1 && tenant.config.welcome_message && !hasWelcomeBeenSent) {
       const welcomeMsg = tenant.config.welcome_message
         .replace("{customer_name}", customerName || "there")
         .replace("{business_name}", tenant.config.business_name);
@@ -245,6 +249,15 @@ async function processIncomingMessage(
         content: { text: welcomeMsg },
         whatsapp_message_id: waMessageId,
         status: "sent",
+      });
+
+      // Mark welcome as sent in conversation metadata to prevent duplicates
+      await updateConversation(conversation.id, {
+        metadata: {
+          ...(conversation.metadata as Record<string, unknown> || {}),
+          welcome_sent: true,
+          welcome_sent_at: new Date().toISOString(),
+        },
       });
 
       // If welcome message has quick reply buttons, send them
