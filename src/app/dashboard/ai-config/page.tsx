@@ -26,6 +26,8 @@ import {
   Loader2,
   RefreshCw,
   Phone,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -66,6 +68,7 @@ export default function AIConfigPage() {
 
   // Knowledge selection state
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
+  const [knowledgeBaseExpanded, setKnowledgeBaseExpanded] = useState(false);
 
   // Web crawl state
   const [showCrawl, setShowCrawl] = useState(false);
@@ -449,8 +452,27 @@ export default function AIConfigPage() {
             <div className="flex items-center gap-2">
               <Brain className="h-5 w-5 text-purple-600" />
               <CardTitle>Knowledge Base</CardTitle>
+              <span className="text-xs text-gray-400">({knowledgeBase.length} entries)</span>
             </div>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setKnowledgeBaseExpanded(!knowledgeBaseExpanded)}
+                className="gap-1.5 text-gray-600"
+              >
+                {knowledgeBaseExpanded ? (
+                  <>
+                    <ChevronUp className="h-4 w-4" />
+                    Collapse
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4" />
+                    Expand
+                  </>
+                )}
+              </Button>
               {selectedEntries.size > 0 && (
                 <Button variant="outline" size="sm" onClick={deleteSelectedEntries} className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50">
                   <Trash2 className="h-3.5 w-3.5" />
@@ -472,6 +494,7 @@ export default function AIConfigPage() {
             </div>
           </div>
         </CardHeader>
+        {knowledgeBaseExpanded && (
         <CardContent className="space-y-4">
           {/* Web Crawl Panel */}
           {showCrawl && (
@@ -844,6 +867,7 @@ export default function AIConfigPage() {
             </div>
           ))}
         </CardContent>
+        )}
       </Card>
 
       {/* FAQs */}
