@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { recordVoiceUsage } from "@/lib/voice/usage";
 
 /**
  * Twilio Call Status Callback
  * Receives status updates for outbound calls initiated via Twilio.
+ * Also handles Async AMD (Answering Machine Detection) callbacks.
  *
  * Note: voice_calls.retell_call_id stores the Retell call ID.
  * The Twilio SID is stored in voice_calls.metadata->>'twilio_call_sid'.
@@ -15,12 +17,27 @@ export async function POST(request: NextRequest) {
     const callSid = formData.get("CallSid") as string;
     const callStatus = formData.get("CallStatus") as string;
     const duration = formData.get("CallDuration") as string;
+    const answeredBy = formData.get("AnsweredBy") as string | null;
 
     if (!callSid) {
       return NextResponse.json({ error: "Missing CallSid" }, { status: 400 });
     }
 
-    console.log(`[Twilio Status] ${callSid}: ${callStatus} (duration: ${duration || "n/a"}s)`);
+    console.log(`[Twilio Status] ${callSid}: status=${callStatus} duration=${duration || "n/a"}s answeredBy=${answeredBy || "n/a"}`);
+
+    // Handle Answering Machine Detection (AMD) callback
+    // If voicemail/machine detected, hang up the call immediately to prevent charges
+    if (answeredBy && answeredBy !== "human") {
+      console.log(`[Twilio Status] Machine detected (${answeredBy}) — hanging up call ${callSid}`);
+      try {
+        const twilio = (await import("twilio")).default;
+        const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
+        await client.calls(callSid).update({ status: "completed" });
+        console.log(`[Twilio Status] Call ${callSid} terminated (machine detected)`);
+      } catch (hangupErr) {
+        console.error(`[Twilio Status] Failed to hang up machine call ${callSid}:`, hangupErr);
+      }
+    }
 
     const supabase = getSupabaseAdmin();
 
@@ -57,7 +74,7 @@ export async function POST(request: NextRequest) {
     // Find the voice call by Twilio SID stored in metadata
     const { data: voiceCall } = await supabase
       .from("voice_calls")
-      .select("id, retell_call_id, metadata")
+      .select("id, tenant_id, retell_call_id, metadata")
       .filter("metadata->>twilio_call_sid", "eq", callSid)
       .limit(1)
       .maybeSingle();
@@ -67,6 +84,17 @@ export async function POST(request: NextRequest) {
         .from("voice_calls")
         .update(updateData)
         .eq("id", voiceCall.id);
+
+      // Record voice minutes usage when call completes
+      if (callStatus === "completed" && duration && voiceCall.tenant_id) {
+        const durationSec = parseInt(duration, 10);
+        if (durationSec > 0) {
+          console.log(`[Twilio Status] Recording ${durationSec}s voice usage for tenant ${voiceCall.tenant_id}`);
+          await recordVoiceUsage(voiceCall.tenant_id, durationSec).catch((err) => {
+            console.error(`[Twilio Status] Failed to record voice usage:`, err);
+          });
+        }
+      }
 
       // Also update scheduled_calls if applicable (match by retell_call_id)
       if (

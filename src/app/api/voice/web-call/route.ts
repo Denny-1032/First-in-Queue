@@ -32,7 +32,9 @@ export async function POST(request: NextRequest) {
     console.log(`[WebCall] Created call: ${response.call_id}`);
 
     return NextResponse.json({
+      accessToken: response.access_token,
       access_token: response.access_token,
+      callId: response.call_id,
       call_id: response.call_id,
       agent_id: agentId,
     });

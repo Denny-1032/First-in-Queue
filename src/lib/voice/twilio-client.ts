@@ -47,57 +47,84 @@ export async function makeOutboundCallViaTwilio(params: {
   retellAgentId: string;
   metadata?: Record<string, string>;
   dynamicVariables?: Record<string, string>;
+  maxCallDurationSeconds?: number;
 }) {
+  console.log(`[TwilioCall] Initiating: from=${params.fromNumber} to=${params.toNumber} agent=${params.retellAgentId}`);
   const client = getTwilioClient();
   const retell = getRetellClient();
 
   // Step 1: Register the call with Retell to get a call_id.
   // The call_id is used as the SIP user part: sip:{call_id}@sip.retellai.com
   // Timeout is 5 minutes from registration.
-  const registered = await retell.call.registerPhoneCall({
-    agent_id: params.retellAgentId,
-    direction: "outbound",
-    from_number: params.fromNumber,
-    to_number: params.toNumber,
-    metadata: params.metadata,
-    retell_llm_dynamic_variables: params.dynamicVariables,
-  });
+  let registered;
+  try {
+    registered = await retell.call.registerPhoneCall({
+      agent_id: params.retellAgentId,
+      direction: "outbound",
+      from_number: params.fromNumber,
+      to_number: params.toNumber,
+      metadata: params.metadata,
+      retell_llm_dynamic_variables: params.dynamicVariables,
+    });
+    console.log(`[TwilioCall] Retell registered: call_id=${registered.call_id}`);
+  } catch (retellErr) {
+    console.error(`[TwilioCall] Retell registration FAILED:`, retellErr);
+    throw new Error(`Retell registration failed: ${retellErr instanceof Error ? retellErr.message : String(retellErr)}`);
+  }
 
   const retellCallId = registered.call_id;
 
   // Step 2: Build TwiML that dials the Retell SIP URI when customer answers.
+  // - timeout: how many seconds to ring before giving up (default 30)
+  // - timeLimit: max seconds the connected call can last (prevents runaway charges)
   const sipUri = `sip:${retellCallId}@sip.retellai.com;transport=tcp`;
+  const maxDuration = params.maxCallDurationSeconds || 180; // default 3 minutes
   const twiml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     "<Response>",
-    "  <Dial>",
+    `  <Dial timeout="30" timeLimit="${maxDuration}">`,
     `    <Sip>${sipUri}</Sip>`,
     "  </Dial>",
     "</Response>",
   ].join("\n");
+  console.log(`[TwilioCall] TwiML: timeout=30s, timeLimit=${maxDuration}s`);
 
   const statusCallbackUrl = process.env.NEXT_PUBLIC_APP_URL
     ? `${process.env.NEXT_PUBLIC_APP_URL}/api/voice/twilio-status`
     : undefined;
 
   // Step 3: Twilio calls the customer's phone number.
-  const call = await client.calls.create({
-    from: params.fromNumber,
-    to: params.toNumber,
-    twiml,
-    ...(statusCallbackUrl
-      ? {
-          statusCallback: statusCallbackUrl,
-          statusCallbackEvent: [
-            "initiated",
-            "ringing",
-            "answered",
-            "completed",
-          ],
-          statusCallbackMethod: "POST",
-        }
-      : {}),
-  });
+  let call;
+  try {
+    call = await client.calls.create({
+      from: params.fromNumber,
+      to: params.toNumber,
+      twiml,
+      // Answering machine detection: hang up if voicemail answers
+      machineDetection: "DetectMessageEnd" as "Enable" | "DetectMessageEnd",
+      asyncAmd: "true",
+      asyncAmdStatusCallback: statusCallbackUrl,
+      asyncAmdStatusCallbackMethod: "POST",
+      // Limit total ring time (seconds Twilio waits for customer to pick up)
+      timeout: 30,
+      ...(statusCallbackUrl
+        ? {
+            statusCallback: statusCallbackUrl,
+            statusCallbackEvent: [
+              "initiated",
+              "ringing",
+              "answered",
+              "completed",
+            ],
+            statusCallbackMethod: "POST" as const,
+          }
+        : {}),
+    });
+    console.log(`[TwilioCall] Twilio call created: sid=${call.sid} status=${call.status}`);
+  } catch (twilioErr) {
+    console.error(`[TwilioCall] Twilio call creation FAILED:`, twilioErr);
+    throw new Error(`Twilio call failed: ${twilioErr instanceof Error ? twilioErr.message : String(twilioErr)}`);
+  }
 
   return {
     call_id: call.sid,

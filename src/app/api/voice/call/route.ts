@@ -97,11 +97,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Initiate call via Twilio (connects to Retell agent via SIP)
+    // Cap at 5 minutes for dashboard-initiated calls
     try {
       const twilioCall = await makeOutboundCallViaTwilio({
         fromNumber,
         toNumber: customerPhone,
         retellAgentId: voiceAgent.retell_agent_id,
+        maxCallDurationSeconds: 300,
         metadata: {
           fiq_call_id: callRecord.id,
           tenant_id: tenantId,

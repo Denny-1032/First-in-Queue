@@ -137,7 +137,7 @@ export async function createRetellAgent(params: {
     language: normalizeLanguage(params.language || "en-US"),
     begin_message: params.greeting || "Hello, thank you for calling. How can I help you today?",
     general_prompt: params.systemPrompt,
-    max_call_duration_ms: (params.maxDurationSeconds || 600) * 1000,
+    max_call_duration_ms: (params.maxDurationSeconds || 300) * 1000,
     enable_backchannel: true,
   };
 

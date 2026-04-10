@@ -1054,10 +1054,15 @@ function BotTestChat({
     }
   }, [personality.name]);
 
-  // Auto-scroll to bottom — only scroll the messages container, not the page
+  // Auto-scroll to bottom — only when NEW messages are added, not on name edits
+  const prevMsgCountRef = useRef(messages.length);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [messages, thinking]);
+    // Only scroll if message count increased (new message) or thinking state changed
+    if (messages.length > prevMsgCountRef.current || thinking) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+    prevMsgCountRef.current = messages.length;
+  }, [messages.length, thinking]);
 
   // Simulate AI response locally (no API call — uses current config state)
   const simulateResponse = useCallback(
@@ -1164,21 +1169,26 @@ function BotTestChat({
 
       scored.sort((a, b) => b.score - a.score);
 
-      // ── 7. Return best matches ──
+      // ── 7. Return best matches (truncated for natural conversation) ──
       if (scored.length > 0 && scored[0].score >= 3) {
-        // Combine top matches (up to 3 high-scoring entries) for a richer answer
-        const threshold = Math.max(scored[0].score * 0.5, 3);
-        const top = scored.filter((s) => s.score >= threshold).slice(0, 3);
-        const combined = top.map((s) => {
-          const topic = s.entry.topic ? `${s.entry.topic}: ` : "";
-          return `${topic}${s.entry.content}`;
-        }).join("\n\n");
-        return `${tonePrefix}${combined}${emojiSuffix}`;
+        // Use only the top match and truncate for a natural conversational feel
+        const best = scored[0].entry;
+        const contentText = best.content || "";
+        // Truncate to ~300 chars at a sentence boundary for readability
+        let excerpt = contentText;
+        if (excerpt.length > 300) {
+          const cut = excerpt.lastIndexOf(".", 300);
+          excerpt = cut > 100 ? excerpt.slice(0, cut + 1) : excerpt.slice(0, 300) + "…";
+        }
+        const topicLabel = best.topic ? `**${best.topic}**\n\n` : "";
+        return `${tonePrefix}${topicLabel}${excerpt}${emojiSuffix}`;
       }
 
       // Low-confidence partial match
       if (scored.length > 0 && scored[0].score >= 1) {
-        return `${tonePrefix}${scored[0].entry.content}${emojiSuffix}\n\nWould you like to know more about this?`;
+        const partialContent = scored[0].entry.content || "";
+        const shortExcerpt = partialContent.length > 200 ? partialContent.slice(0, partialContent.lastIndexOf(".", 200) + 1 || 200) + "…" : partialContent;
+        return `${tonePrefix}${shortExcerpt}${emojiSuffix}\n\nWould you like to know more about this?`;
       }
 
       // If FAQ had a weaker match, use it

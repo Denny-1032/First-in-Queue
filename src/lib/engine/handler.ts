@@ -233,7 +233,17 @@ async function processIncomingMessage(
     }
 
     // --- Welcome message: ONLY for brand-new conversations ---
-    if (isNew && tenant.config.welcome_message) {
+    // Belt-and-suspenders: check both isNew flag AND welcome_sent metadata
+    const meta = (conversation.metadata || {}) as Record<string, unknown>;
+    const welcomeAlreadySent = !!meta.welcome_sent;
+    console.log(`[Handler] Welcome gate: isNew=${isNew}, welcomeAlreadySent=${welcomeAlreadySent}, hasWelcomeMsg=${!!tenant.config.welcome_message}`);
+
+    if (isNew && !welcomeAlreadySent && tenant.config.welcome_message) {
+      // Mark welcome as sent FIRST (before actually sending) to prevent race conditions
+      await updateConversation(conversation.id, {
+        metadata: { ...meta, welcome_sent: true, welcome_sent_at: new Date().toISOString() },
+      });
+
       console.log(`[Handler] New conversation — sending welcome message`);
       const welcomeMsg = tenant.config.welcome_message
         .replace("{customer_name}", customerName || "there")
@@ -1005,6 +1015,27 @@ async function handleVoiceCallbackRequest(
   const supabase = getSupabaseAdmin();
 
   try {
+    // Check voice minute allowance BEFORE doing anything
+    const { checkVoiceMinutes } = await import("@/lib/voice/usage");
+    const usage = await checkVoiceMinutes(tenant.id);
+    if (!usage.allowed) {
+      console.log(`[VoiceCallback] Voice minutes exhausted for tenant ${tenant.id}: ${usage.used}/${usage.limit}`);
+      const limitMsg = "Sorry, we've used all our voice call minutes for this month. Please continue chatting here and we'll help you right away! 💬";
+      const limitId = await whatsapp.sendText(customerPhone, limitMsg);
+      await saveMessage({
+        conversation_id: conversation.id,
+        tenant_id: tenant.id,
+        direction: "outbound",
+        sender_type: "bot",
+        message_type: "text",
+        content: { text: limitMsg },
+        whatsapp_message_id: limitId,
+        status: "sent",
+      });
+      return;
+    }
+    console.log(`[VoiceCallback] Voice minutes OK: ${usage.used}/${usage.limit} (remaining: ${usage.remaining})`);
+
     // Resolve which voice agent to use
     let retellAgentId: string | null = null;
     let voiceAgentId: string | null = null;
@@ -1054,9 +1085,25 @@ async function handleVoiceCallbackRequest(
       return;
     }
 
-    // Resolve from number
-    let fromNumber = process.env.TWILIO_VOICE_NUMBER || tenant.whatsapp_phone_number_id || "";
-    if (fromNumber && !fromNumber.startsWith("+")) {
+    // Resolve from number — MUST be a real Twilio phone number, not a WhatsApp phone_number_id
+    let fromNumber = process.env.TWILIO_VOICE_NUMBER || "";
+    if (!fromNumber) {
+      console.error("[VoiceCallback] TWILIO_VOICE_NUMBER not configured — cannot place call");
+      const noNumberMsg = "Sorry, our voice call service isn't fully configured yet. Please continue chatting here and we'll help you.";
+      const noNumberId = await whatsapp.sendText(customerPhone, noNumberMsg);
+      await saveMessage({
+        conversation_id: conversation.id,
+        tenant_id: tenant.id,
+        direction: "outbound",
+        sender_type: "bot",
+        message_type: "text",
+        content: { text: noNumberMsg },
+        whatsapp_message_id: noNumberId,
+        status: "sent",
+      });
+      return;
+    }
+    if (!fromNumber.startsWith("+")) {
       fromNumber = "+" + fromNumber;
     }
 
@@ -1077,10 +1124,12 @@ async function handleVoiceCallbackRequest(
     });
 
     // Place the outbound call directly (no HTTP — avoids session auth issues)
+    // Cap WhatsApp callbacks at 3 minutes to prevent runaway charges
     const callResult = await makeOutboundCallViaTwilio({
       fromNumber,
       toNumber,
       retellAgentId,
+      maxCallDurationSeconds: 180,
       metadata: {
         tenant_id: tenant.id,
         conversation_id: conversation.id,

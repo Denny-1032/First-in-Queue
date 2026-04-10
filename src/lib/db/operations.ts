@@ -93,10 +93,23 @@ export async function getOrCreateConversation(
 
   if (lookupErr) {
     console.error("[DB] Conversation lookup error:", lookupErr);
+    // If lookup failed, try a broader query as fallback (without maybeSingle)
+    const { data: fallback } = await db
+      .from("conversations")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .eq("customer_phone", customerPhone)
+      .in("status", ["active", "waiting", "handoff"])
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (fallback && fallback.length > 0) {
+      const conv = fallback[0];
+      console.log(`[DB] Fallback found conversation ${conv.id}`);
+      return { conversation: conv as Conversation, isNew: false };
+    }
   }
 
   if (existing) {
-    // Update last message time and customer name if we have it
     const updates: Record<string, unknown> = { last_message_at: new Date().toISOString() };
     if (customerName && !existing.customer_name) updates.customer_name = customerName;
     await db.from("conversations").update(updates).eq("id", existing.id);
@@ -132,6 +145,27 @@ export async function getOrCreateConversation(
     .single();
 
   if (error) throw new Error(`Failed to create conversation: ${error.message}`);
+
+  // After insert, double-check for duplicates from race conditions
+  // If another conversation was created concurrently, use the older one
+  const { data: dupes } = await db
+    .from("conversations")
+    .select("id, created_at, metadata")
+    .eq("tenant_id", tenantId)
+    .eq("customer_phone", customerPhone)
+    .in("status", ["active", "waiting", "handoff"])
+    .order("created_at", { ascending: true });
+
+  if (dupes && dupes.length > 1) {
+    // Keep the oldest, delete the one we just created if it's not the oldest
+    const oldest = dupes[0];
+    if (oldest.id !== created.id) {
+      console.log(`[DB] Race condition detected: using older conversation ${oldest.id}, removing duplicate ${created.id}`);
+      await db.from("conversations").delete().eq("id", created.id);
+      // The oldest conversation already had welcome sent — treat as not new
+      return { conversation: { ...created, id: oldest.id, metadata: oldest.metadata } as Conversation, isNew: false };
+    }
+  }
 
   // isNew=true ONLY for brand-new customers (no prior conversations at all)
   console.log(`[DB] Created conversation ${created.id} (returning=${isReturningCustomer}, priorCount=${priorCount})`);
