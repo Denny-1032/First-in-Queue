@@ -248,7 +248,7 @@ export default function TeamPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Full Name</label>
                 <Input
@@ -267,7 +267,7 @@ export default function TeamPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Role</label>
                 <select
@@ -333,7 +333,7 @@ export default function TeamPage() {
                     {isEditing ? (
                       /* Edit row */
                       <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
                             <Input
@@ -349,7 +349,7 @@ export default function TeamPage() {
                             />
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">Role</label>
                             <select
@@ -387,19 +387,20 @@ export default function TeamPage() {
                       </div>
                     ) : (
                       /* View row */
-                      <div className="flex items-center gap-4">
-                        {/* Avatar */}
-                        <div className={cn(
-                          "h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold shrink-0",
-                          agent.is_online ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"
-                        )}>
-                          {agent.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
-                        </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                        {/* Top row: Avatar + Info */}
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className={cn(
+                            "h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold shrink-0",
+                            agent.is_online ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"
+                          )}>
+                            {agent.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
+                          </div>
 
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium text-gray-900 truncate">{agent.name}</p>
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-medium text-gray-900 truncate">{agent.name}</p>
                             <Badge variant="secondary" className={cn(
                               "text-[10px] px-1.5 py-0",
                               agent.role === "admin" ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-600"
@@ -426,56 +427,60 @@ export default function TeamPage() {
                             <span className="text-xs text-gray-500">
                               {agent.active_chats || 0}/{agent.max_concurrent_chats} chats
                             </span>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Online status toggle */}
-                        <button
-                          onClick={() => handleToggleOnline(agent)}
-                          className={cn(
-                            "flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors",
-                            agent.is_online
-                              ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                              : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100"
-                          )}
-                          title={agent.is_online ? "Click to set offline" : "Click to set online"}
-                        >
-                          {agent.is_online
-                            ? <><Wifi className="h-3 w-3" /> Online</>
-                            : <><WifiOff className="h-3 w-3" /> Offline</>
-                          }
-                        </button>
+                        {/* Controls row */}
+                        <div className="flex items-center gap-2 sm:gap-1 sm:ml-auto">
+                          {/* Online status toggle */}
+                          <button
+                            onClick={() => handleToggleOnline(agent)}
+                            className={cn(
+                              "flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors",
+                              agent.is_online
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100"
+                            )}
+                            title={agent.is_online ? "Click to set offline" : "Click to set online"}
+                          >
+                            {agent.is_online
+                              ? <><Wifi className="h-3 w-3" /> Online</>
+                              : <><WifiOff className="h-3 w-3" /> Offline</>
+                            }
+                          </button>
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-1 shrink-0">
-                          {agent.email && !agent.invite_accepted_at && (
+                          {/* Actions */}
+                          <div className="flex items-center gap-1 shrink-0">
+                            {agent.email && !agent.invite_accepted_at && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 text-xs text-gray-500 hover:text-blue-600"
+                                onClick={() => handleSendInvite(agent)}
+                                title={agent.invite_sent_at ? "Resend invite" : "Send invite"}
+                              >
+                                <Send className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 gap-1 text-xs text-gray-500 hover:text-blue-600"
-                              onClick={() => handleSendInvite(agent)}
-                              title={agent.invite_sent_at ? "Resend invite" : "Send invite"}
+                              className="h-8 gap-1 text-xs text-gray-500 hover:text-gray-900"
+                              onClick={() => startEdit(agent)}
                             >
-                              <Send className="h-3.5 w-3.5" />
+                              <Edit2 className="h-3.5 w-3.5" />
                             </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 gap-1 text-xs text-gray-500 hover:text-gray-900"
-                            onClick={() => startEdit(agent)}
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 gap-1 text-xs text-red-400 hover:text-red-600 hover:bg-red-50"
-                            onClick={() => handleDelete(agent)}
-                            disabled={deleting === agent.id}
-                          >
-                            {deleting === agent.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                          </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-1 text-xs text-red-400 hover:text-red-600 hover:bg-red-50"
+                              onClick={() => handleDelete(agent)}
+                              disabled={deleting === agent.id}
+                            >
+                              {deleting === agent.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     )}

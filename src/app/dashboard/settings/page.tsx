@@ -217,75 +217,74 @@ function SettingsContent() {
       </div>
 
       {/* ── BUSINESS TAB ── */}
-      {activeTab === "business" && (
-        <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-gray-600" />
-            <CardTitle>Business Information</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Business Name</label>
-            <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="max-w-md" />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Industry</label>
-            <div className="flex gap-2 flex-wrap">
-              {["ecommerce", "healthcare", "restaurant", "realestate", "education", "travel", "finance", "saas"].map((ind) => (
-                <button
-                  key={ind}
-                  onClick={() => setIndustry(ind)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize",
-                    industry === ind
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-gray-100 text-gray-600 hover:bg-emerald-100 hover:text-emerald-700"
-                  )}
-                >
-                  {ind}
-                </button>
-              ))}
+      {activeTab === "business" && (<>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-gray-600" />
+              <CardTitle>Business Information</CardTitle>
             </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Languages</label>
-            <div className="flex gap-2 flex-wrap">
-              {[
-                { code: "en", name: "English" },
-                { code: "es", name: "Spanish" },
-                { code: "fr", name: "French" },
-                { code: "pt", name: "Portuguese" },
-                { code: "de", name: "German" },
-                { code: "it", name: "Italian" },
-                { code: "ar", name: "Arabic" },
-                { code: "zh", name: "Chinese" },
-                { code: "ja", name: "Japanese" },
-                { code: "hi", name: "Hindi" },
-              ].map((lang) => (
-                <button
-                  key={lang.code}
-                  onClick={() => {
-                    setLanguages((prev) =>
-                      prev.includes(lang.code) ? prev.filter((l) => l !== lang.code) : [...prev, lang.code]
-                    );
-                  }}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                    languages.includes(lang.code)
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                  )}
-                >
-                  {lang.name}
-                </button>
-              ))}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Business Name</label>
+              <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="max-w-md" />
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Industry</label>
+              <div className="flex gap-2 flex-wrap">
+                {["ecommerce", "healthcare", "restaurant", "realestate", "education", "travel", "finance", "saas"].map((ind) => (
+                  <button
+                    key={ind}
+                    onClick={() => setIndustry(ind)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize",
+                      industry === ind
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-gray-100 text-gray-600 hover:bg-emerald-100 hover:text-emerald-700"
+                    )}
+                  >
+                    {ind}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Languages</label>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { code: "en", name: "English" },
+                  { code: "es", name: "Spanish" },
+                  { code: "fr", name: "French" },
+                  { code: "pt", name: "Portuguese" },
+                  { code: "de", name: "German" },
+                  { code: "it", name: "Italian" },
+                  { code: "ar", name: "Arabic" },
+                  { code: "zh", name: "Chinese" },
+                  { code: "ja", name: "Japanese" },
+                  { code: "hi", name: "Hindi" },
+                ].map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      setLanguages((prev) =>
+                        prev.includes(lang.code) ? prev.filter((l) => l !== lang.code) : [...prev, lang.code]
+                      );
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                      languages.includes(lang.code)
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    )}
+                  >
+                    {lang.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </>)}
 
       {/* ── MESSAGES & HOURS TAB ── */}
@@ -414,14 +413,13 @@ function SettingsContent() {
       </>)}
 
       {/* ── PLAN & BILLING TAB ── */}
-      {activeTab === "billing" && (
-        <>
-      {(() => {
-        const currentPlan = PLANS.find((p) => p.id === currentPlanId) || PLANS[0];
-        const messagesLimit = currentPlan.messagesPerMonth;
-        const usagePercent = messagesLimit > 0 ? Math.min((messagesUsed / messagesLimit) * 100, 100) : 0;
-        return (
-          <Card>
+      {activeTab === "billing" && (<>
+        {(() => {
+          const currentPlan = PLANS.find((p) => p.id === currentPlanId) || PLANS[0];
+          const messagesLimit = currentPlan.messagesPerMonth;
+          const usagePercent = messagesLimit > 0 ? Math.min((messagesUsed / messagesLimit) * 100, 100) : 0;
+          return (
+            <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -609,11 +607,9 @@ function SettingsContent() {
               )}
             </CardContent>
           </Card>
-        );
-      })()}
-
-        </>
-      )}
+          );
+        })()}
+      </>)}
 
       {/* Checkout Modal */}
       {tenantId && (

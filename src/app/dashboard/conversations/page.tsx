@@ -23,7 +23,6 @@ import {
   ArrowLeft,
   CheckCircle2,
   XCircle,
-  MoreVertical,
   MessageSquare,
   Image,
   FileText,
@@ -551,9 +550,6 @@ export default function ConversationsPage() {
                       Resolve
                     </Button>
                   )}
-                  <Button size="icon" variant="ghost" className="h-8 w-8">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
 
