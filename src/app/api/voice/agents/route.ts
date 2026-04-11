@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
     }
 
-    const systemPrompt = buildVoiceSystemPrompt(tenant.config);
+    const systemPrompt = buildVoiceSystemPrompt(tenant.config, transferPhoneNumber || null);
     const agentName = name || `${tenant.config.business_name} Voice Agent`;
 
     // Create agent in Retell AI
@@ -185,6 +185,7 @@ export async function PATCH(request: NextRequest) {
     }
     if (transferPhoneNumber !== undefined) {
       dbUpdates.transfer_phone_number = transferPhoneNumber || null;
+      retellUpdates.transferNumber = transferPhoneNumber || null;
     }
     if (isActive !== undefined) {
       dbUpdates.is_active = isActive;
@@ -201,7 +202,8 @@ export async function PATCH(request: NextRequest) {
 
       if (tenant) {
         // 1. Update system prompt on the Retell agent
-        const newPrompt = buildVoiceSystemPrompt(tenant.config);
+        const currentTransferNumber = transferPhoneNumber ?? existing.transfer_phone_number ?? null;
+        const newPrompt = buildVoiceSystemPrompt(tenant.config, currentTransferNumber);
         console.log(`[Voice Agents] Built new prompt (${newPrompt.length} chars)`);
         dbUpdates.system_prompt = newPrompt;
         retellUpdates.systemPrompt = newPrompt;

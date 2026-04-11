@@ -13,7 +13,6 @@ import {
   Bot,
   User,
   UserCheck,
-  MoreVertical,
   Phone,
   Clock,
   CheckCheck,
@@ -24,6 +23,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   XCircle,
+  MoreVertical,
   MessageSquare,
   Image,
   FileText,
@@ -31,11 +31,14 @@ import {
   Video,
   MapPin,
   Zap,
+  AlertTriangle,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { timeAgo, truncate } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
-import type { Conversation, Message, ConversationStatus } from "@/types";
+import type { Conversation, Message, ConversationStatus, Agent } from "@/types";
 
 
 const statusConfig: Record<ConversationStatus, { label: string; color: string; icon: React.ElementType }> = {
@@ -72,8 +75,13 @@ export default function ConversationsPage() {
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [sending, setSending] = useState(false);
   const [showCanned, setShowCanned] = useState(false);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [myAgent, setMyAgent] = useState<Agent | null>(null);
+  const [togglingOnline, setTogglingOnline] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialLoadDone = useRef(false);
+  const prevHandoffIds = useRef<Set<string>>(new Set());
+  const notifPermission = useRef<NotificationPermission>("default");
 
   // Canned responses for agents
   const cannedResponses = [
@@ -85,6 +93,51 @@ export default function ConversationsPage() {
     { label: "Follow up", text: "Just following up — were you able to resolve the issue?" },
   ];
 
+  // Request browser notification permission on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      Notification.requestPermission().then((p) => {
+        notifPermission.current = p;
+      });
+    }
+  }, []);
+
+  // Fetch agents and find current user's agent record
+  const fetchAgents = useCallback(async () => {
+    try {
+      const res = await fetch("/api/agents");
+      if (res.ok) {
+        const data: Agent[] = await res.json();
+        setAgents(data);
+        // Identify "me" — first agent for now (session-based in future)
+        if (data.length > 0 && !myAgent) setMyAgent(data[0]);
+      }
+    } catch { /* silent */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => { fetchAgents(); }, [fetchAgents]);
+
+  const toggleOnline = async () => {
+    if (!myAgent) return;
+    setTogglingOnline(true);
+    const newStatus = !myAgent.is_online;
+    try {
+      const res = await fetch(`/api/agents/${myAgent.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_online: newStatus }),
+      });
+      if (res.ok) {
+        const updated: Agent = await res.json();
+        setMyAgent(updated);
+        setAgents((prev) => prev.map((a) => a.id === updated.id ? updated : a));
+        toast(newStatus ? "You are now online — handoffs will be assigned to you" : "You are now offline", newStatus ? "success" : "info");
+      }
+    } catch { /* silent */ }
+    setTogglingOnline(false);
+  };
+
   // Fetch conversations from API
   const fetchConversations = useCallback(async (isPolling = false) => {
     if (!isPolling) setLoadingConvos(true);
@@ -92,11 +145,38 @@ export default function ConversationsPage() {
       const res = await fetch("/api/conversations");
       if (res.ok) {
         const data = await res.json();
-        const convos = data.conversations || [];
+        const convos: Conversation[] = data.conversations || [];
         setConversations(convos);
         if (!initialLoadDone.current && convos.length > 0) {
           setSelectedId(convos[0].id);
           initialLoadDone.current = true;
+          // Seed known handoff IDs so first poll doesn't false-notify
+          convos.filter((c) => c.status === "handoff" || c.status === "waiting")
+            .forEach((c) => prevHandoffIds.current.add(c.id));
+        }
+
+        // Detect NEW handoff / waiting conversations for browser notification
+        if (isPolling && initialLoadDone.current) {
+          convos
+            .filter((c) => (c.status === "handoff" || c.status === "waiting") && !prevHandoffIds.current.has(c.id))
+            .forEach((c) => {
+              prevHandoffIds.current.add(c.id);
+              const label = c.status === "handoff" ? "🔵 New handoff" : "🟡 Waiting for agent";
+              const name = c.customer_name || c.customer_phone;
+              // Browser notification
+              if (notifPermission.current === "granted") {
+                new Notification(`${label}: ${name}`, {
+                  body: "A conversation needs your attention.",
+                  icon: "/favicon.ico",
+                });
+              }
+              // In-app toast
+              toast(`${label}: ${name}`, c.status === "handoff" ? "info" : "warning");
+            });
+          // Remove resolved/archived from known set
+          convos
+            .filter((c) => c.status === "resolved" || c.status === "archived")
+            .forEach((c) => prevHandoffIds.current.delete(c.id));
         }
       }
     } catch (e) {
@@ -104,7 +184,7 @@ export default function ConversationsPage() {
     } finally {
       if (!isPolling) setLoadingConvos(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     fetchConversations();
@@ -164,7 +244,7 @@ export default function ConversationsPage() {
     const optimisticMsg: Message = {
       id: `m_new_${Date.now()}`,
       conversation_id: selectedId,
-      tenant_id: "t1",
+      tenant_id: "",
       direction: "outbound",
       sender_type: "agent",
       message_type: "text",
@@ -224,9 +304,32 @@ export default function ConversationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Conversations</h1>
-        <p className="text-gray-500 mt-1 text-sm">Manage customer conversations and handoffs</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Conversations</h1>
+          <p className="text-gray-500 mt-1 text-sm">Manage customer conversations and handoffs</p>
+        </div>
+        {myAgent && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">You ({myAgent.name}):</span>
+            <button
+              onClick={toggleOnline}
+              disabled={togglingOnline}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors",
+                myAgent.is_online
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+              )}
+            >
+              {myAgent.is_online ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+              {myAgent.is_online ? "Online" : "Offline"}
+            </button>
+            {myAgent.is_online && (
+              <span className="text-[10px] text-gray-400">{myAgent.active_chats}/{myAgent.max_concurrent_chats} chats</span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex gap-4 lg:gap-6 h-[calc(100vh-12rem)] lg:h-[calc(100vh-10rem)]">
@@ -351,6 +454,19 @@ export default function ConversationsPage() {
                       <Phone className="h-3 w-3 text-gray-400" />
                       <span className="text-xs text-gray-500">{selectedConvo.customer_phone}</span>
                     </div>
+                    {(() => {
+                      const escalationReason = selectedConvo.status === "handoff"
+                        ? String((selectedConvo.metadata as Record<string, unknown>)?.escalation_reason || "")
+                        : "";
+                      return escalationReason ? (
+                        <div className="flex items-center gap-1 mt-1">
+                          <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0" />
+                          <span className="text-[10px] text-amber-700 truncate max-w-[200px]">
+                            {escalationReason}
+                          </span>
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">

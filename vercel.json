@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/process-expired-trials",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/handoff-timeout",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}

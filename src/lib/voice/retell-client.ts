@@ -53,7 +53,7 @@ function getRetellClient(): Retell {
  * Build a voice-optimised system prompt from BusinessConfig.
  * Similar to the WhatsApp AI prompt but adapted for phone conversations.
  */
-export function buildVoiceSystemPrompt(config: BusinessConfig): string {
+export function buildVoiceSystemPrompt(config: BusinessConfig, transferNumber?: string | null): string {
   const personality = config.personality;
   const toneMap: Record<string, string> = {
     professional: "Maintain a professional, polished tone at all times.",
@@ -102,7 +102,8 @@ PHONE CONVERSATION RULES:
 5. If the caller seems frustrated or requests a human, offer to transfer immediately.
 6. Keep responses concise — callers prefer quick answers on the phone.
 7. Confirm important details by repeating them back (phone numbers, names, dates).
-8. End calls politely: summarise what was discussed and ask if there's anything else.`;
+8. End calls politely: summarise what was discussed and ask if there's anything else.
+${transferNumber ? `9. When a caller needs urgent human assistance or explicitly asks to speak to a person: say "I'm going to transfer you to a team member now — please hold" and then trigger the transfer to ${transferNumber}.` : "9. If a caller needs to speak to a human, let them know a team member will contact them and collect their callback number."}`;
 }
 
 /**
@@ -139,6 +140,7 @@ export async function createRetellAgent(params: {
     general_prompt: params.systemPrompt,
     max_call_duration_ms: (params.maxDurationSeconds || 300) * 1000,
     enable_backchannel: true,
+    ...(params.transferNumber ? { transfer_list: { default: { number: params.transferNumber } } } : {}),
   };
 
   const agentResponse = await client.agent.create(createParams);
@@ -157,6 +159,7 @@ export async function updateRetellAgent(
     language?: string;
     greeting?: string;
     maxDurationSeconds?: number;
+    transferNumber?: string | null;
   }
 ) {
   const client = getRetellClient();
@@ -169,6 +172,11 @@ export async function updateRetellAgent(
   if (params.language) updatePayload.language = normalizeLanguage(params.language);
   if (params.greeting) updatePayload.begin_message = params.greeting;
   if (params.maxDurationSeconds) updatePayload.max_call_duration_ms = params.maxDurationSeconds * 1000;
+  if (params.transferNumber !== undefined) {
+    updatePayload.transfer_list = params.transferNumber
+      ? { default: { number: params.transferNumber } }
+      : {};
+  }
 
   console.log(`[Retell] Updating agent ${agentId} with payload:`, {
     ...updatePayload,

@@ -550,6 +550,11 @@ async function handleEscalation(
         escalated_at: new Date().toISOString(),
       },
     });
+    // Increment agent's active_chats counter atomically
+    await getSupabaseAdmin()
+      .from("agents")
+      .update({ active_chats: agent.active_chats + 1 })
+      .eq("id", agent.id);
     const handoffMsg = `I'm connecting you with ${agent.name} from our team right now. They'll be with you shortly!`;
     const waMessageId = await whatsapp.sendText(message.from, handoffMsg);
     await saveMessage({
