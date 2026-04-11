@@ -44,7 +44,7 @@ SET price_zmw = 5000,
     name = 'Enterprise'
 WHERE id = 'enterprise';
 
--- Step 6: Verify final state
+-- Step ---6: Verify final state
 SELECT id, name, price_zmw, messages_per_month, whatsapp_numbers FROM subscription_plans ORDER BY price_zmw;
 
 -- Expected result:
