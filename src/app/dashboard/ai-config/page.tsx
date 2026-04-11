@@ -41,16 +41,9 @@ const defaultPersonality: BotPersonality = {
   response_style: "balanced",
 };
 
-const defaultKnowledge: KnowledgeEntry[] = [
-  { id: "1", topic: "Shipping Policy", content: "Free shipping on orders over $50. Standard 3-5 days, Express 1-2 days for $9.99.", keywords: ["shipping", "delivery"] },
-  { id: "2", topic: "Return Policy", content: "30-day returns. Items must be unused and in original packaging.", keywords: ["return", "refund"] },
-  { id: "3", topic: "Payment Methods", content: "We accept Visa, Mastercard, PayPal, and Apple Pay.", keywords: ["payment", "pay"] },
-];
+const defaultKnowledge: KnowledgeEntry[] = [];
 
-const defaultFaqs: FAQ[] = [
-  { id: "1", question: "How do I track my order?", answer: "Use the tracking link sent to your email after shipment.", category: "orders" },
-  { id: "2", question: "What is your return policy?", answer: "We offer a 30-day return policy for unused items in original packaging.", category: "returns" },
-];
+const defaultFaqs: FAQ[] = [];
 
 export default function AIConfigPage() {
   const { toast } = useToast();
@@ -59,9 +52,7 @@ export default function AIConfigPage() {
   const [personality, setPersonality] = useState<BotPersonality>(defaultPersonality);
   const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeEntry[]>(defaultKnowledge);
   const [faqs, setFaqs] = useState<FAQ[]>(defaultFaqs);
-  const [customInstructions, setCustomInstructions] = useState(
-    "Always try to upsell related products when appropriate. Mention ongoing promotions if any."
-  );
+  const [customInstructions, setCustomInstructions] = useState("");
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [businessDescription, setBusinessDescription] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);

@@ -15,6 +15,7 @@ import { Copy, Eye, Code, Settings, Palette, Globe } from "lucide-react";
 export default function WidgetConfigPage() {
   const [agents, setAgents] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedAgent, setSelectedAgent] = useState("");
+  const [tenantId, setTenantId] = useState("");
   const [config, setConfig] = useState({
     theme: "default",
     primaryColor: "#3b82f6",
@@ -33,11 +34,18 @@ export default function WidgetConfigPage() {
 
   useEffect(() => {
     loadAgents();
+    fetch("/api/tenants")
+      .then((r) => r.json())
+      .then((d) => {
+        const list = Array.isArray(d) ? d : d.tenants || [];
+        if (list[0]) setTenantId(list[0].id);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
     generateEmbedCode();
-  }, [selectedAgent, config]);
+  }, [selectedAgent, config, tenantId]);
 
   const loadAgents = async () => {
     try {
@@ -60,7 +68,7 @@ export default function WidgetConfigPage() {
     if (!selectedAgent) return;
 
     const params = new URLSearchParams({
-      tenantId: "current-tenant", // This should come from auth context
+      tenantId: tenantId || "unknown",
       agentId: selectedAgent,
       theme: config.theme,
       primaryColor: config.primaryColor,

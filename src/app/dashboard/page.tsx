@@ -76,6 +76,7 @@ const emptyAnalytics: AnalyticsData = {
   customer_satisfaction: 0,
   messages_today: 0,
   messages_this_week: 0,
+  voice_calls_today: 0,
   top_topics: [],
   sentiment_breakdown: { positive: 0, neutral: 0, negative: 0 },
   hourly_volume: [],
@@ -183,16 +184,12 @@ export default function DashboardPage() {
         <StatCard
           title="Messages Today"
           value={analytics.messages_today}
-          change="8%"
-          changeType="up"
           icon={MessageSquare}
           iconColor="bg-gradient-to-br from-blue-500 to-blue-600"
         />
         <StatCard
           title="Handled by AI"
           value={`${analytics.ai_resolution_rate}%`}
-          change="3.2%"
-          changeType="up"
           icon={Bot}
           iconColor="bg-gradient-to-br from-emerald-500 to-teal-600"
         />
@@ -208,7 +205,7 @@ export default function DashboardPage() {
         >
           <StatCard
             title="Voice Calls"
-            value="View"
+            value={analytics.voice_calls_today}
             icon={Phone}
             iconColor="bg-gradient-to-br from-purple-500 to-indigo-600"
           />

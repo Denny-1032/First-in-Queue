@@ -345,6 +345,7 @@ export async function getAnalytics(tenantId: string) {
     { count: messagesThisWeek },
     { data: sentimentData },
     { data: recentConversations },
+    { count: voiceCallsToday },
   ] = await Promise.all([
     db.from("conversations").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
     db.from("conversations").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).in("status", ["active", "waiting", "handoff"]),
@@ -353,6 +354,7 @@ export async function getAnalytics(tenantId: string) {
     db.from("messages").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).gte("created_at", weekStart),
     db.from("conversations").select("sentiment").eq("tenant_id", tenantId).not("sentiment", "is", null),
     db.from("conversations").select("*").eq("tenant_id", tenantId).order("last_message_at", { ascending: false }).limit(100),
+    db.from("voice_calls").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).gte("created_at", todayStart),
   ]);
 
   const sentimentBreakdown = { positive: 0, neutral: 0, negative: 0 };
@@ -422,6 +424,7 @@ export async function getAnalytics(tenantId: string) {
     customer_satisfaction: 0,
     messages_today: messagesToday || 0,
     messages_this_week: messagesThisWeek || 0,
+    voice_calls_today: voiceCallsToday || 0,
     top_topics: [],
     sentiment_breakdown: sentimentBreakdown,
     hourly_volume: hourlyVolume,

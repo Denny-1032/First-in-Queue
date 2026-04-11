@@ -17,8 +17,8 @@ export default function AgentsPage() {
   const [stats, setStats] = useState({
     aiHandled: 0,
     humanEscalations: 0,
-    avgResponseTime: "< 3s",
-    satisfactionRate: 98,
+    avgResponseTimeSeconds: 0,
+    totalResolved: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -28,11 +28,14 @@ export default function AgentsPage() {
         const res = await fetch("/api/analytics");
         if (res.ok) {
           const data = await res.json();
+          const totalResolved = data.resolved_conversations || 0;
+          const aiRate = data.ai_resolution_rate || 0;
+          const aiHandled = Math.round((aiRate / 100) * totalResolved);
           setStats({
-            aiHandled: data.ai_handled_conversations || 0,
-            humanEscalations: data.human_escalations || 0,
-            avgResponseTime: data.avg_response_time || "< 3s",
-            satisfactionRate: data.satisfaction_rate || 98,
+            aiHandled,
+            humanEscalations: totalResolved - aiHandled,
+            avgResponseTimeSeconds: data.avg_response_time_seconds || 0,
+            totalResolved,
           });
         }
       } catch { /* use defaults */ }
@@ -58,14 +61,14 @@ export default function AgentsPage() {
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900">{stats.avgResponseTime}</p>
+            <p className="text-2xl font-bold text-gray-900">{loading ? "—" : stats.avgResponseTimeSeconds > 0 ? `${stats.avgResponseTimeSeconds}s` : "—"}</p>
             <p className="text-xs text-gray-500">Avg Response</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900">{stats.satisfactionRate}%</p>
-            <p className="text-xs text-gray-500">Satisfaction</p>
+            <p className="text-2xl font-bold text-gray-900">{loading ? "—" : stats.totalResolved}</p>
+            <p className="text-xs text-gray-500">Total Resolved</p>
           </CardContent>
         </Card>
         <Card>

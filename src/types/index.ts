@@ -230,6 +230,7 @@ export interface AnalyticsData {
   customer_satisfaction: number;
   messages_today: number;
   messages_this_week: number;
+  voice_calls_today: number;
   top_topics: Array<{ topic: string; count: number }>;
   sentiment_breakdown: { positive: number; neutral: number; negative: number };
   hourly_volume: Array<{ hour: number; count: number }>;
