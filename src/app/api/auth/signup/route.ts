@@ -98,12 +98,17 @@ export async function POST(request: NextRequest) {
       max_concurrent_chats: 10,
     });
 
-    // Create free tier subscription with 2 voice minutes and 5 messages
+    // Create free tier subscription with 3 voice minutes and 5 messages
     // Users get limited free credits to test, then must upgrade to paid plan
+    const now = new Date();
+    const freePeriodEnd = new Date(now);
+    freePeriodEnd.setFullYear(freePeriodEnd.getFullYear() + 10); // Free tier never expires
     await db.from("subscriptions").insert({
       tenant_id: tenant.id,
       plan_id: "free",
       status: "active",
+      current_period_start: now.toISOString(),
+      current_period_end: freePeriodEnd.toISOString(),
       messages_used: 0,
       voice_minutes_used: 0,
     });

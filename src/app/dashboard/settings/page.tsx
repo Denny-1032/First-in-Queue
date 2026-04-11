@@ -400,7 +400,7 @@ export default function SettingsPage() {
                     Renew Plan
                   </Button>
                 )}
-                {subscriptionStatus === "active" && currentPlanId !== "business" && currentPlanId !== "enterprise" && (
+                {subscriptionStatus === "active" && currentPlanId !== "enterprise" && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -410,7 +410,7 @@ export default function SettingsPage() {
                     }}
                   >
                     <CreditCard className="h-3.5 w-3.5" />
-                    Upgrade
+                    {currentPlanId === "free" ? "Upgrade" : "Change Plan"}
                   </Button>
                 )}
                 {subscriptionStatus === "active" && currentPlanId !== "free" && (
@@ -469,7 +469,7 @@ export default function SettingsPage() {
                   )}
                 >
                   {subscriptionStatus === "active" ? (
-                    daysRemaining !== null ? `${daysRemaining} days left` : "Active"
+                    daysRemaining !== null && currentPlanId !== "free" ? `${daysRemaining} days left` : "Active"
                   ) : subscriptionStatus === "expired" ? "Expired" : subscriptionStatus}
                 </Badge>
               </div>
@@ -518,7 +518,7 @@ export default function SettingsPage() {
                   );
                 })()}
               </div>
-              {periodEnd && (
+              {periodEnd && currentPlanId !== "free" && (
                 <div className="flex items-center justify-between py-3 border-b border-gray-100">
                   <div>
                     <p className="text-sm font-medium text-gray-700">
