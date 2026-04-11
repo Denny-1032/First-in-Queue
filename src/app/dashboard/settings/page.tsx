@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,13 +17,33 @@ import {
   Save,
   CheckCircle2,
   CreditCard,
+  Building2,
+  MessageSquare,
+  Plug,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { CheckoutModal } from "@/components/dashboard/checkout-modal";
 import { PLANS } from "@/lib/lipila/plans";
 
+const TABS = [
+  { id: "business", label: "Business", icon: Building2 },
+  { id: "messaging", label: "Messages & Hours", icon: MessageSquare },
+  { id: "integrations", label: "Integrations", icon: Plug },
+  { id: "billing", label: "Plan & Billing", icon: Wallet },
+] as const;
+type TabId = typeof TABS[number]["id"];
+
 export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsContent />
+    </Suspense>
+  );
+}
+
+function SettingsContent() {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [tenantId, setTenantId] = useState<string | null>(null);
@@ -121,65 +141,93 @@ export default function SettingsPage() {
     setSchedule((prev) => prev.map((d, i) => i === index ? { ...d, [field]: value } : d));
   };
 
+  const [activeTab, setActiveTab] = useState<TabId>("business");
+
+  const handleSave = async () => {
+    setSaving(true);
+    if (tenantId) {
+      try {
+        const res = await fetch(`/api/tenants/${tenantId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: businessName,
+            config: {
+              business_name: businessName,
+              industry,
+              welcome_message: welcomeMessage,
+              fallback_message: fallbackMessage,
+              languages,
+              operating_hours: { outside_hours_message: outsideHoursMsg, schedule },
+            },
+          }),
+        });
+        if (res.ok) {
+          toast("Settings saved successfully");
+        } else {
+          toast("Failed to save settings", "error");
+        }
+      } catch {
+        toast("Failed to save settings", "error");
+      }
+    } else {
+      toast("Unable to save — no business account found. Please log out and sign up again.", "error");
+    }
+    setSaving(false);
+  };
+
   return (
-    <div className="space-y-8 w-full">
+    <div className="space-y-6 w-full">
+      {/* Header + Save */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-500 mt-1 text-sm">Configure your First in Queue instance</p>
+          <p className="text-gray-500 mt-1 text-sm">Configure your business, messaging, and billing</p>
         </div>
-        <Button
-          className="gap-2"
-          disabled={saving}
-          onClick={async () => {
-            setSaving(true);
-            if (tenantId) {
-              try {
-                const res = await fetch(`/api/tenants/${tenantId}`, {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    name: businessName,
-                    config: {
-                      business_name: businessName,
-                      industry,
-                      welcome_message: welcomeMessage,
-                      fallback_message: fallbackMessage,
-                      languages,
-                      operating_hours: { outside_hours_message: outsideHoursMsg, schedule },
-                    },
-                  }),
-                });
-                if (res.ok) {
-                  toast("Settings saved successfully");
-                } else {
-                  toast("Failed to save settings", "error");
-                }
-              } catch {
-                toast("Failed to save settings", "error");
-              }
-            } else {
-              toast("Unable to save — no business account found. Please log out and sign up again.", "error");
-            }
-            setSaving(false);
-          }}
-        >
-          {saving ? (
-            <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          {saving ? "Saving..." : "Save Changes"}
-        </Button>
+        {(activeTab === "business" || activeTab === "messaging") && (
+          <Button className="gap-2" disabled={saving} onClick={handleSave}>
+            {saving ? (
+              <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
+        )}
       </div>
 
-      {/* Business Info */}
+      {/* Tab navigation */}
+      <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all flex-1 justify-center",
+                activeTab === tab.id
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              <span className="hidden sm:inline">{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── BUSINESS TAB ── */}
+      {activeTab === "business" && (
+        <>
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <Settings className="h-5 w-5 text-gray-600" />
             <CardTitle>Business Information</CardTitle>
           </div>
+          <CardDescription>Core details about your business</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -208,85 +256,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Messages */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-blue-600" />
-            <CardTitle>Messages</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Welcome Message</label>
-            <textarea
-              value={welcomeMessage}
-              onChange={(e) => setWelcomeMessage(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[80px] resize-y"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Fallback Message</label>
-            <textarea
-              value={fallbackMessage}
-              onChange={(e) => setFallbackMessage(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[60px] resize-y"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Outside Hours Message</label>
-            <textarea
-              value={outsideHoursMsg}
-              onChange={(e) => setOutsideHoursMsg(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[60px] resize-y"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Operating Hours */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-amber-600" />
-            <CardTitle>Operating Hours</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {schedule.map((day) => (
-              <div key={day.day} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <span className="text-sm text-gray-700 w-24 shrink-0">{day.day}</span>
-                  <button
-                    onClick={() => updateScheduleDay(schedule.indexOf(day), "enabled", !day.enabled)}
-                    className={cn(
-                      "w-12 h-6 rounded-full transition-colors relative shrink-0",
-                      day.enabled ? "bg-emerald-500" : "bg-gray-200"
-                    )}
-                  >
-                    <div className={cn(
-                      "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
-                      day.enabled ? "translate-x-6" : "translate-x-0.5"
-                    )} />
-                  </button>
-                  {!day.enabled && (
-                    <span className="text-sm text-gray-400">Closed</span>
-                  )}
-                </div>
-                {day.enabled && (
-                  <div className="flex items-center gap-2 pl-0 sm:pl-0">
-                    <Input value={day.open} onChange={(e) => updateScheduleDay(schedule.indexOf(day), "open", e.target.value)} className="w-24 text-center" />
-                    <span className="text-gray-400">to</span>
-                    <Input value={day.close} onChange={(e) => updateScheduleDay(schedule.indexOf(day), "close", e.target.value)} className="w-24 text-center" />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Languages */}
       <Card>
         <CardHeader>
@@ -294,6 +263,7 @@ export default function SettingsPage() {
             <Globe className="h-5 w-5 text-emerald-600" />
             <CardTitle>Languages</CardTitle>
           </div>
+          <CardDescription>Select languages your AI will respond in</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2 flex-wrap">
@@ -329,14 +299,103 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+        </>
+      )}
 
-      {/* WhatsApp Connection — Managed by FiQ */}
+      {/* ── MESSAGES & HOURS TAB ── */}
+      {activeTab === "messaging" && (
+        <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Bell className="h-5 w-5 text-blue-600" />
+            <CardTitle>Auto-Reply Messages</CardTitle>
+          </div>
+          <CardDescription>Customise what customers see at different stages</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Welcome Message</label>
+            <textarea
+              value={welcomeMessage}
+              onChange={(e) => setWelcomeMessage(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[80px] resize-y"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Fallback Message</label>
+            <textarea
+              value={fallbackMessage}
+              onChange={(e) => setFallbackMessage(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[60px] resize-y"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Outside Hours Message</label>
+            <textarea
+              value={outsideHoursMsg}
+              onChange={(e) => setOutsideHoursMsg(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[60px] resize-y"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-amber-600" />
+            <CardTitle>Operating Hours</CardTitle>
+          </div>
+          <CardDescription>Set when your business is open for live support</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {schedule.map((day) => (
+              <div key={day.day} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <span className="text-sm text-gray-700 w-24 shrink-0">{day.day}</span>
+                  <button
+                    onClick={() => updateScheduleDay(schedule.indexOf(day), "enabled", !day.enabled)}
+                    className={cn(
+                      "w-12 h-6 rounded-full transition-colors relative shrink-0",
+                      day.enabled ? "bg-emerald-500" : "bg-gray-200"
+                    )}
+                  >
+                    <div className={cn(
+                      "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                      day.enabled ? "translate-x-6" : "translate-x-0.5"
+                    )} />
+                  </button>
+                  {!day.enabled && (
+                    <span className="text-sm text-gray-400">Closed</span>
+                  )}
+                </div>
+                {day.enabled && (
+                  <div className="flex items-center gap-2 pl-0 sm:pl-0">
+                    <Input value={day.open} onChange={(e) => updateScheduleDay(schedule.indexOf(day), "open", e.target.value)} className="w-24 text-center" />
+                    <span className="text-gray-400">to</span>
+                    <Input value={day.close} onChange={(e) => updateScheduleDay(schedule.indexOf(day), "close", e.target.value)} className="w-24 text-center" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+        </>
+      )}
+
+      {/* ── INTEGRATIONS TAB ── */}
+      {activeTab === "integrations" && (
+        <>
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <Phone className="h-5 w-5 text-green-600" />
             <CardTitle>WhatsApp Connection</CardTitle>
           </div>
+          <CardDescription>Your WhatsApp Business API integration status</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {whatsappConnected ? (
@@ -373,8 +432,12 @@ export default function SettingsPage() {
           </p>
         </CardContent>
       </Card>
+        </>
+      )}
 
-      {/* Plan & Usage */}
+      {/* ── PLAN & BILLING TAB ── */}
+      {activeTab === "billing" && (
+        <>
       {(() => {
         const currentPlan = PLANS.find((p) => p.id === currentPlanId) || PLANS[0];
         const messagesLimit = currentPlan.messagesPerMonth;
@@ -570,6 +633,9 @@ export default function SettingsPage() {
           </Card>
         );
       })()}
+
+        </>
+      )}
 
       {/* Checkout Modal */}
       {tenantId && (

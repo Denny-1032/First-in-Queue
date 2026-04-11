@@ -111,18 +111,25 @@ async function handleCallStarted(payload: Record<string, unknown>) {
 function needsFollowUp(call: Record<string, unknown>): { needed: boolean; reason: string } {
   const transcript = (call.transcript as string || "").toLowerCase();
   const disconnection = (call.disconnection_reason as string || "").toLowerCase();
+  const callType = (call.call_type as string || "").toLowerCase();
+  const direction = (call.direction as string || "").toLowerCase();
+  const callerPhone = (call.from_number as string || "");
+
+  // Never trigger follow-up for web calls (browser test calls) — they have no real phone number
+  if (callType === "web_call" || direction === "web" || !callerPhone || callerPhone.length < 8) {
+    return { needed: false, reason: "" };
+  }
 
   const escalationPhrases = [
     "speak to a human", "speak to someone", "talk to a person", "real person",
     "transfer", "agent please", "human agent", "customer service",
-    "can\'t help", "cannot help", "don\'t understand", "not what i",
+    "can't help", "cannot help", "don't understand", "not what i",
     "please hold", "team member",
   ];
   const hitEscalation = escalationPhrases.some((p) => transcript.includes(p));
 
-  const callerPhone = (call.from_number as string || "");
   const durationMs = (call.duration_ms as number) || 0;
-  const isVeryShort = durationMs < 30000 && callerPhone; // < 30s with a real caller
+  const isVeryShort = durationMs < 30000; // < 30s real PSTN call
 
   if (hitEscalation) return { needed: true, reason: "Caller requested human assistance during call" };
   if (disconnection === "voicemail") return { needed: true, reason: "Call went to voicemail — missed caller" };

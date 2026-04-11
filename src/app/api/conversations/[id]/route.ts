@@ -50,10 +50,11 @@ export async function PATCH(
     }
 
     // Increment active_chats when agent manually takes over a conversation (entering handoff)
+    // Skip if already in handoff with the same agent (e.g. handleSend re-patches)
     const enteringHandoff =
-      current?.status !== "handoff" &&
       sanitized.status === "handoff" &&
-      sanitized.assigned_agent_id;
+      sanitized.assigned_agent_id &&
+      (current?.status !== "handoff" || current?.assigned_agent_id !== sanitized.assigned_agent_id);
 
     if (enteringHandoff) {
       const { data: agent } = await db

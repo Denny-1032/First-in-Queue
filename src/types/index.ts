@@ -220,6 +220,10 @@ export interface Agent {
   max_concurrent_chats: number;
   active_chats: number;
   created_at: string;
+  invite_token?: string | null;
+  invite_sent_at?: string | null;
+  invite_accepted_at?: string | null;
+  user_id?: string | null;
 }
 
 // --- Analytics ---

@@ -20,6 +20,8 @@ import {
   Edit2,
   X,
   Send,
+  Clock,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -77,7 +79,26 @@ export default function TeamPage() {
         body: JSON.stringify(invite),
       });
       if (!res.ok) throw new Error("Failed to create agent");
-      toast(`${invite.name} added to your team`, "success");
+      const newAgent = await res.json();
+
+      // Automatically send invite email
+      try {
+        const invRes = await fetch("/api/team/invite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentId: newAgent.id }),
+        });
+        const invData = await invRes.json();
+        if (invData.warning) {
+          // Email failed but link was generated — show it
+          toast(`${invite.name} added. Invite email failed — share this link: ${invData.inviteUrl}`, "warning");
+        } else {
+          toast(`${invite.name} added and invite email sent!`, "success");
+        }
+      } catch {
+        toast(`${invite.name} added, but invite email could not be sent. Use the send button to retry.`, "warning");
+      }
+
       setInvite(emptyInvite());
       setShowInviteForm(false);
       fetchAgents();
@@ -95,7 +116,13 @@ export default function TeamPage() {
         body: JSON.stringify({ agentId: agent.id }),
       });
       if (!res.ok) throw new Error("Failed to send invite");
-      toast(`Invite email sent to ${agent.email}`, "success");
+      const data = await res.json();
+      if (data.warning && data.inviteUrl) {
+        toast(`Email failed. Share link manually: ${data.inviteUrl}`, "warning");
+      } else {
+        toast(`Invite email sent to ${agent.email}`, "success");
+      }
+      fetchAgents();
     } catch {
       toast("Failed to send invite email", "error");
     }
@@ -382,6 +409,15 @@ export default function TeamPage() {
                               {agent.role === "admin" ? <Shield className="h-2.5 w-2.5 mr-0.5 inline" /> : null}
                               {agent.role}
                             </Badge>
+                            {agent.invite_accepted_at ? (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-50 text-emerald-700">
+                                <CheckCircle2 className="h-2.5 w-2.5 mr-0.5 inline" /> Joined
+                              </Badge>
+                            ) : agent.invite_sent_at ? (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700">
+                                <Clock className="h-2.5 w-2.5 mr-0.5 inline" /> Invite Pending
+                              </Badge>
+                            ) : null}
                           </div>
                           <div className="flex items-center gap-3 mt-0.5">
                             <span className="flex items-center gap-1 text-xs text-gray-500">
