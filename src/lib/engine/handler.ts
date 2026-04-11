@@ -426,7 +426,7 @@ async function handleAIResponse(
     
     // Construct web call URL with tenant and specific voice agent
     const webCallUrl = `${appUrl}/widget/iframe?tenantId=${tenant.id}&agentId=${agentId}`;
-    const linkMessage = `🎙️ Click here to start your voice call:\n${webCallUrl}`;
+    const linkMessage = `🎙️ Tap to call us now:\n${webCallUrl}`;
     const linkMsgId = await whatsapp.sendText(message.from, linkMessage);
     await saveMessage({
       conversation_id: conversation.id,
@@ -1183,7 +1183,7 @@ async function handleVoiceCallbackRequest(
     const voiceProvider = process.env.VOICE_PROVIDER || "twilio";
     if (voiceProvider === "web" || voiceProvider === "none") {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.firstinqueue.com";
-      const webCallMsg = `Phone calls aren't available right now, but you can talk to our AI assistant instantly via your browser! 🎙️\n\n${appUrl}/widget/iframe?tenantId=${tenant.id}&agentId=${voiceAgentId}`;
+      const webCallMsg = `🎙️ Tap here to talk to us:\n${appUrl}/widget/iframe?tenantId=${tenant.id}&agentId=${voiceAgentId}`;
       const webCallId = await whatsapp.sendText(customerPhone, webCallMsg);
       await saveMessage({
         conversation_id: conversation.id,
