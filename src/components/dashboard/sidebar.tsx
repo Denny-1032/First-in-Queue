@@ -5,7 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   MessageSquare,
   BarChart3,
@@ -19,6 +19,11 @@ import {
   Menu,
   X,
   Phone,
+  Building2,
+  Check,
+  Plus,
+  Loader2,
+  ChevronDown,
 } from "lucide-react";
 
 const navItems = [
@@ -40,14 +45,101 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [tenants, setTenants] = useState<{ id: string; name: string; role: string }[]>([]);
+  const [currentTenantId, setCurrentTenantId] = useState<string>("");
+  const [showSwitcher, setShowSwitcher] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newBizName, setNewBizName] = useState("");
+  const [showNewBizInput, setShowNewBizInput] = useState(false);
+
+  const fetchTenants = useCallback(async (force = false) => {
+    if (!force) {
+      try {
+        const cached = sessionStorage.getItem("fiq-tenants");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Date.now() - parsed.ts < 60_000) {
+            setTenants(parsed.tenants || []);
+            setCurrentTenantId(parsed.current_tenant_id || "");
+            return;
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    try {
+      const res = await fetch("/api/auth/switch-tenant");
+      if (!res.ok) return;
+      const data = await res.json();
+      setTenants(data.tenants || []);
+      setCurrentTenantId(data.current_tenant_id || "");
+      try { sessionStorage.setItem("fiq-tenants", JSON.stringify({ ...data, ts: Date.now() })); } catch { /* ignore */ }
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { fetchTenants(); }, [fetchTenants]);
+
+  // Close switcher on Escape
+  useEffect(() => {
+    if (!showSwitcher) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { setShowSwitcher(false); setShowNewBizInput(false); setNewBizName(""); } };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showSwitcher]);
+
+  const currentTenantName = tenants.find((t) => t.id === currentTenantId)?.name || "";
+
+  const createBusiness = async () => {
+    if (!newBizName.trim() || newBizName.trim().length < 2) return;
+    setCreating(true);
+    try {
+      const res = await fetch("/api/tenants/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessName: newBizName.trim() }),
+      });
+      if (res.ok) {
+        setNewBizName("");
+        setShowNewBizInput(false);
+        setShowSwitcher(false);
+        try { sessionStorage.removeItem("fiq-tenants"); } catch { /* ignore */ }
+        await fetchTenants(true);
+        router.push("/dashboard");
+        router.refresh();
+      }
+    } catch { /* silent */ }
+    finally { setCreating(false); }
+  };
+
+  const switchToTenant = async (tenantId: string) => {
+    if (tenantId === currentTenantId) { setShowSwitcher(false); return; }
+    setSwitching(true);
+    try {
+      const res = await fetch("/api/auth/switch-tenant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenantId }),
+      });
+      if (res.ok) {
+        setCurrentTenantId(tenantId);
+        setShowSwitcher(false);
+        setShowNewBizInput(false);
+        setNewBizName("");
+        try { sessionStorage.removeItem("fiq-tenants"); } catch { /* ignore */ }
+        router.push("/dashboard");
+        router.refresh();
+      }
+    } catch { /* silent */ }
+    finally { setSwitching(false); }
+  };
 
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
     } catch {
-      // Clear cookie client-side as fallback
       document.cookie = "fiq-auth=; path=/; max-age=0";
     }
+    try { sessionStorage.removeItem("fiq-tenants"); } catch { /* ignore */ }
     router.push("/login");
   };
 
@@ -69,12 +161,16 @@ export function Sidebar() {
       mobileOpen ? "translate-x-0" : "-translate-x-full"
     )}>
       <div className="flex h-full flex-col">
-        {/* Logo */}
+        {/* Logo + workspace indicator */}
         <div className="flex h-16 items-center gap-3 border-b border-gray-200 px-6">
           <Image src="/fiq-logo.png?v=2" alt="First in Queue" width={200} height={200} className="h-8 w-8 object-contain" />
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="font-bold text-gray-900">First in Queue</h1>
-            <p className="text-xs text-gray-500">Fast. Efficient. Instant.</p>
+            {currentTenantName ? (
+              <p className="text-xs text-emerald-600 font-medium truncate">{currentTenantName}</p>
+            ) : (
+              <p className="text-xs text-gray-500">Fast. Efficient. Instant.</p>
+            )}
           </div>
         </div>
 
@@ -126,6 +222,70 @@ export function Sidebar() {
 
         {/* Footer */}
         <div className="border-t border-gray-200 p-4 space-y-3">
+          <button
+            onClick={() => { setShowSwitcher(!showSwitcher); if (showSwitcher) { setShowNewBizInput(false); setNewBizName(""); } }}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+          >
+            <Building2 className="h-4 w-4 text-gray-400" />
+            <span className="flex-1 text-left">{tenants.length > 1 ? "Switch Workspace" : "Workspaces"}</span>
+            <ChevronDown className={cn("h-3.5 w-3.5 text-gray-400 transition-transform", showSwitcher && "rotate-180")} />
+          </button>
+          {showSwitcher && (
+            <div className="space-y-1 rounded-lg border border-gray-200 bg-gray-50 p-2">
+              {tenants.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => switchToTenant(t.id)}
+                  disabled={switching}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-md px-2 py-2 text-xs transition-colors",
+                    t.id === currentTenantId
+                      ? "bg-emerald-100 text-emerald-700 font-medium"
+                      : "text-gray-600 hover:bg-white"
+                  )}
+                >
+                  {switching && t.id !== currentTenantId ? (
+                    <Loader2 className="h-3.5 w-3.5 flex-shrink-0 animate-spin" />
+                  ) : (
+                    <Building2 className="h-3.5 w-3.5 flex-shrink-0" />
+                  )}
+                  <span className="truncate flex-1 text-left">{t.name}</span>
+                  {t.id === currentTenantId && <Check className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />}
+                </button>
+              ))}
+              <div className="border-t border-gray-200 pt-2 mt-1">
+                {showNewBizInput ? (
+                  <div className="flex gap-1">
+                    <input
+                      type="text"
+                      value={newBizName}
+                      onChange={(e) => setNewBizName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && createBusiness()}
+                      placeholder="Business name"
+                      className="flex-1 min-w-0 rounded-md border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      autoFocus
+                      disabled={creating}
+                    />
+                    <button
+                      onClick={createBusiness}
+                      disabled={creating || newBizName.trim().length < 2}
+                      className="rounded-md bg-emerald-500 px-2 py-1.5 text-xs font-medium text-white hover:bg-emerald-600 disabled:opacity-50 transition-colors"
+                    >
+                      {creating ? "..." : "Create"}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowNewBizInput(true)}
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-xs text-emerald-600 hover:bg-emerald-50 transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Create New Business
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <div className="flex items-center gap-3 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 px-3 py-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100">
               <Bot className="h-4 w-4 text-emerald-600" />

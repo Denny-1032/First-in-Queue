@@ -92,11 +92,14 @@ export async function POST(request: NextRequest) {
     let userId: string;
 
     if (existingUser) {
-      // Update their password
+      // Existing user joining another team — update password
       userId = existingUser.id;
-      await db.from("users").update({ password_hash: hashPassword(password) }).eq("id", userId);
+      await db.from("users").update({
+        password_hash: hashPassword(password),
+        tenant_id: agent.tenant_id,
+      }).eq("id", userId);
     } else {
-      // Create new user linked to same tenant
+      // Brand-new user
       const { data: newUser, error: userErr } = await db
         .from("users")
         .insert({
@@ -115,6 +118,13 @@ export async function POST(request: NextRequest) {
       }
       userId = newUser.id;
     }
+
+    // Add user↔tenant membership (safe upsert — no error if already exists)
+    await db.from("user_tenants").upsert({
+      user_id: userId,
+      tenant_id: agent.tenant_id,
+      role: "agent",
+    }, { onConflict: "user_id,tenant_id" });
 
     // Mark invite as accepted and link user_id
     await db

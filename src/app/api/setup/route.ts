@@ -78,23 +78,22 @@ export async function GET(request: NextRequest) {
     const authToken = request.cookies.get("fiq-auth")?.value;
     if (authToken) {
       try {
-        const payload = JSON.parse(Buffer.from(authToken, "base64url").toString());
-        if (payload.userId) {
-          const { data: user } = await db
-            .from("users")
-            .select("tenant_id")
-            .eq("id", payload.userId)
-            .single();
+        // Token format is "payloadB64.signature" — split to decode only the payload
+        const [payloadB64] = authToken.split(".");
+        if (payloadB64) {
+          const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString());
+          // Use tenantId from token (set at login/switch); fall back to users.tenant_id for legacy tokens
+          const tenantIdFromToken = payload.tenantId;
+          const resolvedTenantId = tenantIdFromToken || (payload.userId ? (await db.from("users").select("tenant_id").eq("id", payload.userId).single()).data?.tenant_id : null);
 
-          if (user?.tenant_id) {
+          if (resolvedTenantId) {
             const { data: tenant } = await db
               .from("tenants")
               .select("id, name, config, is_active")
-              .eq("id", user.tenant_id)
+              .eq("id", resolvedTenantId)
               .single();
 
             if (tenant) {
-              // Tenant exists and has a name set (not just default) = setup complete
               const hasCompletedSetup = !!(tenant.config?.business_name && tenant.config.business_name !== "Your Business");
               return NextResponse.json({
                 setup: hasCompletedSetup || tenant.is_active,

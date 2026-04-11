@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, ArrowRight, Mail, Lock, User, Eye, EyeOff, Bot } from "lucide-react";
+import { MessageSquare, ArrowRight, Mail, Lock, User, Eye, EyeOff, Bot, Building2, ChevronRight, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 
 export default function LoginPage() {
@@ -17,6 +17,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
+  const [tenantPicker, setTenantPicker] = useState<{
+    tenants: { id: string; name: string; role: string }[];
+    user: { id: string; email: string; name: string };
+  } | null>(null);
+  const [selectingTenantId, setSelectingTenantId] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +67,12 @@ export default function LoginPage() {
         return;
       }
 
+      // Multi-tenant: API says user belongs to >1 workspace → show picker
+      if (data.requires_tenant_selection) {
+        setTenantPicker({ tenants: data.tenants, user: data.user });
+        return;
+      }
+
       toast(isSignUp ? "Account created! Welcome aboard." : "Welcome back!");
       const redirect = new URLSearchParams(window.location.search).get("redirect") || "/dashboard";
       router.push(redirect);
@@ -72,6 +83,94 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  const selectTenant = async (tenantId: string) => {
+    setLoading(true);
+    setSelectingTenantId(tenantId);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email, password: form.password, tenantId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to select workspace.");
+        toast(data.error || "Failed to select workspace.", "error");
+        return;
+      }
+      toast("Welcome back!");
+      const redirect = new URLSearchParams(window.location.search).get("redirect") || "/dashboard";
+      router.push(redirect);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+      setSelectingTenantId(null);
+    }
+  };
+
+  // Tenant picker screen
+  if (tenantPicker) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-4">
+        <div className="w-full max-w-md">
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <Image src="/fiq-logo.png?v=2" alt="First in Queue" width={200} height={200} className="h-10 w-10 object-contain" />
+            <span className="text-xl font-bold text-gray-900">First in Queue</span>
+          </div>
+          <Card className="border-0 shadow-xl">
+            <CardHeader className="text-center pb-2">
+              <CardTitle className="text-2xl">Choose a workspace</CardTitle>
+              <CardDescription>
+                Hi {tenantPicker.user.name}, you belong to multiple workspaces. Select one to continue.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {tenantPicker.tenants.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => selectTenant(t.id)}
+                  disabled={loading}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left group ${
+                    selectingTenantId === t.id
+                      ? "border-emerald-400 bg-emerald-50 shadow-sm"
+                      : loading
+                        ? "border-gray-100 opacity-50 cursor-not-allowed"
+                        : "border-gray-200 hover:border-emerald-300 hover:bg-emerald-50"
+                  }`}
+                >
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                    selectingTenantId === t.id ? "bg-emerald-200 text-emerald-700" : "bg-emerald-100 text-emerald-600"
+                  }`}>
+                    {selectingTenantId === t.id ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Building2 className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{t.name}</p>
+                    <p className="text-xs text-gray-500 capitalize">{t.role}</p>
+                  </div>
+                  {selectingTenantId !== t.id && <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-emerald-500 transition-colors" />}
+                </button>
+              ))}
+              {error && <p className="text-sm text-red-500 text-center pt-2">{error}</p>}
+              <button
+                type="button"
+                onClick={() => { setTenantPicker(null); setError(""); }}
+                className="w-full text-center text-sm text-gray-500 hover:text-emerald-600 mt-4"
+              >
+                ← Back to login
+              </button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex overflow-x-hidden">

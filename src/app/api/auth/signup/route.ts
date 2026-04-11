@@ -88,6 +88,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create account" }, { status: 500 });
     }
 
+    // Link user to tenant in junction table
+    const { error: junctionError } = await db.from("user_tenants").insert({
+      user_id: user.id,
+      tenant_id: tenant.id,
+      role: "owner",
+    });
+    if (junctionError) {
+      console.error("[Auth] user_tenants insert error:", junctionError);
+    }
+
     // Create default agent for this tenant
     await db.from("agents").insert({
       tenant_id: tenant.id,
@@ -96,6 +106,7 @@ export async function POST(request: NextRequest) {
       role: "admin",
       is_online: true,
       max_concurrent_chats: 10,
+      user_id: user.id,
     });
 
     // Create free tier subscription with 3 voice minutes and 5 messages
@@ -113,7 +124,7 @@ export async function POST(request: NextRequest) {
       voice_minutes_used: 0,
     });
 
-    const token = generateAuthToken(user.id, email.toLowerCase());
+    const token = generateAuthToken(user.id, email.toLowerCase(), tenant.id);
     const response = NextResponse.json({
       user: { id: user.id, email: user.email, name: user.name, tenant_id: tenant.id },
       message: "Account created successfully",
