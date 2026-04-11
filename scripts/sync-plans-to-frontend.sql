@@ -11,37 +11,37 @@ UPDATE subscription_plans
 SET messages_per_month = 5,
     name = 'Free',
     price_zmw = 0,
-    whatsapp_numbers = 1,
-    updated_at = NOW()
+    whatsapp_numbers = 1
 WHERE id = 'free';
 
 -- Step 3: Rename "starter" → "basic" and update details
--- First, update all existing subscriptions that reference "starter"
-UPDATE subscriptions SET plan_id = 'basic' WHERE plan_id = 'starter';
-
--- Now rename the plan itself (delete old, insert new since id is PK)
+-- 1. First CREATE the new plan
 INSERT INTO subscription_plans (id, name, price_zmw, messages_per_month, whatsapp_numbers, features, is_active, sort_order)
 SELECT 'basic', 'Basic', 499, 1000, 1, features, true, sort_order
 FROM subscription_plans WHERE id = 'starter';
 
+-- 2. Then update subscriptions to use the new plan
+UPDATE subscriptions SET plan_id = 'basic' WHERE plan_id = 'starter';
+
+-- 3. Finally delete the old plan
 DELETE FROM subscription_plans WHERE id = 'starter';
 
 -- Step 4: Rename "growth" → "business" and update price from K1299 → K1699
--- First, update all existing subscriptions that reference "growth"
-UPDATE subscriptions SET plan_id = 'business' WHERE plan_id = 'growth';
-
--- Now rename the plan (delete old, insert new since id is PK)
+-- 1. First CREATE the new plan
 INSERT INTO subscription_plans (id, name, price_zmw, messages_per_month, whatsapp_numbers, features, is_active, sort_order)
 SELECT 'business', 'Business', 1699, 5000, 2, features, true, sort_order
 FROM subscription_plans WHERE id = 'growth';
 
+-- 2. Then update subscriptions to use the new plan
+UPDATE subscriptions SET plan_id = 'business' WHERE plan_id = 'growth';
+
+-- 3. Finally delete the old plan
 DELETE FROM subscription_plans WHERE id = 'growth';
 
 -- Step 5: Update enterprise plan
 UPDATE subscription_plans
 SET price_zmw = 5000,
-    name = 'Enterprise',
-    updated_at = NOW()
+    name = 'Enterprise'
 WHERE id = 'enterprise';
 
 -- Step 6: Verify final state

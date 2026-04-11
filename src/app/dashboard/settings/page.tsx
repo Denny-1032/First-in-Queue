@@ -39,9 +39,11 @@ export default function SettingsPage() {
   const [messagesUsed, setMessagesUsed] = useState(0);
   const [voiceMinutesUsed, setVoiceMinutesUsed] = useState(0);
   const [periodEnd, setPeriodEnd] = useState<string | null>(null);
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutPlanId, setCheckoutPlanId] = useState("basic");
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
+  const [cancelling, setCancelling] = useState(false);
 
   const defaultSchedule = [
     { day: "Monday", open: "09:00", close: "18:00", enabled: true },
@@ -107,6 +109,7 @@ export default function SettingsPage() {
             setVoiceMinutesUsed(data.subscription.voice_minutes_used || 0);
             setPeriodEnd(data.subscription.current_period_end);
             setSubscriptionStatus(data.subscription.status);
+            setDaysRemaining(data.daysRemaining ?? null);
           }
         }
       } catch { /* use defaults */ }
@@ -384,7 +387,20 @@ export default function SettingsPage() {
                   <Key className="h-5 w-5 text-emerald-600" />
                   <CardTitle>Plan & Usage</CardTitle>
                 </div>
-                {currentPlanId !== "business" && currentPlanId !== "enterprise" && (
+                {subscriptionStatus === "expired" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-amber-700 border-amber-200 hover:bg-amber-50"
+                    onClick={() => {
+                      window.location.href = "/pricing?from=settings";
+                    }}
+                  >
+                    <CreditCard className="h-3.5 w-3.5" />
+                    Renew Plan
+                  </Button>
+                )}
+                {subscriptionStatus === "active" && currentPlanId !== "business" && currentPlanId !== "enterprise" && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -397,6 +413,46 @@ export default function SettingsPage() {
                     Upgrade
                   </Button>
                 )}
+                {subscriptionStatus === "active" && currentPlanId !== "free" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-red-700 border-red-200 hover:bg-red-50"
+                    disabled={cancelling}
+                    onClick={async () => {
+                      if (!confirm("Are you sure you want to cancel your subscription? You'll be moved to the free plan.")) return;
+                      setCancelling(true);
+                      try {
+                        const res = await fetch("/api/subscriptions", { method: "DELETE" });
+                        if (res.ok) {
+                          toast("Subscription cancelled successfully", "success");
+                          // Reload subscription data
+                          const refreshRes = await fetch("/api/subscriptions");
+                          if (refreshRes.ok) {
+                            const data = await refreshRes.json();
+                            if (data.subscription) {
+                              setSubscriptionStatus(data.subscription.status);
+                              setCurrentPlanId(data.subscription.plan_id);
+                            }
+                          }
+                        } else {
+                          const err = await res.json();
+                          toast(err.error || "Failed to cancel subscription", "error");
+                        }
+                      } catch {
+                        toast("Failed to cancel subscription", "error");
+                      }
+                      setCancelling(false);
+                    }}
+                  >
+                    {cancelling ? (
+                      <div className="h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <CreditCard className="h-3.5 w-3.5" />
+                    )}
+                    Cancel
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -405,8 +461,16 @@ export default function SettingsPage() {
                   <p className="text-sm font-medium text-gray-700">Current Plan</p>
                   <p className="text-xs text-gray-500">First in Queue {currentPlan.name}</p>
                 </div>
-                <Badge variant="default">
-                  {subscriptionStatus === "active" ? "Active" : subscriptionStatus}
+                <Badge 
+                  variant={subscriptionStatus === "expired" ? "destructive" : subscriptionStatus === "active" ? "default" : "secondary"}
+                  className={cn(
+                    subscriptionStatus === "expired" && "bg-red-100 text-red-700 hover:bg-red-100",
+                    daysRemaining !== null && daysRemaining <= 3 && subscriptionStatus === "active" && "bg-amber-100 text-amber-700 hover:bg-amber-100"
+                  )}
+                >
+                  {subscriptionStatus === "active" ? (
+                    daysRemaining !== null ? `${daysRemaining} days left` : "Active"
+                  ) : subscriptionStatus === "expired" ? "Expired" : subscriptionStatus}
                 </Badge>
               </div>
               <div className="py-3 border-b border-gray-100 space-y-2">
@@ -457,10 +521,22 @@ export default function SettingsPage() {
               {periodEnd && (
                 <div className="flex items-center justify-between py-3 border-b border-gray-100">
                   <div>
-                    <p className="text-sm font-medium text-gray-700">Current Period Ends</p>
-                    <p className="text-xs text-gray-500">{subscriptionStatus === "trialing" ? "Trial ends on this date" : "Billing cycle renews on this date"}</p>
+                    <p className="text-sm font-medium text-gray-700">
+                      {subscriptionStatus === "expired" ? "Expired On" : "Current Period Ends"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {subscriptionStatus === "expired" 
+                        ? "Your plan has expired. Renew to continue using all features."
+                        : daysRemaining !== null && daysRemaining <= 7 
+                          ? `Expires in ${daysRemaining} days — renew soon to avoid interruption`
+                          : "Billing cycle renews on this date"
+                      }
+                    </p>
                   </div>
-                  <span className="text-sm font-semibold text-gray-900">
+                  <span className={cn(
+                    "text-sm font-semibold",
+                    subscriptionStatus === "expired" || (daysRemaining !== null && daysRemaining <= 3) ? "text-red-600" : "text-gray-900"
+                  )}>
                     {new Date(periodEnd).toLocaleDateString("en-ZM", { day: "numeric", month: "short", year: "numeric" })}
                   </span>
                 </div>

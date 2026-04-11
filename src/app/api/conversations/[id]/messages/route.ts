@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getMessages, saveMessage, getConversation, updateConversation } from "@/lib/db/operations";
 import { createWhatsAppClient } from "@/lib/whatsapp/client";
 import { getTenantById } from "@/lib/db/operations";
+import { checkMessageUsage, incrementMessageUsage } from "@/lib/lipila/usage";
 
 export async function GET(
   request: NextRequest,
@@ -41,6 +42,15 @@ export async function POST(
     const tenant = await getTenantById(conversation.tenant_id);
     if (!tenant) {
       return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+    }
+
+    // Check message usage limit before sending
+    const usage = await checkMessageUsage(tenant.id);
+    if (!usage.allowed) {
+      return NextResponse.json({ 
+        error: "Message limit reached", 
+        message: `You've reached your monthly limit of ${usage.messagesLimit.toLocaleString()} messages. Please upgrade your plan to continue.`
+      }, { status: 403 });
     }
 
     // Try to send via WhatsApp
@@ -84,6 +94,11 @@ export async function POST(
 
     // Update conversation timestamp so it appears at top of list
     await updateConversation(id, { last_message_at: new Date().toISOString() });
+
+    // Increment message usage counter (only on successful send)
+    if (!deliveryFailed) {
+      await incrementMessageUsage(tenant.id);
+    }
 
     if (deliveryFailed) {
       return NextResponse.json({ ...message, _deliveryError: deliveryError }, { status: 207 });
