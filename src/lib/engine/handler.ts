@@ -426,15 +426,15 @@ async function handleAIResponse(
     
     // Construct web call URL with tenant and specific voice agent
     const webCallUrl = `${appUrl}/widget/iframe?tenantId=${tenant.id}&agentId=${agentId}`;
-    const linkMessage = `🎙️ Tap to call us now:\n${webCallUrl}`;
-    const linkMsgId = await whatsapp.sendText(message.from, linkMessage);
+    const linkBody = "🎙️ Tap the button below to start a voice call with us.";
+    const linkMsgId = await whatsapp.sendCtaUrlButton(message.from, linkBody, "Start Voice Call", webCallUrl);
     await saveMessage({
       conversation_id: conversation.id,
       tenant_id: tenant.id,
       direction: "outbound",
       sender_type: "bot",
-      message_type: "text",
-      content: { text: linkMessage },
+      message_type: "interactive",
+      content: { text: linkBody },
       whatsapp_message_id: linkMsgId,
       status: "sent",
     });
@@ -1239,15 +1239,16 @@ async function handleVoiceCallbackRequest(
     const voiceProvider = process.env.VOICE_PROVIDER || "twilio";
     if (voiceProvider === "web" || voiceProvider === "none") {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.firstinqueue.com";
-      const webCallMsg = `🎙️ Tap here to talk to us:\n${appUrl}/widget/iframe?tenantId=${tenant.id}&agentId=${voiceAgentId}`;
-      const webCallId = await whatsapp.sendText(customerPhone, webCallMsg);
+      const webCallUrl = `${appUrl}/widget/iframe?tenantId=${tenant.id}&agentId=${voiceAgentId}`;
+      const webCallBody = "🎙️ Tap the button below to start a voice call with us.";
+      const webCallId = await whatsapp.sendCtaUrlButton(customerPhone, webCallBody, "Start Voice Call", webCallUrl);
       await saveMessage({
         conversation_id: conversation.id,
         tenant_id: tenant.id,
         direction: "outbound",
         sender_type: "bot",
-        message_type: "text",
-        content: { text: webCallMsg },
+        message_type: "interactive",
+        content: { text: webCallBody },
         whatsapp_message_id: webCallId,
         status: "sent",
       });

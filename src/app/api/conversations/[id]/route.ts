@@ -73,7 +73,8 @@ export async function PATCH(
           const tenant = await getTenantById(updated.tenant_id);
           if (tenant?.whatsapp_access_token && tenant?.whatsapp_phone_number_id) {
             const whatsapp = createWhatsAppClient(tenant.whatsapp_access_token, tenant.whatsapp_phone_number_id);
-            const joinMsg = `Hi! I'm ${agent.name} and I'll be taking over from here. How can I help you?`;
+            const firstName = agent.name.split(" ")[0];
+            const joinMsg = `${firstName} has joined the chat.`;
             const waId = await whatsapp.sendText(updated.customer_phone, joinMsg);
             await saveMessage({
               conversation_id: id,

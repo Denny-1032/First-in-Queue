@@ -18,7 +18,7 @@ async function sendInviteEmail(params: {
 
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#fff">
-      <img src="https://firstinqueue.com/logo.png" alt="First in Queue" style="height:36px;margin-bottom:24px" />
+      <img src="https://firstinqueue.com/fiq-logo.png" alt="First in Queue" style="height:36px;margin-bottom:24px" />
       <h2 style="color:#111;font-size:20px;margin:0 0 8px">You've been invited to join ${params.businessName}</h2>
       <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 24px">
         ${params.inviterName} has added you as an agent on <strong>First in Queue</strong>.

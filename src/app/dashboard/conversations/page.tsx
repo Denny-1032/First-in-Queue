@@ -104,12 +104,17 @@ export default function ConversationsPage() {
   // Fetch agents and find current user's agent record
   const fetchAgents = useCallback(async () => {
     try {
-      const res = await fetch("/api/agents");
-      if (res.ok) {
-        const data: Agent[] = await res.json();
+      const [agentsRes, meRes] = await Promise.all([
+        fetch("/api/agents"),
+        fetch("/api/agents/me"),
+      ]);
+      if (agentsRes.ok) {
+        const data: Agent[] = await agentsRes.json();
         setAgents(data);
-        // Identify "me" — first agent for now (session-based in future)
-        if (data.length > 0 && !myAgent) setMyAgent(data[0]);
+      }
+      if (meRes.ok && !myAgent) {
+        const me: Agent = await meRes.json();
+        setMyAgent(me);
       }
     } catch { /* silent */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps

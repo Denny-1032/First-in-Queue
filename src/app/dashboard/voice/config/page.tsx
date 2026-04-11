@@ -287,6 +287,10 @@ export default function VoiceConfigPage() {
   };
 
   // ── Test call ──────────────────────────────────────────────
+  // Voice limit upgrade prompt state
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [voiceLimitInfo, setVoiceLimitInfo] = useState({ used: 0, limit: 0 });
+
   const startTestCall = async () => {
     if (!editAgent) return;
     setTestCallConnecting(true);
@@ -300,7 +304,16 @@ export default function VoiceConfigPage() {
         body: JSON.stringify({ agentId: editAgent.id }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to start test call");
+      if (!res.ok) {
+        // Show friendly upgrade prompt for plan limits
+        if (res.status === 403 && data.error?.includes("Voice minute limit")) {
+          setVoiceLimitInfo({ used: data.used || 0, limit: data.limit || 0 });
+          setShowUpgradePrompt(true);
+          setTestCallConnecting(false);
+          return;
+        }
+        throw new Error(data.error || "Failed to start test call");
+      }
 
       // 2. Load the Retell Web SDK dynamically
       const { RetellWebClient } = await import("retell-client-js-sdk");
@@ -783,7 +796,30 @@ export default function VoiceConfigPage() {
                       </p>
                     </div>
                   </div>
-                  {testCallActive ? (
+                  {showUpgradePrompt ? (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-amber-800">Voice minutes used up</p>
+                          <p className="text-xs text-amber-600 mt-0.5">
+                            You&apos;ve used {voiceLimitInfo.used} of {voiceLimitInfo.limit} free voice minutes. Upgrade your plan to continue testing.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Link href="/dashboard/settings?tab=billing" className="flex-1">
+                          <Button size="sm" className="w-full gap-1.5 bg-amber-600 hover:bg-amber-700 text-white">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Upgrade Plan
+                          </Button>
+                        </Link>
+                        <Button size="sm" variant="outline" onClick={() => setShowUpgradePrompt(false)} className="text-gray-500">
+                          Dismiss
+                        </Button>
+                      </div>
+                    </div>
+                  ) : testCallActive ? (
                     <Button
                       onClick={stopTestCall}
                       className="w-full gap-2 bg-red-500 hover:bg-red-600 text-white"

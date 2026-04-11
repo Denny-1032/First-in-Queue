@@ -10,7 +10,6 @@ import {
   Brain,
   MessageCircle,
   Sparkles,
-  BookOpen,
   Plus,
   Trash2,
   Save,
@@ -21,7 +20,6 @@ import {
   FileText,
   Upload,
   Wand2,
-  UserCheck,
   Globe,
   Loader2,
   RefreshCw,
@@ -439,50 +437,45 @@ export default function AIConfigPage() {
       {/* Knowledge Base */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-purple-600" />
-              <CardTitle>Knowledge Base</CardTitle>
-              <span className="text-xs text-gray-400">({knowledgeBase.length} entries)</span>
-            </div>
-            <div className="flex gap-2 flex-wrap items-center">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-purple-600" />
+                <CardTitle>Knowledge Base</CardTitle>
+                <Badge variant="secondary" className="text-[10px]">{knowledgeBase.length} entries</Badge>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setKnowledgeBaseExpanded(!knowledgeBaseExpanded)}
                 className="gap-1.5 text-gray-600"
               >
-                {knowledgeBaseExpanded ? (
-                  <>
-                    <ChevronUp className="h-4 w-4" />
-                    Collapse
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-4 w-4" />
-                    Expand
-                  </>
-                )}
-              </Button>
-              {selectedEntries.size > 0 && (
-                <Button variant="outline" size="sm" onClick={deleteSelectedEntries} className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50">
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete {selectedEntries.size}
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={() => { setShowCrawl(!showCrawl); setShowBulkImport(false); }} className="gap-1.5">
-                <Globe className="h-3.5 w-3.5" />
-                Crawl Website
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => { setShowBulkImport(!showBulkImport); setShowCrawl(false); }} className="gap-1.5">
-                <Upload className="h-3.5 w-3.5" />
-                Quick Setup
-              </Button>
-              <Button variant="outline" size="sm" onClick={addKnowledgeEntry} className="gap-1.5">
-                <Plus className="h-3.5 w-3.5" />
-                Add Entry
+                {knowledgeBaseExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {knowledgeBaseExpanded ? "Collapse" : "Expand"}
               </Button>
             </div>
+            {knowledgeBaseExpanded && (
+              <div className="flex gap-2 flex-wrap items-center">
+                {selectedEntries.size > 0 && (
+                  <Button variant="outline" size="sm" onClick={deleteSelectedEntries} className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50">
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete {selectedEntries.size}
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={() => { setShowCrawl(!showCrawl); setShowBulkImport(false); }} className="gap-1.5">
+                  <Globe className="h-3.5 w-3.5" />
+                  Crawl Website
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => { setShowBulkImport(!showBulkImport); setShowCrawl(false); }} className="gap-1.5">
+                  <Upload className="h-3.5 w-3.5" />
+                  Quick Setup
+                </Button>
+                <Button variant="outline" size="sm" onClick={addKnowledgeEntry} className="gap-1.5">
+                  <Plus className="h-3.5 w-3.5" />
+                  Add Entry
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
         {knowledgeBaseExpanded && (
@@ -876,6 +869,12 @@ export default function AIConfigPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {faqs.length === 0 && (
+            <div className="text-center py-6 text-sm text-gray-400">
+              <MessageCircle className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+              No FAQs yet. Add one or use Quick Setup in Knowledge Base to auto-generate them.
+            </div>
+          )}
           {faqs.map((faq, i) => (
             <div key={faq.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -982,9 +981,17 @@ export default function AIConfigPage() {
           )}
 
           {!voiceCallbackEnabled && (
-            <p className="text-sm text-gray-500">
-              Enable this to let customers request voice callbacks via WhatsApp. Great for businesses without local inbound phone numbers.
-            </p>
+            <div className="flex items-start gap-3 rounded-lg bg-gray-50 border border-gray-100 p-4">
+              <Phone className="h-4 w-4 text-gray-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-gray-600">
+                  Let customers request voice callbacks by typing &quot;call me&quot; in WhatsApp chat.
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Contact support to enable this feature for your account.
+                </p>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

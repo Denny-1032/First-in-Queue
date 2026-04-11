@@ -186,6 +186,24 @@ export class WhatsAppClient {
     return res.data.messages?.[0]?.id || "";
   }
 
+  async sendCtaUrlButton(to: string, body: string, displayText: string, url: string): Promise<string> {
+    const res = await this.api.post(this.messagesUrl, {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to,
+      type: "interactive",
+      interactive: {
+        type: "cta_url",
+        body: { text: body },
+        action: {
+          name: "cta_url",
+          parameters: { display_text: displayText, url },
+        },
+      },
+    });
+    return res.data.messages?.[0]?.id || "";
+  }
+
   async sendInteractive(to: string, interactive: InteractiveMessage): Promise<string> {
     if (interactive.type === "button" && interactive.buttons) {
       return this.sendButtons(to, interactive.body, interactive.buttons, interactive.header?.text, interactive.footer);
