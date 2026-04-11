@@ -15,6 +15,7 @@ A chronological record of all critical fixes, their root causes, and preventive 
 - [Voice Call Fixes (Apr 10, 2026)](#voice-call-fixes-apr-10-2026)
 - [AI Agent Fixes (Apr 10, 2026)](#ai-agent-fixes-apr-10-2026)
 - [Voice Test Call Error (Apr 10, 2026)](#voice-test-call-error-apr-10-2026)
+- [Handoff & Flows Audit Fix (Apr 11, 2026)](#handoff--flows-audit-fix-apr-11-2026)
 
 ---
 
@@ -731,6 +732,38 @@ Based on the fixes above, follow these principles:
 | Apr 10, 2026 | Cascade | Added: Africa's Talking provider implementation, voice cost protection (AMD, timeLimit, usage tracking, minutes gate) |
 | Apr 10, 2026 | Cascade | Added: Double billing fix (removed duplicate usage recording from Twilio/Telnyx webhooks), Greeting loop fix (race condition handling in getOrCreateConversation), Voice callback validation improvements |
 | Apr 11, 2026 | Cascade | Greeting loop definitive fix: 3 bugs (partial SELECT in race condition, empty QR triggers, greeting QRs on existing convos), added response path logging |
+| Apr 11, 2026 | Cascade | Handoff & Flows audit: 8 gaps fixed (waiting status handling, agent assignment, active_chats on takeover, AI silence during waiting, action steps, flow completion messages, readable data keys) |
+
+---
+
+## Handoff & Flows Audit Fix (Apr 11, 2026)
+
+### Problem
+Full audit of handoff and flows features revealed 8 gaps across backend and frontend.
+
+### Gaps Found & Fixed
+
+| # | Gap | Severity | Fix |
+|---|-----|----------|-----|
+| 1 | Escalation reason only shown for `handoff`, not `waiting` | Critical | Show reason for both statuses in conversation header |
+| 2 | "Take Over" button doesn't assign agent or increment `active_chats` | Critical | Pass `assigned_agent_id` in PATCH body; API increments `active_chats` on entering handoff |
+| 3 | AI bot still responds to customers in `waiting` status | Critical | Added `waiting` to the handoff guard: skip bot when `status === "waiting"` |
+| 4 | Flow `action` steps silently advance with no user feedback | Medium | Send a confirmation message for each action type (booking, lead capture, etc.) |
+| 5 | Flow completion sends nothing — customer gets silence | Medium | Send "That's everything!" completion message from both `sendFlowStep` and `processFlowStep` |
+| 6 | Flow handoff escalation_reason contains raw JSON | Low | Format as readable `key: value` pairs instead of `JSON.stringify` |
+| 7 | `handleSend` doesn't assign agent or handle `waiting` status | Critical | Include `assigned_agent_id` and update both `active` and `waiting` conversations |
+| 8 | Collected flow data uses opaque timestamp IDs as keys | Low | Use truncated question content as key for human-readable escalation reasons |
+
+### Files Changed
+- `src/app/dashboard/conversations/page.tsx` — Gaps 1, 2, 7
+- `src/app/api/conversations/[id]/route.ts` — Gap 2 (increment `active_chats` on entering handoff)
+- `src/lib/engine/handler.ts` — Gaps 3, 4, 5, 6, 8
+
+### Prevention
+- Always treat `waiting` and `handoff` as equivalent from the bot's perspective — neither should get AI responses
+- Any status change to `handoff` must include `assigned_agent_id` and increment `active_chats`
+- Flow steps must never complete silently — always send a message to the customer
+- Metadata keys should be human-readable, not IDs
 
 ---
 
