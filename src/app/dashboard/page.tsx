@@ -136,6 +136,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchAnalytics().finally(() => setLoading(false));
+    // Auto-refresh every 30 seconds for real-time stats
+    const interval = setInterval(() => fetchAnalytics(), 30000);
+    return () => clearInterval(interval);
   }, [fetchAnalytics]);
 
   if (showOnboarding) {

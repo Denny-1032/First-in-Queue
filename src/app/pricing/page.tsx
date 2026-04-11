@@ -67,7 +67,7 @@ function PricingContent() {
             </span>
           </h1>
           <p className="text-lg text-gray-500 mt-6 max-w-2xl mx-auto">
-            Get 3 free voice minutes and 5 messages on signup. Upgrade anytime. 30-day money-back guarantee.
+            Get 3 free voice minutes and 5 messages on signup. Upgrade anytime.
           </p>
 
           {/* 30-day guarantee banner */}

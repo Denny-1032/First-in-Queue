@@ -10,15 +10,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-const managedServices = [
-  { name: "WhatsApp Business API", description: "Official Meta WhatsApp Cloud API connection", icon: "💬" },
-  { name: "AI Engine (GPT-4o)", description: "Advanced AI for intelligent customer responses", icon: "🤖" },
-  { name: "Voice AI (Retell)", description: "AI-powered phone calls with natural voice", icon: "🗣️" },
-  { name: "Telephony (Twilio)", description: "Reliable voice calling infrastructure", icon: "📞" },
-  { name: "Database & Auth", description: "Secure data storage and authentication", icon: "🔐" },
-  { name: "Payment Processing", description: "Mobile money and card payment handling", icon: "💳" },
-];
-
 export default function IntegrationsPage() {
   return (
     <div className="space-y-8">
@@ -48,30 +39,6 @@ export default function IntegrationsPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* What's Included */}
-      <div>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">What&apos;s Included</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {managedServices.map((service) => (
-            <Card key={service.name} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="text-2xl">{service.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold text-gray-900">{service.name}</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">{service.description}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-emerald-600">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Managed by FiQ
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
 
       {/* Custom Integrations */}
       <Card>

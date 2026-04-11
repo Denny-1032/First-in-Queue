@@ -20,6 +20,7 @@ WHERE tenant_id = 'TENANT_ID_HERE'
   AND status IN ('active', 'trialing', 'free');
 
 -- Step 3: Create new active subscription
+-- NOTE: billing_interval is stored as integer: 1=monthly, 2=yearly
 INSERT INTO subscriptions (
     tenant_id,
     plan_id,
@@ -32,14 +33,14 @@ INSERT INTO subscriptions (
     created_at,
     updated_at
 ) VALUES (
-    'TENANT_ID_HERE',           -- Replace with tenant ID
-    'business',                 -- Choose: 'basic', 'business', or 'enterprise'
-    'active',                   -- Status: 'active'
-    NOW(),                      -- Period starts now
-    NOW() + INTERVAL '30 days', -- Period ends in 30 days (change as needed)
-    'monthly',                  -- 'monthly' or 'yearly'
-    0,                          -- Reset messages used
-    0,                          -- Reset voice minutes used
+    '64e39794-cc98-4c09-88ba-de526778c488',  -- Replace with tenant ID (no 'TE' prefix)
+    'business',                             -- Choose: 'basic', 'business', or 'enterprise'
+    'active',                               -- Status: 'active'
+    NOW(),                                  -- Period starts now
+    NOW() + INTERVAL '30 days',             -- Period ends in 30 days (change as needed)
+    1,                                      -- 1=monthly, 2=yearly
+    0,                                      -- Reset messages used
+    0,                                      -- Reset voice minutes used
     NOW(),
     NOW()
 );
