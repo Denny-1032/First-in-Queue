@@ -7,8 +7,8 @@ import { Phone, Calendar, Settings } from "lucide-react";
 
 const voiceTabs = [
   { href: "/dashboard/voice", label: "Call History", icon: Phone, exact: true },
-  { href: "/dashboard/voice/scheduled", label: "Scheduled", icon: Calendar },
   { href: "/dashboard/voice/config", label: "Configuration", icon: Settings },
+  { href: "/dashboard/voice/scheduled", label: "Scheduled", icon: Calendar },
 ];
 
 export default function VoiceLayout({ children }: { children: React.ReactNode }) {

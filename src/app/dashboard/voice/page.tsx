@@ -11,7 +11,6 @@ import {
   PhoneIncoming,
   PhoneOutgoing,
   Clock,
-  Calendar,
   Play,
   Search,
   ChevronDown,
@@ -160,15 +159,6 @@ export default function VoiceCallsPage() {
           >
             <PhoneCall className="h-4 w-4" />
             Make a Call
-          </Button>
-          <Button
-            variant="outline"
-            disabled
-            title="Disabled, Contact Support"
-            className="gap-2 border-gray-200 text-gray-400 cursor-not-allowed"
-          >
-            <Calendar className="h-4 w-4" />
-            Schedule
           </Button>
         </div>
       </div>

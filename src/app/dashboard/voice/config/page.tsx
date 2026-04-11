@@ -67,7 +67,8 @@ export default function VoiceConfigPage() {
   const { toast } = useToast();
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [agents, setAgents] = useState<VoiceAgentRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -111,7 +112,7 @@ export default function VoiceConfigPage() {
   }, []);
 
   const fetchAgents = useCallback(async () => {
-    if (!tenantId) { setLoading(false); return; }
+    if (!tenantId) { setInitialLoadComplete(true); return; }
     setLoading(true);
     try {
       const res = await fetch(`/api/voice/agents?tenantId=${tenantId}`);
@@ -125,6 +126,7 @@ export default function VoiceConfigPage() {
       setAgents([]);
     } finally {
       setLoading(false);
+      setInitialLoadComplete(true);
     }
   }, [tenantId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -293,7 +295,7 @@ export default function VoiceConfigPage() {
       const res = await fetch("/api/voice/web-call", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentId: editAgent.retell_agent_id }),
+        body: JSON.stringify({ agentId: editAgent.id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to start test call");
@@ -377,7 +379,7 @@ export default function VoiceConfigPage() {
                   </div>
       </div>
 
-      {loading ? (
+      {!initialLoadComplete || loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
         </div>
