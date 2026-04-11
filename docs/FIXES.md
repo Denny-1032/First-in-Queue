@@ -16,6 +16,7 @@ A chronological record of all critical fixes, their root causes, and preventive 
 - [AI Agent Fixes (Apr 10, 2026)](#ai-agent-fixes-apr-10-2026)
 - [Voice Test Call Error (Apr 10, 2026)](#voice-test-call-error-apr-10-2026)
 - [Handoff & Flows Audit Fix (Apr 11, 2026)](#handoff--flows-audit-fix-apr-11-2026)
+- [Handoff & Team Management Audit (Apr 11, 2026)](#handoff--team-management-audit-apr-11-2026)
 
 ---
 
@@ -764,6 +765,51 @@ Full audit of handoff and flows features revealed 8 gaps across backend and fron
 - Any status change to `handoff` must include `assigned_agent_id` and increment `active_chats`
 - Flow steps must never complete silently — always send a message to the customer
 - Metadata keys should be human-readable, not IDs
+
+---
+
+## Handoff & Team Management Audit (Apr 11, 2026)
+
+### Problem
+Comprehensive audit of the 4-task handoff/team implementation revealed 7 gaps spanning security, UX, and logic.
+
+### Gaps Found & Fixed
+
+| # | Gap | Severity | File |
+|---|-----|----------|------|
+| 1 | Double "agent joined" WhatsApp message — `handleSend` re-PATCHes to handoff, triggering it again | High | `src/app/api/conversations/[id]/route.ts` |
+| 2 | "Add & Send Invite" button only created agent but never sent the invite email | High | `src/app/dashboard/team/page.tsx` |
+| 3 | Team page had no invite status visibility (pending/accepted) | Medium | `src/app/dashboard/team/page.tsx` |
+| 4 | `Agent` TypeScript interface missing invite fields | Medium | `src/types/index.ts` |
+| 5 | `/api/agents/[id]` PATCH+DELETE had no tenant auth — any user could edit any agent by guessing UUID | **Critical** | `src/app/api/agents/[id]/route.ts` |
+| 6 | Voice webhook `needsFollowUp` triggered on web test calls (< 30s) — false positives | Medium | `src/app/api/voice/webhook/route.ts` |
+| 7 | Settings page was a single long scroll — reorganized into tabbed UI | Medium | `src/app/dashboard/settings/page.tsx` |
+
+### Fix Details
+
+**Gap 1 — Double agent-joined message:**
+Changed condition from `current?.status !== "handoff"` to also check if the same agent is already assigned:
+```typescript
+const enteringHandoff =
+  sanitized.status === "handoff" &&
+  sanitized.assigned_agent_id &&
+  (current?.status !== "handoff" || current?.assigned_agent_id !== sanitized.assigned_agent_id);
+```
+
+**Gap 2 — Auto-send invite after create:**
+Chained `/api/team/invite` POST immediately after `/api/agents` POST returns the new agent ID. Falls back to showing the link in a toast if email delivery fails.
+
+**Gap 5 — Tenant auth on agents API (SECURITY):**
+Added `requireSession()` + `.eq("tenant_id", session.tenantId)` to both PATCH and DELETE handlers. Previously, any authenticated user from any tenant could modify any agent record.
+
+**Gap 6 — Web call exclusion:**
+Added early return in `needsFollowUp` when `call_type === "web_call"` or `direction === "web"` or phone number is missing/too short (< 8 chars).
+
+### Prevention
+- All API routes that modify tenant-scoped data **must** include `requireSession()` + tenant_id filter
+- Any UI button that says "& Send Invite" must actually chain both API calls
+- Voice follow-up logic should never fire for web/test calls — always check call_type
+- TypeScript interfaces must mirror DB columns to catch mismatches at compile time
 
 ---
 
