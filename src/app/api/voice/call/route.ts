@@ -10,6 +10,18 @@ import { checkVoiceMinutes } from "@/lib/voice/usage";
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if telephony is available
+    const voiceProvider = process.env.VOICE_PROVIDER || "twilio";
+    if (voiceProvider === "web" || voiceProvider === "none") {
+      return NextResponse.json(
+        {
+          error: "Outbound calls unavailable",
+          message: "Voice provider is set to web-only mode. Outbound phone calls require Twilio or Telnyx. Use the web call widget instead.",
+        },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
     const { tenantId, customerPhone, customerName, purpose, voiceAgentId } = body;
 

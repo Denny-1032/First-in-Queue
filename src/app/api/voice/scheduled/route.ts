@@ -47,6 +47,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if telephony is available
+    const voiceProvider = process.env.VOICE_PROVIDER || "twilio";
+    if (voiceProvider === "web" || voiceProvider === "none") {
+      return NextResponse.json(
+        {
+          error: "Scheduled calls unavailable",
+          message: "Voice provider is set to web-only mode. Scheduled phone calls require Twilio or Telnyx.",
+        },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
     const {
       tenantId,
