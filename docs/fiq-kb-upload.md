@@ -9,7 +9,7 @@ First in Queue (FiQ) is an AI-powered customer engagement platform built for bus
 FiQ connects to the official WhatsApp Business API, enabling automated messaging at scale while keeping conversations personal and natural. It combines intelligent AI chatbots with human agent handoff so customers always get help.
 
 Website: https://firstinqueue.com
-Support email: support@firstinqueue.com
+Support email: support@codarti.com
 
 ### Who is FiQ for?
 
@@ -212,7 +212,7 @@ If your payment fails:
 - Try a different payment method (e.g., switch from Airtel to MTN)
 - Wait a few minutes and try again — sometimes the network is slow
 - Contact your mobile money provider if the issue persists
-- Contact FiQ support at support@firstinqueue.com for help
+- Contact FiQ support at support@codarti.com for help
 
 ## WhatsApp Setup
 
@@ -487,7 +487,7 @@ If the AI is not responding to customer messages:
 3. Check WhatsApp connection: Dashboard → Integrations → WhatsApp should show "Connected"
 4. Check if the conversation is in handoff mode (human agent mode) — the AI doesn't respond during handoff
 5. Check your plan usage — if you've exceeded your message limit, the AI will inform customers
-6. Contact support at support@firstinqueue.com if the issue persists
+6. Contact support at support@codarti.com if the issue persists
 
 ### WhatsApp messages not being delivered
 
@@ -510,13 +510,13 @@ If voice calls are failing:
 ### Account and login issues
 
 - Forgot password: Use the "Reset Password" link on the login page
-- Account locked: Contact support at support@firstinqueue.com
+- Account locked: Contact support at support@codarti.com
 - Cannot access dashboard: Clear browser cache or try a different browser
 - Two-factor authentication issues: Contact support for recovery
 
 ### How to contact FiQ support
 
-- Email: support@firstinqueue.com
+- Email: support@codarti.com
 - In-app live chat: Available on Business and Enterprise plans (Dashboard → Help)
 - Phone support: Available on Enterprise plan only
 - Response times: Basic (24–48 hours), Business (4–8 hours), Enterprise (1–2 hours)

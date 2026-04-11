@@ -662,7 +662,7 @@ Dashboard → Voice → Scheduled Calls
 - Video tutorials
 
 **Contact Support:**
-- Email: support@firstinqueue.com
+- Email: support@codarti.com
 - In-app chat (Business & Enterprise)
 - Phone: +260-XXX-XXXX (Enterprise)
 
@@ -1264,7 +1264,7 @@ When client rotates credentials:
 
 ## Contact & Support
 
-**Support Email:** support@firstinqueue.com
+**Support Email:** support@codarti.com
 
 **Documentation:** https://docs.firstinqueue.com
 

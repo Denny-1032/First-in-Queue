@@ -390,7 +390,7 @@ Failed Payments:
     
     refunds: `Refund Policy:
 - 30-day money-back guarantee for first payment
-- Contact support@firstinqueue.com for refund requests
+- Contact support@codarti.com for refund requests
 - Refunds processed within 5-7 business days
 - Refunds return to original payment method`,
     
@@ -679,7 +679,7 @@ INDUSTRY STANDARDS:
     
     supportChannels: `Need help? Contact FiQ support:
 
-EMAIL: support@firstinqueue.com
+EMAIL: support@codarti.com
 - Response time: Within 24 hours
 - Best for: Technical issues, billing questions, feature requests
 

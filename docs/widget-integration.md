@@ -248,4 +248,4 @@ window.addEventListener('fiq-widget-event', (e) => {
 
 ## Support
 
-For integration support, contact: support@firstinqueue.com
+For integration support, contact: support@codarti.com
