@@ -97,7 +97,7 @@ export default function VoiceConfigPage() {
   const [agentTalking, setAgentTalking] = useState(false);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const retellClientRef = useRef<ReturnType<typeof Object> | null>(null);
-  const transcriptEndRef = useRef<HTMLDivElement | null>(null);
+  const transcriptContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     fetch("/api/tenants")
@@ -132,11 +132,13 @@ export default function VoiceConfigPage() {
 
   useEffect(() => { fetchAgents(); }, [fetchAgents]);
 
-  // Auto-scroll transcript only when new messages arrive, not during updates
+  // Auto-scroll transcript container only — never scrolls the page
   useEffect(() => {
     if (transcript.length > 0) {
       const timeoutId = setTimeout(() => {
-        transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (transcriptContainerRef.current) {
+          transcriptContainerRef.current.scrollTop = transcriptContainerRef.current.scrollHeight;
+        }
       }, 100);
       return () => clearTimeout(timeoutId);
     }
@@ -405,9 +407,9 @@ export default function VoiceConfigPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid gap-6" style={{ gridTemplateColumns: "minmax(0,220px) minmax(0,1fr) minmax(0,340px)" }}>
           {/* Agent list */}
-          <div className="lg:col-span-1 space-y-3">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-gray-700">Your Agents</p>
               <Button variant="outline" size="sm" onClick={handleCreate} disabled={creating} className="gap-1 text-xs h-7">
@@ -447,7 +449,7 @@ export default function VoiceConfigPage() {
 
           {/* Configuration panel - Middle */}
           {editAgent && (
-            <div className="lg:col-span-1 space-y-4">
+            <div className="space-y-4">
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -755,7 +757,7 @@ export default function VoiceConfigPage() {
 
           {/* Test panel - Right */}
           {editAgent && (
-            <div className="lg:col-span-1 space-y-4">
+            <div className="space-y-4">
               {/* Test Call Card */}
               <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50">
                 <CardContent className="pt-5 pb-4">
@@ -806,7 +808,7 @@ export default function VoiceConfigPage() {
                 </CardContent>
               </Card>
 
-              {/* Live Transcript - Fixed height with scroll */}
+              {/* Live Transcript - Fixed height with scroll, never causes page scroll */}
               <Card className="border-gray-200">
                 <CardHeader className="pb-2 pt-4 px-4">
                   <div className="flex items-center justify-between">
@@ -820,7 +822,7 @@ export default function VoiceConfigPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="px-4 pb-4">
-                  <div className="h-80 overflow-y-auto space-y-2 border border-gray-100 rounded-lg p-3 bg-gray-50">
+                  <div ref={transcriptContainerRef} className="h-96 overflow-y-auto overscroll-contain space-y-2 border border-gray-100 rounded-lg p-3 bg-gray-50">
                     {transcript.length === 0 && !testCallActive && (
                       <p className="text-xs text-gray-400 italic text-center py-4">Click "Start Test Call" to begin</p>
                     )}
@@ -857,7 +859,6 @@ export default function VoiceConfigPage() {
                         )}
                       </div>
                     ))}
-                    <div ref={transcriptEndRef} />
                   </div>
                 </CardContent>
               </Card>
