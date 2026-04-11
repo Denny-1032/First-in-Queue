@@ -22,8 +22,8 @@ export async function GET() {
     ).length || 0;
 
     const monthlyRecurring = subscriptions?.reduce((sum, s) => {
-      if (s.status === "active" && s.plan_id === "starter") return sum + 499;
-      if (s.status === "active" && s.plan_id === "growth") return sum + 1299;
+      if (s.status === "active" && s.plan_id === "basic") return sum + 499;
+      if (s.status === "active" && s.plan_id === "business") return sum + 1699;
       return sum;
     }, 0) || 0;
 

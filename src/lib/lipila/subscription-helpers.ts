@@ -5,19 +5,20 @@ import { activatePaidSubscription } from "@/lib/trial-helpers";
 /**
  * Resolve plan ID and billing interval from a payment amount.
  * Checks both monthly and yearly prices across all PLANS.
+ * Plans: free, basic (K499/K4790), business (K1699/K16310), enterprise
  */
 export function resolvePlanFromAmount(amount: number): { planId: string; interval: "monthly" | "yearly" } {
-  // Check yearly prices first (higher amounts)
+  // Check yearly prices first (higher amounts, descending)
   const yearlyMatch = PLANS
-    .filter((p) => p.yearlyPriceZMW > 0)
+    .filter((p) => p.yearlyPriceZMW > 0 && p.priceZMW > 0)
     .sort((a, b) => b.yearlyPriceZMW - a.yearlyPriceZMW)
     .find((p) => amount >= p.yearlyPriceZMW);
 
-  if (yearlyMatch && amount >= yearlyMatch.yearlyPriceZMW) {
+  if (yearlyMatch) {
     return { planId: yearlyMatch.id, interval: "yearly" };
   }
 
-  // Check monthly prices
+  // Check monthly prices (descending)
   const monthlyMatch = PLANS
     .filter((p) => p.priceZMW > 0)
     .sort((a, b) => b.priceZMW - a.priceZMW)

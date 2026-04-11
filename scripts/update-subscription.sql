@@ -7,6 +7,9 @@
 -- Replace 'TENANT_ID_HERE' with the actual tenant ID
 -- Replace 'basic' or 'business' with desired plan
 
+-- Step 0: Check available plan IDs (run this first to see valid options)
+SELECT id, name, price_zmw FROM subscription_plans;
+
 -- Step 1: Find the tenant (optional - to verify)
 SELECT id, name, slug FROM tenants WHERE email = 'user@example.com';
 -- OR
@@ -20,25 +23,22 @@ WHERE tenant_id = 'TENANT_ID_HERE'
   AND status IN ('active', 'trialing', 'free');
 
 -- Step 3: Create new active subscription
--- NOTE: billing_interval is stored as integer: 1=monthly, 2=yearly
 INSERT INTO subscriptions (
     tenant_id,
     plan_id,
     status,
     current_period_start,
     current_period_end,
-    billing_interval,
     messages_used,
     voice_minutes_used,
     created_at,
     updated_at
 ) VALUES (
     '64e39794-cc98-4c09-88ba-de526778c488',  -- Replace with tenant ID (no 'TE' prefix)
-    'business',                             -- Choose: 'basic', 'business', or 'enterprise'
+    'PLAN_ID_HERE',                         -- Use: 'free', 'basic', 'business', or 'enterprise' (see Step 0)
     'active',                               -- Status: 'active'
     NOW(),                                  -- Period starts now
     NOW() + INTERVAL '30 days',             -- Period ends in 30 days (change as needed)
-    1,                                      -- 1=monthly, 2=yearly
     0,                                      -- Reset messages used
     0,                                      -- Reset voice minutes used
     NOW(),

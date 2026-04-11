@@ -34,13 +34,13 @@ export default function SettingsPage() {
   const [outsideHoursMsg, setOutsideHoursMsg] = useState("Thanks for reaching out! We're currently closed. Our hours are Mon-Fri 9AM-6PM. We'll get back to you first thing!");
   const [languages, setLanguages] = useState(["en", "es"]);
   const [whatsappConnected, setWhatsappConnected] = useState(false);
-  const [currentPlanId, setCurrentPlanId] = useState("starter");
-  const [subscriptionStatus, setSubscriptionStatus] = useState<string>("trialing");
+  const [currentPlanId, setCurrentPlanId] = useState("free");
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>("active");
   const [messagesUsed, setMessagesUsed] = useState(0);
   const [voiceMinutesUsed, setVoiceMinutesUsed] = useState(0);
   const [periodEnd, setPeriodEnd] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [checkoutPlanId, setCheckoutPlanId] = useState("starter");
+  const [checkoutPlanId, setCheckoutPlanId] = useState("basic");
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
 
   const defaultSchedule = [
@@ -384,7 +384,7 @@ export default function SettingsPage() {
                   <Key className="h-5 w-5 text-emerald-600" />
                   <CardTitle>Plan & Usage</CardTitle>
                 </div>
-                {(subscriptionStatus === "trialing" || (currentPlanId !== "growth" && currentPlanId !== "enterprise")) && (
+                {currentPlanId !== "business" && currentPlanId !== "enterprise" && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -394,7 +394,7 @@ export default function SettingsPage() {
                     }}
                   >
                     <CreditCard className="h-3.5 w-3.5" />
-                    {subscriptionStatus === "trialing" ? "Start Trial" : "Upgrade"}
+                    Upgrade
                   </Button>
                 )}
               </div>
@@ -405,8 +405,8 @@ export default function SettingsPage() {
                   <p className="text-sm font-medium text-gray-700">Current Plan</p>
                   <p className="text-xs text-gray-500">First in Queue {currentPlan.name}</p>
                 </div>
-                <Badge variant={subscriptionStatus === "trialing" ? "secondary" : "default"}>
-                  {subscriptionStatus === "trialing" ? "Trial" : "Active"}
+                <Badge variant="default">
+                  {subscriptionStatus === "active" ? "Active" : subscriptionStatus}
                 </Badge>
               </div>
               <div className="py-3 border-b border-gray-100 space-y-2">

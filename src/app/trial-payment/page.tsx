@@ -15,7 +15,7 @@ function TrialPaymentContent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  const planId = searchParams.get("plan") || "starter";
+  const planId = searchParams.get("plan") || "basic";
   const billingParam = searchParams.get("billing") || "monthly";
 
   const [loading, setLoading] = useState(false);
