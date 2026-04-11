@@ -67,7 +67,7 @@ export default function ContactPage() {
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">Support Hours</h2>
             <p className="text-gray-700 font-medium text-sm">Monday – Friday: 8:00 AM – 5:00 PM (CAT)</p>
-            <p className="text-gray-500 text-sm mt-1">Weekend: Email support only</p>
+            <p className="text-gray-500 text-sm mt-1">Automated 24/7 Support</p>
           </div>
 
           <div className="rounded-2xl border border-gray-200 p-8">
