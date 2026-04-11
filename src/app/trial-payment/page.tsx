@@ -88,12 +88,12 @@ function TrialPaymentContent() {
           <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 mb-4">
             <CheckCircle2 className="h-8 w-8 text-emerald-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Start Your Free Trial</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Upgrade to {plan.name}</h1>
           <p className="text-gray-500">
-            Add payment details to activate your 7-day trial on the {plan.name} plan.
+            Complete payment to activate your {plan.name} plan immediately.
           </p>
-          <p className="text-sm text-amber-600 mt-2">
-            No charges until trial ends. Cancel anytime.
+          <p className="text-sm text-emerald-600 mt-2 font-medium">
+            30-day money-back guarantee — full refund if not satisfied
           </p>
         </div>
 
@@ -107,12 +107,12 @@ function TrialPaymentContent() {
               <div className="rounded-lg bg-gray-50 p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-gray-900">{plan.name} Plan</span>
-                  <Badge variant="outline">7-day free trial</Badge>
+                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">30-day guarantee</Badge>
                 </div>
                 <div className="text-sm text-gray-500 space-y-1">
                   <div>• {plan.messagesLabel} + {plan.voiceMinutesLabel}</div>
-                  <div>• K0.00 for 7 days</div>
-                  <div>• {periodLabel} after trial</div>
+                  <div>• {periodLabel} (charged immediately)</div>
+                  <div>• Full refund available within 30 days</div>
                 </div>
               </div>
 
@@ -178,7 +178,7 @@ function TrialPaymentContent() {
 
               <p className="text-xs text-gray-500 text-center">
                 By continuing, you agree to our Terms of Service and Privacy Policy.
-                You can cancel anytime before the trial ends to avoid charges.
+                Not satisfied? Contact us within 30 days for a full refund.
               </p>
             </form>
           </CardContent>

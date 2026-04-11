@@ -10,12 +10,12 @@ import { PLANS } from "@/lib/lipila/plans";
 
 const faqs = [
   {
-    question: "How does the 7-day trial work?",
-    answer: "Sign up and get full access to your chosen plan for 7 days — no payment required. If you don't subscribe before the trial ends, your account pauses.",
-  },
-  {
     question: "What's the 30-day money-back guarantee?",
     answer: "If you're not satisfied within 30 days of your first payment, contact us for a full refund. No questions asked.",
+  },
+  {
+    question: "What do I get when I sign up?",
+    answer: "When you create an account, you get 2 free voice minutes and 5 free WhatsApp messages to test the platform. To unlock full features, choose a paid plan.",
   },
   {
     question: "What counts as a WhatsApp conversation?",
@@ -67,7 +67,7 @@ function PricingContent() {
             </span>
           </h1>
           <p className="text-lg text-gray-500 mt-6 max-w-2xl mx-auto">
-            7-day free trial on every plan. Pay with Mobile Money or Card.
+            Get 2 free voice minutes and 5 messages on signup. Upgrade anytime. 30-day money-back guarantee.
           </p>
 
           {/* 30-day guarantee banner */}
@@ -174,9 +174,14 @@ function PricingContent() {
                   {fromSettings && plan.id !== "enterprise" ? "Choose Plan" : plan.cta}
                 </Link>
                 {plan.id !== "enterprise" && (
-                  <p className="text-xs text-gray-500 text-center mt-3">
-                    Additional usage charged at K0.10/message and K2.00/minute
-                  </p>
+                  <>
+                    <p className="text-xs text-gray-500 text-center mt-3">
+                      Additional usage charged at K0.10/message and K2.00/minute
+                    </p>
+                    <p className="text-xs text-emerald-600 text-center mt-1 font-medium">
+                      30-day money-back guarantee
+                    </p>
+                  </>
                 )}
                 {plan.id === "enterprise" && (
                   <p className="text-xs text-gray-500 text-center mt-3 italic">

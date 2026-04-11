@@ -22,10 +22,38 @@ export interface PlanDefinition {
 }
 
 // Trial & guarantee constants
-export const TRIAL_DAYS = 7;
 export const GUARANTEE_DAYS = 30;
 
+// FREE TIER for new signups - limited credits to test platform
+export const FREE_TIER = {
+  voiceMinutes: 2,
+  messages: 5,
+};
+
 export const PLANS: PlanDefinition[] = [
+  // Free tier - not shown on pricing page, only for new signups
+  {
+    id: "free",
+    name: "Free",
+    priceZMW: 0,
+    priceLabel: "Free",
+    yearlyPriceZMW: 0,
+    yearlyPriceLabel: "Free",
+    yearlyMonthlyLabel: "Free",
+    messagesPerMonth: 5,
+    messagesLabel: "5 WhatsApp conversations",
+    voiceMinutesPerMonth: 2,
+    voiceMinutesLabel: "2 AI voice call minutes",
+    whatsappNumbers: 1,
+    features: [
+      "5 WhatsApp conversations",
+      "2 AI voice call minutes",
+      "1 WhatsApp number",
+      "Basic AI responses",
+      "Upgrade anytime to unlock more",
+    ],
+    cta: "Get Started",
+  },
   {
     id: "basic",
     name: "Basic",

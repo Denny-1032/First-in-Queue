@@ -98,17 +98,14 @@ export async function POST(request: NextRequest) {
       max_concurrent_chats: 10,
     });
 
-    // Create 7-day trial subscription on Starter plan
-    const now = new Date();
-    const trialEnd = new Date(now);
-    trialEnd.setDate(trialEnd.getDate() + 7);
+    // Create free tier subscription with 2 voice minutes and 5 messages
+    // Users get limited free credits to test, then must upgrade to paid plan
     await db.from("subscriptions").insert({
       tenant_id: tenant.id,
-      plan_id: "starter",
-      status: "trialing",
-      current_period_start: now.toISOString(),
-      current_period_end: trialEnd.toISOString(),
+      plan_id: "free",
+      status: "active",
       messages_used: 0,
+      voice_minutes_used: 0,
     });
 
     const token = generateAuthToken(user.id, email.toLowerCase());
