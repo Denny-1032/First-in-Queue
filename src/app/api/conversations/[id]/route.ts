@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getConversation, updateConversation } from "@/lib/db/operations";
+import { getConversation, updateConversation, getTenantById, saveMessage } from "@/lib/db/operations";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { createWhatsAppClient } from "@/lib/whatsapp/client";
 
 export async function GET(
   request: NextRequest,
@@ -57,7 +58,7 @@ export async function PATCH(
     if (enteringHandoff) {
       const { data: agent } = await db
         .from("agents")
-        .select("active_chats")
+        .select("active_chats, name")
         .eq("id", sanitized.assigned_agent_id as string)
         .single();
       if (agent) {
@@ -65,6 +66,28 @@ export async function PATCH(
           .from("agents")
           .update({ active_chats: (agent.active_chats || 0) + 1 })
           .eq("id", sanitized.assigned_agent_id as string);
+
+        // Send "agent joined" WhatsApp message to customer
+        try {
+          const tenant = await getTenantById(updated.tenant_id);
+          if (tenant?.whatsapp_access_token && tenant?.whatsapp_phone_number_id) {
+            const whatsapp = createWhatsAppClient(tenant.whatsapp_access_token, tenant.whatsapp_phone_number_id);
+            const joinMsg = `Hi! I'm ${agent.name} and I'll be taking over from here. How can I help you?`;
+            const waId = await whatsapp.sendText(updated.customer_phone, joinMsg);
+            await saveMessage({
+              conversation_id: id,
+              tenant_id: updated.tenant_id,
+              direction: "outbound",
+              sender_type: "agent",
+              message_type: "text",
+              content: { text: joinMsg, _system: true, _agent_name: agent.name },
+              whatsapp_message_id: waId,
+              status: "sent",
+            });
+          }
+        } catch (err) {
+          console.error("[Conversations] Failed to send agent-joined message:", err);
+        }
       }
     }
 

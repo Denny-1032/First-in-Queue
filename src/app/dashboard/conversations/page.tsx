@@ -568,6 +568,23 @@ export default function ConversationsPage() {
                   <div className="space-y-4">
                     {messages.map((msg) => {
                       const isInbound = msg.direction === "inbound";
+                      const isSystemJoin = (msg.content as Record<string, unknown>)?._system === true;
+
+                      // System "agent joined" banner — centred, not a bubble
+                      if (isSystemJoin) {
+                        const agentName = String((msg.content as Record<string, unknown>)?._agent_name || "Agent");
+                        return (
+                          <div key={msg.id} className="flex items-center gap-2 my-1">
+                            <div className="flex-1 h-px bg-gray-200" />
+                            <span className="flex items-center gap-1.5 text-[11px] text-blue-600 font-medium px-2 py-0.5 rounded-full bg-blue-50 border border-blue-100 whitespace-nowrap">
+                              <UserCheck className="h-3 w-3" />
+                              {agentName} joined the conversation
+                            </span>
+                            <div className="flex-1 h-px bg-gray-200" />
+                          </div>
+                        );
+                      }
+
                       return (
                         <div key={msg.id} className={cn("flex", isInbound ? "justify-start" : "justify-end")}>
                           <div className={cn("max-w-[70%] space-y-1")}>

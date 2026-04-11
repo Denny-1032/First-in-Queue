@@ -183,6 +183,9 @@ export interface MessageContent {
   longitude?: number;
   interactive?: InteractiveMessage;
   template?: TemplateMessage;
+  _system?: boolean;
+  _agent_name?: string;
+  _voice_followup?: boolean;
 }
 
 export interface InteractiveMessage {

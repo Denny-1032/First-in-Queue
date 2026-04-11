@@ -32,7 +32,7 @@ const navItems = [
 
 const advancedNavItems = [
   { href: "/dashboard/flows", label: "Flows", icon: Workflow },
-  { href: "/dashboard/agents", label: "Team", icon: Users },
+  { href: "/dashboard/team", label: "Team", icon: Users },
   { href: "/dashboard/integrations", label: "Integrations", icon: Zap },
 ];
 
