@@ -15,7 +15,7 @@ const faqs = [
   },
   {
     question: "What do I get when I sign up?",
-    answer: "When you create an account, you get 2 free voice minutes and 5 free WhatsApp messages to test the platform. To unlock full features, choose a paid plan.",
+    answer: "When you create an account, you get 3 free voice minutes and 5 free WhatsApp messages to test the platform. To unlock full features, choose a paid plan.",
   },
   {
     question: "What counts as a WhatsApp conversation?",
@@ -67,7 +67,7 @@ function PricingContent() {
             </span>
           </h1>
           <p className="text-lg text-gray-500 mt-6 max-w-2xl mx-auto">
-            Get 2 free voice minutes and 5 messages on signup. Upgrade anytime. 30-day money-back guarantee.
+            Get 3 free voice minutes and 5 messages on signup. Upgrade anytime. 30-day money-back guarantee.
           </p>
 
           {/* 30-day guarantee banner */}
@@ -103,7 +103,7 @@ function PricingContent() {
       <section className="py-12 px-6">
         <div className="flex justify-center">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl">
-            {PLANS.map((plan) => (
+            {PLANS.filter((plan) => plan.id !== "free").map((plan) => (
               <div
                 key={plan.id}
                 className={`rounded-2xl border-2 p-7 flex flex-col ${

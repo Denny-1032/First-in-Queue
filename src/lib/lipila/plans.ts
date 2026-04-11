@@ -26,7 +26,7 @@ export const GUARANTEE_DAYS = 30;
 
 // FREE TIER for new signups - limited credits to test platform
 export const FREE_TIER = {
-  voiceMinutes: 2,
+  voiceMinutes: 3,
   messages: 5,
 };
 
@@ -42,12 +42,12 @@ export const PLANS: PlanDefinition[] = [
     yearlyMonthlyLabel: "Free",
     messagesPerMonth: 5,
     messagesLabel: "5 WhatsApp conversations",
-    voiceMinutesPerMonth: 2,
-    voiceMinutesLabel: "2 AI voice call minutes",
+    voiceMinutesPerMonth: 3,
+    voiceMinutesLabel: "3 AI voice call minutes",
     whatsappNumbers: 1,
     features: [
       "5 WhatsApp conversations",
-      "2 AI voice call minutes",
+      "3 AI voice call minutes",
       "1 WhatsApp number",
       "Basic AI responses",
       "Upgrade anytime to unlock more",
