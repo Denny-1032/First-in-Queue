@@ -273,17 +273,20 @@ export default function ConversationsPage() {
       toast("Failed to send message", "error");
     }
 
-    // Update conversation status to handoff
+    // Update conversation status to handoff + assign agent
     try {
+      const patchBody: Record<string, unknown> = { status: "handoff", ai_enabled: false };
+      if (myAgent) patchBody.assigned_agent_id = myAgent.id;
       await fetch(`/api/conversations/${selectedId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "handoff", ai_enabled: false }),
+        body: JSON.stringify(patchBody),
       });
+      fetchAgents();
     } catch { /* best effort */ }
 
     setConversations((prev) =>
-      prev.map((c) => c.id === selectedId && c.status === "active" ? { ...c, status: "handoff" as ConversationStatus, ai_enabled: false } : c)
+      prev.map((c) => c.id === selectedId && (c.status === "active" || c.status === "waiting") ? { ...c, status: "handoff" as ConversationStatus, ai_enabled: false } : c)
     );
     setSending(false);
     // Refresh conversations list so latest message preview updates
@@ -455,7 +458,7 @@ export default function ConversationsPage() {
                       <span className="text-xs text-gray-500">{selectedConvo.customer_phone}</span>
                     </div>
                     {(() => {
-                      const escalationReason = selectedConvo.status === "handoff"
+                      const escalationReason = (selectedConvo.status === "handoff" || selectedConvo.status === "waiting")
                         ? String((selectedConvo.metadata as Record<string, unknown>)?.escalation_reason || "")
                         : "";
                       return escalationReason ? (
@@ -481,11 +484,15 @@ export default function ConversationsPage() {
                         );
                         if (selectedId) {
                           try {
+                            const patchBody: Record<string, unknown> = { status: "handoff", ai_enabled: false };
+                            if (myAgent) patchBody.assigned_agent_id = myAgent.id;
                             await fetch(`/api/conversations/${selectedId}`, {
                               method: "PATCH",
                               headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ status: "handoff", ai_enabled: false }),
+                              body: JSON.stringify(patchBody),
                             });
+                            // Refresh agent to get updated active_chats
+                            fetchAgents();
                           } catch { /* best effort */ }
                         }
                         toast("Conversation taken over. You are now the agent.", "info");

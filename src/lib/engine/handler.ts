@@ -118,9 +118,9 @@ async function processIncomingMessage(
       status: "delivered",
     });
 
-    // Check if conversation is in handoff mode (human agent)
-    if (conversation.status === "handoff") {
-      console.log(`[Handler] Response path: HANDOFF — conversation ${conversation.id} in handoff mode, skipping bot`);
+    // Check if conversation is in handoff or waiting mode (human agent pending)
+    if (conversation.status === "handoff" || conversation.status === "waiting") {
+      console.log(`[Handler] Response path: HANDOFF — conversation ${conversation.id} in ${conversation.status} mode, skipping bot`);
       return;
     }
 
@@ -946,19 +946,55 @@ async function sendFlowStep(
       await handleEscalation(tenant, conversation, { from: to } as WhatsAppIncomingMessage, {
         text: "",
         should_escalate: true,
-        escalation_reason: `Flow "${flow.name}" handoff with data: ${JSON.stringify(flowState.collected_data)}`,
+        escalation_reason: `Flow "${flow.name}" handoff` + (Object.keys(flowState.collected_data).length > 0 ? ` — ${Object.entries(flowState.collected_data).map(([k, v]) => `${k}: ${v}`).join(", ")}` : ""),
         confidence: 1.0,
       }, whatsapp);
       return;
     }
 
-    // For action or condition types, advance for now
+    if (step.type === "action") {
+      // Send a confirmation message for the action
+      const actionLabels: Record<string, string> = {
+        book_appointment: "booking your appointment",
+        capture_lead: "saving your details",
+        send_confirmation: "sending you a confirmation",
+      };
+      const actionLabel = actionLabels[step.action || ""] || step.action || "processing";
+      const actionMsg = `Got it! I'm ${actionLabel} now...`;
+      const waActionId = await whatsapp.sendText(to, actionMsg);
+      await saveMessage({
+        conversation_id: conversation.id,
+        tenant_id: tenant.id,
+        direction: "outbound",
+        sender_type: "bot",
+        message_type: "text",
+        content: { text: actionMsg },
+        whatsapp_message_id: waActionId,
+        status: "sent",
+      });
+      currentIndex++;
+      continue;
+    }
+
+    // For condition or other types, advance
     currentIndex++;
   }
 
-  // Flow completed — clear state
+  // Flow completed — clear state and send completion message
   await updateConversation(conversation.id, {
     metadata: buildFlowMetadata(null, conversation.metadata as Record<string, unknown>),
+  });
+  const completionMsg = "That's everything! Is there anything else I can help you with?";
+  const waCompletionId = await whatsapp.sendText(to, completionMsg);
+  await saveMessage({
+    conversation_id: conversation.id,
+    tenant_id: tenant.id,
+    direction: "outbound",
+    sender_type: "bot",
+    message_type: "text",
+    content: { text: completionMsg },
+    whatsapp_message_id: waCompletionId,
+    status: "sent",
   });
 }
 
@@ -1003,8 +1039,11 @@ async function processFlowStep(
     return;
   }
 
-  // Store collected data using step ID as key
-  const updatedData = { ...flowState.collected_data, [currentStep.id]: userResponse };
+  // Store collected data using a readable key derived from the question content
+  const dataKey = currentStep.content
+    ? currentStep.content.replace(/[?!.,]/g, "").trim().slice(0, 40)
+    : currentStep.id;
+  const updatedData = { ...flowState.collected_data, [dataKey]: userResponse };
 
   // Determine next step — if current step has options with next_step routing, use that
   let nextIndex = flowState.step_index + 1;
@@ -1051,9 +1090,21 @@ async function processFlowStep(
   };
 
   if (nextIndex >= flow.steps.length) {
-    // Flow completed — clear state
+    // Flow completed — clear state and send completion message
     await updateConversation(conversation.id, {
       metadata: buildFlowMetadata(null, conversation.metadata as Record<string, unknown>),
+    });
+    const doneMsg = "That's everything! Is there anything else I can help you with?";
+    const waDoneId = await whatsapp.sendText(message.from, doneMsg);
+    await saveMessage({
+      conversation_id: conversation.id,
+      tenant_id: tenant.id,
+      direction: "outbound",
+      sender_type: "bot",
+      message_type: "text",
+      content: { text: doneMsg },
+      whatsapp_message_id: waDoneId,
+      status: "sent",
     });
     return;
   }

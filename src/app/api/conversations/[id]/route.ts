@@ -48,6 +48,26 @@ export async function PATCH(
       return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
     }
 
+    // Increment active_chats when agent manually takes over a conversation (entering handoff)
+    const enteringHandoff =
+      current?.status !== "handoff" &&
+      sanitized.status === "handoff" &&
+      sanitized.assigned_agent_id;
+
+    if (enteringHandoff) {
+      const { data: agent } = await db
+        .from("agents")
+        .select("active_chats")
+        .eq("id", sanitized.assigned_agent_id as string)
+        .single();
+      if (agent) {
+        await db
+          .from("agents")
+          .update({ active_chats: (agent.active_chats || 0) + 1 })
+          .eq("id", sanitized.assigned_agent_id as string);
+      }
+    }
+
     // Decrement agent's active_chats when conversation leaves handoff (resolved or returned to AI)
     const leavingHandoff =
       current?.status === "handoff" &&
