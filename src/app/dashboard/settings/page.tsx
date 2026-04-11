@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Settings,
-  Globe,
   Phone,
   Key,
   Bell,
@@ -64,6 +63,7 @@ function SettingsContent() {
   const [checkoutPlanId, setCheckoutPlanId] = useState("basic");
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
   const [cancelling, setCancelling] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>("business");
 
   const defaultSchedule = [
     { day: "Monday", open: "09:00", close: "18:00", enabled: true },
@@ -141,8 +141,6 @@ function SettingsContent() {
     setSchedule((prev) => prev.map((d, i) => i === index ? { ...d, [field]: value } : d));
   };
 
-  const [activeTab, setActiveTab] = useState<TabId>("business");
-
   const handleSave = async () => {
     setSaving(true);
     if (tenantId) {
@@ -182,7 +180,7 @@ function SettingsContent() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-500 mt-1 text-sm">Configure your business, messaging, and billing</p>
+          <p className="text-gray-500 mt-1 text-sm">Configure your business</p>
         </div>
         {(activeTab === "business" || activeTab === "messaging") && (
           <Button className="gap-2" disabled={saving} onClick={handleSave}>
@@ -212,7 +210,7 @@ function SettingsContent() {
               )}
             >
               <Icon className="h-4 w-4" />
-              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="text-xs sm:text-sm">{tab.label}</span>
             </button>
           );
         })}
@@ -227,7 +225,6 @@ function SettingsContent() {
             <Settings className="h-5 w-5 text-gray-600" />
             <CardTitle>Business Information</CardTitle>
           </div>
-          <CardDescription>Core details about your business</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -253,187 +250,168 @@ function SettingsContent() {
               ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Languages */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Globe className="h-5 w-5 text-emerald-600" />
-            <CardTitle>Languages</CardTitle>
-          </div>
-          <CardDescription>Select languages your AI will respond in</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2 flex-wrap">
-            {[
-              { code: "en", name: "English" },
-              { code: "es", name: "Spanish" },
-              { code: "fr", name: "French" },
-              { code: "pt", name: "Portuguese" },
-              { code: "de", name: "German" },
-              { code: "it", name: "Italian" },
-              { code: "ar", name: "Arabic" },
-              { code: "zh", name: "Chinese" },
-              { code: "ja", name: "Japanese" },
-              { code: "hi", name: "Hindi" },
-            ].map((lang) => (
-              <button
-                key={lang.code}
-                onClick={() => {
-                  setLanguages((prev) =>
-                    prev.includes(lang.code) ? prev.filter((l) => l !== lang.code) : [...prev, lang.code]
-                  );
-                }}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                  languages.includes(lang.code)
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                )}
-              >
-                {lang.name}
-              </button>
-            ))}
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Languages</label>
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { code: "en", name: "English" },
+                { code: "es", name: "Spanish" },
+                { code: "fr", name: "French" },
+                { code: "pt", name: "Portuguese" },
+                { code: "de", name: "German" },
+                { code: "it", name: "Italian" },
+                { code: "ar", name: "Arabic" },
+                { code: "zh", name: "Chinese" },
+                { code: "ja", name: "Japanese" },
+                { code: "hi", name: "Hindi" },
+              ].map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => {
+                    setLanguages((prev) =>
+                      prev.includes(lang.code) ? prev.filter((l) => l !== lang.code) : [...prev, lang.code]
+                    );
+                  }}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                    languages.includes(lang.code)
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  )}
+                >
+                  {lang.name}
+                </button>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
-        </>
-      )}
+      </>)}
 
       {/* ── MESSAGES & HOURS TAB ── */}
-      {activeTab === "messaging" && (
-        <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-blue-600" />
-            <CardTitle>Auto-Reply Messages</CardTitle>
-          </div>
-          <CardDescription>Customise what customers see at different stages</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Welcome Message</label>
-            <textarea
-              value={welcomeMessage}
-              onChange={(e) => setWelcomeMessage(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[80px] resize-y"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Fallback Message</label>
-            <textarea
-              value={fallbackMessage}
-              onChange={(e) => setFallbackMessage(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[60px] resize-y"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Outside Hours Message</label>
-            <textarea
-              value={outsideHoursMsg}
-              onChange={(e) => setOutsideHoursMsg(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[60px] resize-y"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {activeTab === "messaging" && (<>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-blue-600" />
+              <CardTitle>Auto-Reply Messages</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Welcome Message</label>
+              <textarea
+                value={welcomeMessage}
+                onChange={(e) => setWelcomeMessage(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[80px] resize-y"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Fallback Message</label>
+              <textarea
+                value={fallbackMessage}
+                onChange={(e) => setFallbackMessage(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[60px] resize-y"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Outside Hours Message</label>
+              <textarea
+                value={outsideHoursMsg}
+                onChange={(e) => setOutsideHoursMsg(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[60px] resize-y"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-amber-600" />
-            <CardTitle>Operating Hours</CardTitle>
-          </div>
-          <CardDescription>Set when your business is open for live support</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {schedule.map((day) => (
-              <div key={day.day} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <span className="text-sm text-gray-700 w-24 shrink-0">{day.day}</span>
-                  <button
-                    onClick={() => updateScheduleDay(schedule.indexOf(day), "enabled", !day.enabled)}
-                    className={cn(
-                      "w-12 h-6 rounded-full transition-colors relative shrink-0",
-                      day.enabled ? "bg-emerald-500" : "bg-gray-200"
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-amber-600" />
+              <CardTitle>Operating Hours</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {schedule.map((day) => (
+                <div key={day.day} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <span className="text-sm text-gray-700 w-24 shrink-0">{day.day}</span>
+                    <button
+                      onClick={() => updateScheduleDay(schedule.indexOf(day), "enabled", !day.enabled)}
+                      className={cn(
+                        "w-12 h-6 rounded-full transition-colors relative shrink-0",
+                        day.enabled ? "bg-emerald-500" : "bg-gray-200"
+                      )}
+                    >
+                      <div className={cn(
+                        "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                        day.enabled ? "translate-x-6" : "translate-x-0.5"
+                      )} />
+                    </button>
+                    {!day.enabled && (
+                      <span className="text-sm text-gray-400">Closed</span>
                     )}
-                  >
-                    <div className={cn(
-                      "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
-                      day.enabled ? "translate-x-6" : "translate-x-0.5"
-                    )} />
-                  </button>
-                  {!day.enabled && (
-                    <span className="text-sm text-gray-400">Closed</span>
+                  </div>
+                  {day.enabled && (
+                    <div className="flex items-center gap-2">
+                      <Input value={day.open} onChange={(e) => updateScheduleDay(schedule.indexOf(day), "open", e.target.value)} className="w-24 text-center" />
+                      <span className="text-gray-400">to</span>
+                      <Input value={day.close} onChange={(e) => updateScheduleDay(schedule.indexOf(day), "close", e.target.value)} className="w-24 text-center" />
+                    </div>
                   )}
                 </div>
-                {day.enabled && (
-                  <div className="flex items-center gap-2 pl-0 sm:pl-0">
-                    <Input value={day.open} onChange={(e) => updateScheduleDay(schedule.indexOf(day), "open", e.target.value)} className="w-24 text-center" />
-                    <span className="text-gray-400">to</span>
-                    <Input value={day.close} onChange={(e) => updateScheduleDay(schedule.indexOf(day), "close", e.target.value)} className="w-24 text-center" />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-        </>
-      )}
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </>)}
 
       {/* ── INTEGRATIONS TAB ── */}
-      {activeTab === "integrations" && (
-        <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Phone className="h-5 w-5 text-green-600" />
-            <CardTitle>WhatsApp Connection</CardTitle>
-          </div>
-          <CardDescription>Your WhatsApp Business API integration status</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {whatsappConnected ? (
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-emerald-800">Connected & Active</p>
-                <p className="text-xs text-emerald-600">Managed by First in Queue — your WhatsApp Business API is live</p>
+      {activeTab === "integrations" && (<>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Phone className="h-5 w-5 text-green-600" />
+              <CardTitle>WhatsApp Connection</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {whatsappConnected ? (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-emerald-800">Connected & Active</p>
+                  <p className="text-xs text-emerald-600">Managed by First in Queue — your WhatsApp Business API is live</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
+                <Clock className="h-5 w-5 text-blue-600 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-blue-800">Setup In Progress</p>
+                  <p className="text-xs text-blue-600">Our team is configuring your WhatsApp connection. You&apos;ll be emailed once it&apos;s live.</p>
+                </div>
+              </div>
+            )}
+            <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
+              <div className="flex items-start gap-3">
+                <Shield className="h-5 w-5 text-gray-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Fully managed</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    WhatsApp Business API, AI engine, and hosting are managed by First in Queue. No setup required.
+                  </p>
+                </div>
               </div>
             </div>
-          ) : (
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
-              <Clock className="h-5 w-5 text-blue-600 shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-blue-800">Setup In Progress</p>
-                <p className="text-xs text-blue-600">Our team is configuring your WhatsApp Business API connection. You&apos;ll receive an email once it&apos;s live.</p>
-              </div>
-            </div>
-          )}
-          <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
-            <div className="flex items-start gap-3">
-              <Shield className="h-5 w-5 text-gray-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-gray-700">Fully managed infrastructure</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  WhatsApp Business API, AI engine, and hosting are all managed by First in Queue.
-                  No API keys or technical setup required on your end.
-                </p>
-              </div>
-            </div>
-          </div>
-          <p className="text-xs text-gray-400">
-            Need help? Contact us at <span className="text-emerald-600 font-medium">support@codarti.com</span>
-          </p>
-        </CardContent>
-      </Card>
-        </>
-      )}
+            <p className="text-xs text-gray-400">
+              Need help? Contact <span className="text-emerald-600 font-medium">support@codarti.com</span>
+            </p>
+          </CardContent>
+        </Card>
+      </>)}
 
       {/* ── PLAN & BILLING TAB ── */}
       {activeTab === "billing" && (

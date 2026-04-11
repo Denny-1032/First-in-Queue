@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -186,7 +186,6 @@ export default function TeamPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Team</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Manage agents who handle customer conversations</p>
         </div>
         <Button
           onClick={() => setShowInviteForm(true)}
@@ -199,7 +198,7 @@ export default function TeamPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="h-9 w-9 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
@@ -242,7 +241,6 @@ export default function TeamPage() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-base">Add Team Member</CardTitle>
-                <CardDescription>They will receive an email invite to set up their login.</CardDescription>
               </div>
               <button onClick={() => { setShowInviteForm(false); setInvite(emptyInvite()); }} className="text-gray-400 hover:text-gray-600">
                 <X className="h-4 w-4" />
@@ -450,13 +448,13 @@ export default function TeamPage() {
 
                         {/* Actions */}
                         <div className="flex items-center gap-1 shrink-0">
-                          {agent.email && (
+                          {agent.email && !agent.invite_accepted_at && (
                             <Button
                               variant="ghost"
                               size="sm"
                               className="h-8 gap-1 text-xs text-gray-500 hover:text-blue-600"
                               onClick={() => handleSendInvite(agent)}
-                              title="Resend invite email"
+                              title={agent.invite_sent_at ? "Resend invite" : "Send invite"}
                             >
                               <Send className="h-3.5 w-3.5" />
                             </Button>
@@ -489,26 +487,6 @@ export default function TeamPage() {
         </CardContent>
       </Card>
 
-      {/* How it works */}
-      <Card className="bg-gray-50 border-dashed">
-        <CardContent className="pt-5 pb-4">
-          <p className="text-xs font-semibold text-gray-600 mb-2">How team handoff works</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-gray-500">
-            <div className="flex items-start gap-2">
-              <span className="font-bold text-emerald-600 shrink-0">1.</span>
-              Agent must be set <strong>Online</strong> to receive handoffs from the AI
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="font-bold text-emerald-600 shrink-0">2.</span>
-              AI assigns the conversation to the agent with fewest active chats
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="font-bold text-emerald-600 shrink-0">3.</span>
-              Agent sees the chat in Conversations and the customer gets a WhatsApp message
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

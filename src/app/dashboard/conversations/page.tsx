@@ -310,7 +310,6 @@ export default function ConversationsPage() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Conversations</h1>
-          <p className="text-gray-500 mt-1 text-sm">Manage customer conversations and handoffs</p>
         </div>
         {myAgent && (
           <div className="flex items-center gap-2">
