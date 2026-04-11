@@ -17,7 +17,6 @@ import {
   PhoneCall,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ScheduleCallModal } from "@/components/dashboard/schedule-call-modal";
 import { useToast } from "@/components/ui/toast";
 import Link from "next/link";
 
@@ -49,7 +48,6 @@ export default function ScheduledCallsPage() {
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [calls, setCalls] = useState<ScheduledCallRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [filter, setFilter] = useState<string>("");
 
   useEffect(() => {
@@ -132,8 +130,9 @@ export default function ScheduledCallsPage() {
           <p className="text-sm text-gray-500">Manage upcoming and past scheduled calls</p>
         </div>
         <Button
-          onClick={() => setScheduleModalOpen(true)}
-          className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+          disabled
+          title="Disabled, Contact Support"
+          className="gap-2 bg-gray-300 text-gray-500 cursor-not-allowed"
         >
           <Plus className="h-4 w-4" />
           Schedule Call
@@ -175,11 +174,7 @@ export default function ScheduledCallsPage() {
               <Calendar className="h-7 w-7 text-emerald-400" />
             </div>
             <p className="text-gray-900 font-medium">No scheduled calls</p>
-            <p className="text-sm text-gray-500 mt-1">Schedule your first AI voice call.</p>
-            <Button onClick={() => setScheduleModalOpen(true)} className="mt-4 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
-              <Plus className="h-4 w-4" />
-              Schedule Call
-            </Button>
+            <p className="text-sm text-gray-500 mt-1">Scheduled calls will appear here.</p>
           </CardContent>
         </Card>
       ) : (
@@ -294,13 +289,6 @@ export default function ScheduledCallsPage() {
           )}
         </div>
       )}
-
-      <ScheduleCallModal
-        isOpen={scheduleModalOpen}
-        onClose={() => setScheduleModalOpen(false)}
-        tenantId={tenantId}
-        onScheduled={fetchCalls}
-      />
     </div>
   );
 }

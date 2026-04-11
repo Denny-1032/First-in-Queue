@@ -949,29 +949,15 @@ export default function AIConfigPage() {
                 type="checkbox"
                 checked={voiceCallbackEnabled}
                 onChange={(e) => setVoiceCallbackEnabled(e.target.checked)}
-                className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 h-5 w-5"
+                disabled
+                title="Disabled, Contact Support"
+                className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 h-5 w-5 cursor-not-allowed opacity-50"
               />
             </div>
           </div>
           <CardDescription>
             Allow customers to request a voice call by typing "call me" in WhatsApp chat
           </CardDescription>
-          {/* Web-only mode notice */}
-          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <div className="flex items-start gap-2">
-              <svg className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="text-sm">
-                <p className="font-medium text-amber-800">Currently in Web-Only Mode</p>
-                <p className="text-amber-700 mt-1">
-                  Traditional phone calls are temporarily disabled. When customers request a call, 
-                  they'll receive a link to talk via the web widget instead. 
-                  <span className="font-medium">Telnyx voice integration coming soon.</span>
-                </p>
-              </div>
-            </div>
-          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {voiceCallbackEnabled && (

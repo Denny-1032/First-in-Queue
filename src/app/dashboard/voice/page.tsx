@@ -147,44 +147,28 @@ export default function VoiceCallsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      {/* Web-only mode notice */}
-      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-        <div className="flex items-start gap-3">
-          <svg className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div className="flex-1">
-            <p className="font-medium text-amber-800">Web-Only Mode Active</p>
-            <p className="text-sm text-amber-700 mt-1">
-              Outbound phone calls are temporarily disabled. Customers can talk to your AI via the web widget.
-              Telnyx voice integration coming soon for traditional calls.
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Voice Calls</h1>
-          <p className="text-sm text-gray-500">AI-powered voice calls via web widget</p>
+          <p className="text-sm text-gray-500">AI-powered voice calls with your customers</p>
         </div>
         <div className="flex gap-2">
           <Button
-            variant="outline"
             disabled
-            title="Scheduled calls require telephony (Twilio/Telnyx)"
-            className="gap-2 border-gray-200 text-gray-400 cursor-not-allowed"
-          >
-            <Calendar className="h-4 w-4" />
-            Schedule
-          </Button>
-          <Button
-            disabled
-            title="Outbound calls require telephony (Twilio/Telnyx)"
+            title="Disabled, Contact Support"
             className="gap-2 bg-gray-300 text-gray-500 cursor-not-allowed"
           >
             <PhoneCall className="h-4 w-4" />
             Make a Call
+          </Button>
+          <Button
+            variant="outline"
+            disabled
+            title="Disabled, Contact Support"
+            className="gap-2 border-gray-200 text-gray-400 cursor-not-allowed"
+          >
+            <Calendar className="h-4 w-4" />
+            Schedule
           </Button>
         </div>
       </div>
@@ -297,10 +281,7 @@ export default function VoiceCallsPage() {
               </div>
               <p className="text-gray-900 font-medium">No calls yet</p>
               <p className="text-sm text-gray-500 mt-1">
-                Web calls will appear here when customers use the voice widget.
-              </p>
-              <p className="text-xs text-gray-400 mt-2">
-                Outbound phone calls are temporarily disabled.
+                Calls will appear here when customers use the voice widget.
               </p>
             </div>
           ) : (
