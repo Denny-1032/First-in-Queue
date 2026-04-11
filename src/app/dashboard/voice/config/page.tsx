@@ -67,7 +67,7 @@ export default function VoiceConfigPage() {
   const { toast } = useToast();
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [agents, setAgents] = useState<VoiceAgentRow[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -443,118 +443,11 @@ export default function VoiceConfigPage() {
                 </div>
               </button>
             ))}
-
-            {/* Test Call Card */}
-            {editAgent && (
-              <Card className="mt-4 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50">
-                <CardContent className="pt-5 pb-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={cn(
-                      "flex h-12 w-12 items-center justify-center rounded-full transition-all",
-                      testCallActive
-                        ? agentTalking
-                          ? "bg-emerald-500 shadow-lg shadow-emerald-200 scale-110"
-                          : "bg-emerald-400 shadow-md shadow-emerald-200"
-                        : "bg-white"
-                    )}>
-                      {testCallActive ? (
-                        <Volume2 className={cn("h-6 w-6 text-white", agentTalking && "animate-pulse")} />
-                      ) : (
-                        <Phone className="h-5 w-5 text-emerald-600" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-gray-900">Test Your Agent</p>
-                      <p className="text-xs text-gray-500">
-                        {testCallActive ? "Call in progress — speak into your mic" : "Talk to your AI agent from the browser"}
-                      </p>
-                    </div>
-                  </div>
-                  {testCallActive ? (
-                    <Button
-                      onClick={stopTestCall}
-                      className="w-full gap-2 bg-red-500 hover:bg-red-600 text-white"
-                    >
-                      <PhoneOff className="h-4 w-4" />
-                      End Test Call
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={startTestCall}
-                      disabled={testCallConnecting}
-                      className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-                    >
-                      {testCallConnecting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Play className="h-4 w-4" />
-                      )}
-                      {testCallConnecting ? "Connecting..." : "Start Test Call"}
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Live Transcript */}
-            {(testCallActive || transcript.length > 0) && (
-              <Card className="border-gray-200">
-                <CardHeader className="pb-2 pt-4 px-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Live Transcript</CardTitle>
-                    {testCallActive && (
-                      <span className="flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                        <span className="text-[10px] font-medium text-red-600">LIVE</span>
-                      </span>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="h-64 overflow-y-auto space-y-2 border border-gray-100 rounded-lg p-3 bg-gray-50">
-                    {transcript.length === 0 && testCallActive && (
-                      <p className="text-xs text-gray-400 italic text-center py-4">Waiting for conversation...</p>
-                    )}
-                    {transcript.map((entry, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "flex gap-2 text-xs",
-                          entry.role === "agent" ? "justify-start" : "justify-end"
-                        )}
-                      >
-                        {entry.role === "agent" && (
-                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 mt-0.5">
-                            <Sparkles className="h-3 w-3 text-emerald-600" />
-                          </div>
-                        )}
-                        <div
-                          className={cn(
-                            "max-w-[85%] rounded-lg px-3 py-1.5",
-                            entry.role === "agent"
-                              ? "bg-white text-gray-800 border border-emerald-200"
-                              : "bg-gray-200 text-gray-800"
-                          )}
-                        >
-                          {entry.content}
-                        </div>
-                        {entry.role === "user" && (
-                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-200 mt-0.5">
-                            <User className="h-3 w-3 text-gray-600" />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    <div ref={transcriptEndRef} />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
-          {/* Edit panel */}
+          {/* Configuration panel - Middle */}
           {editAgent && (
-            <div className="lg:col-span-2 space-y-4">
+            <div className="lg:col-span-1 space-y-4">
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -854,6 +747,117 @@ export default function VoiceConfigPage() {
                         Use "Sync from Business Config" above to update the system prompt.
                       </p>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Test panel - Right */}
+          {editAgent && (
+            <div className="lg:col-span-1 space-y-4">
+              {/* Test Call Card */}
+              <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50">
+                <CardContent className="pt-5 pb-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={cn(
+                      "flex h-12 w-12 items-center justify-center rounded-full transition-all",
+                      testCallActive
+                        ? agentTalking
+                          ? "bg-emerald-500 shadow-lg shadow-emerald-200 scale-110"
+                          : "bg-emerald-400 shadow-md shadow-emerald-200"
+                        : "bg-white"
+                    )}>
+                      {testCallActive ? (
+                        <Volume2 className={cn("h-6 w-6 text-white", agentTalking && "animate-pulse")} />
+                      ) : (
+                        <Phone className="h-5 w-5 text-emerald-600" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-900">Test Your Agent</p>
+                      <p className="text-xs text-gray-500">
+                        {testCallActive ? "Call in progress — speak into your mic" : "Talk to your AI agent from the browser"}
+                      </p>
+                    </div>
+                  </div>
+                  {testCallActive ? (
+                    <Button
+                      onClick={stopTestCall}
+                      className="w-full gap-2 bg-red-500 hover:bg-red-600 text-white"
+                    >
+                      <PhoneOff className="h-4 w-4" />
+                      End Test Call
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={startTestCall}
+                      disabled={testCallConnecting}
+                      className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      {testCallConnecting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Play className="h-4 w-4" />
+                      )}
+                      {testCallConnecting ? "Connecting..." : "Start Test Call"}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Live Transcript - Fixed height with scroll */}
+              <Card className="border-gray-200">
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Live Transcript</CardTitle>
+                    {testCallActive && (
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                        <span className="text-[10px] font-medium text-red-600">LIVE</span>
+                      </span>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="h-80 overflow-y-auto space-y-2 border border-gray-100 rounded-lg p-3 bg-gray-50">
+                    {transcript.length === 0 && !testCallActive && (
+                      <p className="text-xs text-gray-400 italic text-center py-4">Click "Start Test Call" to begin</p>
+                    )}
+                    {transcript.length === 0 && testCallActive && (
+                      <p className="text-xs text-gray-400 italic text-center py-4">Waiting for conversation...</p>
+                    )}
+                    {transcript.map((entry, i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          "flex gap-2 text-xs",
+                          entry.role === "agent" ? "justify-start" : "justify-end"
+                        )}
+                      >
+                        {entry.role === "agent" && (
+                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 mt-0.5">
+                            <Sparkles className="h-3 w-3 text-emerald-600" />
+                          </div>
+                        )}
+                        <div
+                          className={cn(
+                            "max-w-[85%] rounded-lg px-3 py-1.5",
+                            entry.role === "agent"
+                              ? "bg-white text-gray-800 border border-emerald-200"
+                              : "bg-gray-200 text-gray-800"
+                          )}
+                        >
+                          {entry.content}
+                        </div>
+                        {entry.role === "user" && (
+                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-200 mt-0.5">
+                            <User className="h-3 w-3 text-gray-600" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    <div ref={transcriptEndRef} />
                   </div>
                 </CardContent>
               </Card>
