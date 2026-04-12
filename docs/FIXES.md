@@ -826,74 +826,63 @@ When applying a new fix:
 ## Agent Chat UX Fixes (Apr 12, 2026)
 
 ### Problem
-Three related issues in the agent dashboard chat interface:
-1. **Duplicate voice call messages**: When a user requested a voice call on WhatsApp, they received two separate messages — one saying "Tap here to talk on a call:" and another with the CTA button "Tap the button below to start a voice call with us."
-2. **Auto-scroll interruption**: When an agent scrolled up to reference previous conversation history, the chat would auto-scroll back to the bottom every 3 seconds when new messages arrived via polling.
-3. **Agent message visibility**: (Investigated but not reproduced) Reports that agent messages sometimes disappear from the agent's view after handoff.
+Multiple critical issues in the agent dashboard chat:
+1. **Duplicate voice call messages**: When a user requested a voice call on WhatsApp, two separate messages were sent
+2. **Auto-scroll interruption**: Chat auto-scrolled to bottom every 3 seconds when polling, preventing agents from reading history
+3. **CRITICAL — Messages disappearing after handoff**: Agent sends a message, it appears briefly then vanishes. Customer responses don't appear. All messages after ~50th in conversation invisible to agent.
+4. **Escalation banner persists**: "Customer requests human agent" alert stays visible even after agent takes over
 
 ### Root Cause
 
 **Issue 1 — Duplicate messages:**
-The AI engine was generating both a text response AND a `web_call` suggested action. The handler was sending both:
-- `aiResponse.text` containing "Tap here to talk on a call:"
-- The system-generated CTA button with "Tap the button below to start a voice call with us."
+AI engine generated both text AND `web_call` suggested action. Handler sent both messages.
 
 **Issue 2 — Auto-scroll:**
-The scroll effect was unconditional:
+Unconditional `scrollIntoView` on every `messages` state change, including 3-second polling.
+
+**Issue 3 — Messages disappearing (CRITICAL):**
+`getMessages()` in `src/lib/db/operations.ts` used `ascending: true` with `.range(0, 49)`:
 ```typescript
-useEffect(() => {
-  messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-}, [messages]);  // Fires on EVERY message update
+// BUG: Returns the OLDEST 50 messages, not the latest 50
+.order("created_at", { ascending: true })
+.range(offset, offset + limit - 1);
 ```
+Once a conversation exceeded 50 messages, **all new messages fell outside the query window**. Agent messages were saved to DB and delivered via WhatsApp, but the dashboard poll fetched the same stale 50 oldest messages every 3 seconds — overwriting the optimistic message and hiding new inbound messages.
+
+This is the **exact same bug pattern** as the AI history poisoning fix (ascending vs descending ordering).
+
+**Issue 4 — Escalation banner:**
+Banner showed for both `waiting` and `handoff` status. Once agent takes over (handoff), the alert is misleading.
 
 ### Fixes Applied
 
-**Fix 1 — Skip AI text when web_call action present** (`src/lib/engine/handler.ts`)
-
-Removed the code that sends AI text when a `web_call` suggestion is detected. The CTA button is the primary response:
+**Fix 1 — getMessages() ordering** (`src/lib/db/operations.ts`)
 ```typescript
-if (webCallSuggestion) {
-  console.log(`[Handler] Response path: WEB_CALL — sending web call link`);
-  // NOTE: Don't send AI text when web_call is suggested - the CTA button is the primary response
-  // The AI often generates text like "Tap here to talk on a call" which duplicates the button
-  // Get default voice agent for the web call link...
-}
+// Fetch MOST RECENT messages first (descending), then reverse
+.order("created_at", { ascending: false })
+.range(offset, offset + limit - 1);
+return data ? [...data].reverse() : [];
 ```
 
-**Fix 2 — Smart auto-scroll** (`src/app/dashboard/conversations/page.tsx`)
+**Fix 2 — Skip AI text for web_call** (`src/lib/engine/handler.ts`)
+Removed AI text sending when `web_call` action present. CTA button is the sole response.
 
-Added scroll position tracking and conditional scrolling:
-```typescript
-// Track scroll position
-const isAtBottomRef = useRef(true);
-const lastMessageCountRef = useRef(0);
+**Fix 3 — Smart auto-scroll** (`src/app/dashboard/conversations/page.tsx`)
+Track scroll position with refs; only auto-scroll if agent is at bottom or just sent a message.
 
-// Scroll handler on ScrollArea
-onScroll={(e) => {
-  const target = e.target as HTMLDivElement;
-  const isAtBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 100;
-  isAtBottomRef.current = isAtBottom;
-}}
+**Fix 4 — Polling guard during send** (`src/app/dashboard/conversations/page.tsx`)
+`sendingRef` prevents poll from overwriting optimistic message mid-send. Re-fetch after send completes.
 
-// Smart scroll: only scroll if at bottom OR agent sent the last message
-useEffect(() => {
-  const lastMsg = messages[messages.length - 1];
-  const isLastMessageFromAgent = lastMsg.sender_type === "agent";
-  const messageCountIncreased = messages.length > lastMessageCountRef.current;
-
-  if (isAtBottomRef.current || (isLastMessageFromAgent && messageCountIncreased)) {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }
-  lastMessageCountRef.current = messages.length;
-}, [messages]);
-```
+**Fix 5 — Escalation banner scope** (`src/app/dashboard/conversations/page.tsx`)
+Changed from `status === "handoff" || status === "waiting"` to `status === "waiting"` only.
 
 ### Files Changed
-- `src/lib/engine/handler.ts` — Removed AI text sending when `web_call` action present
-- `src/app/dashboard/conversations/page.tsx` — Added smart auto-scroll with position tracking
+- `src/lib/db/operations.ts` — getMessages() descending + reverse
+- `src/lib/engine/handler.ts` — Removed AI text for web_call
+- `src/app/dashboard/conversations/page.tsx` — Smart scroll, sendingRef, escalation banner
 
 ### Prevention
-- When adding new `suggested_action` types, decide whether AI text should be suppressed or combined
-- Auto-scroll should always be user-aware: track position and only scroll when user is already at bottom
-- Use refs for scroll state to avoid re-renders
-- Test scroll behavior with simulated incoming messages during manual scroll
+- **RULE: Any query that fetches "latest N" records MUST use descending order + reverse** — never ascending + range
+- When adding new `suggested_action` types, decide whether AI text should be suppressed
+- Auto-scroll must track user position; never unconditionally scroll
+- Polling must be paused during optimistic updates
