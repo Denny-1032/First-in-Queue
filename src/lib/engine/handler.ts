@@ -398,20 +398,8 @@ async function handleAIResponse(
   const webCallSuggestion = aiResponse.suggested_actions?.find((a) => a.type === "web_call");
   if (webCallSuggestion) {
     console.log(`[Handler] Response path: WEB_CALL — sending web call link`);
-    // Send AI text first
-    if (aiResponse.text) {
-      const textMsgId = await whatsapp.sendText(message.from, aiResponse.text);
-      await saveMessage({
-        conversation_id: conversation.id,
-        tenant_id: tenant.id,
-        direction: "outbound",
-        sender_type: "bot",
-        message_type: "text",
-        content: { text: aiResponse.text },
-        whatsapp_message_id: textMsgId,
-        status: "sent",
-      });
-    }
+    // NOTE: Don't send AI text when web_call is suggested - the CTA button is the primary response
+    // The AI often generates text like "Tap here to talk on a call" which duplicates the button
     // Get default voice agent for the web call link
     const { data: defaultAgent } = await supabase
       .from("voice_agents")

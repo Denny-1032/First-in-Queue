@@ -78,9 +78,12 @@ export default function ConversationsPage() {
   const [myAgent, setMyAgent] = useState<Agent | null>(null);
   const [togglingOnline, setTogglingOnline] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const isAtBottomRef = useRef(true);
   const initialLoadDone = useRef(false);
   const prevHandoffIds = useRef<Set<string>>(new Set());
   const notifPermission = useRef<NotificationPermission>("default");
+  const lastMessageCountRef = useRef(0);
 
   // Canned responses for agents
   const cannedResponses = [
@@ -224,8 +227,26 @@ export default function ConversationsPage() {
     return () => clearInterval(interval);
   }, [selectedId, fetchMessages]);
 
+  // Smart auto-scroll: only scroll to bottom if agent is already at bottom,
+  // or if the agent just sent a message (last message is from agent)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length === 0) {
+      lastMessageCountRef.current = 0;
+      return;
+    }
+
+    const lastMsg = messages[messages.length - 1];
+    const isLastMessageFromAgent = lastMsg.sender_type === "agent";
+    const messageCountIncreased = messages.length > lastMessageCountRef.current;
+
+    // Scroll if:
+    // 1. Agent is already at bottom of chat, OR
+    // 2. The last message is from the agent (they just sent it)
+    if (isAtBottomRef.current || (isLastMessageFromAgent && messageCountIncreased)) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+
+    lastMessageCountRef.current = messages.length;
   }, [messages]);
 
   const filteredConversations = conversations.filter((c) => {
@@ -559,7 +580,14 @@ export default function ConversationsPage() {
               </div>
 
               {/* Messages */}
-              <ScrollArea className="flex-1 px-6 py-4">
+              <ScrollArea
+                className="flex-1 px-6 py-4"
+                onScroll={(e) => {
+                  const target = e.target as HTMLDivElement;
+                  const isAtBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 100;
+                  isAtBottomRef.current = isAtBottom;
+                }}
+              >
                 {loadingMsgs ? (
                   <div className="flex items-center justify-center h-full py-12">
                     <div className="h-6 w-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
