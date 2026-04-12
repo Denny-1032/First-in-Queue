@@ -17,15 +17,37 @@ import {
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 import { DemoBooking } from "@/components/landing/demo-booking";
+import { SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
 
 export const metadata: Metadata = {
-  title: "WhatsApp & Voice Customer Care for Zambian Businesses | First in Queue",
-  description: "Never lose a customer to slow responses again. Automated WhatsApp and phone support — 24/7, in 40+ languages. Book a free demo.",
+  title: "AI WhatsApp & Voice Customer Care for Zambian Businesses | First in Queue",
+  description:
+    "Never lose a customer to slow responses again. First in Queue automates WhatsApp messages and phone calls with AI — 24/7, in 40+ languages. 5-minute setup, free demo.",
+  alternates: {
+    canonical: BASE_URL,
+  },
+  openGraph: {
+    title: "AI WhatsApp & Voice Customer Care | First in Queue",
+    description:
+      "Automate WhatsApp and phone support with AI. Instant responses, 24/7, in 40+ languages.",
+    url: BASE_URL,
+    images: [
+      {
+        url: `${BASE_URL}/fiq-logo.png`,
+        width: 1200,
+        height: 630,
+        alt: "First in Queue — AI-Powered Customer Care",
+      },
+    ],
+  },
 };
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
+      <SoftwareApplicationJsonLd />
       <Navbar />
 
       {/* HERO — Business outcome focused */}

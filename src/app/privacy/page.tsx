@@ -2,9 +2,14 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
+
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description: "How First in Queue collects, uses, and protects your information. Compliant with Zambia Data Protection Act.",
+  alternates: {
+    canonical: `${BASE_URL}/privacy`,
+  },
 };
 
 export default function PrivacyPage() {

@@ -15,9 +15,21 @@ import {
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
+
 export const metadata: Metadata = {
-  title: "How It Works",
-  description: "3 simple steps to automated WhatsApp & voice customer care. No technical skills needed.",
+  title: "How It Works — 3 Steps to Automated WhatsApp & Voice Support",
+  description:
+    "Set up AI-powered WhatsApp and voice customer care in 5 minutes. No coding, no technical skills. Connect WhatsApp, train your AI, go live.",
+  alternates: {
+    canonical: `${BASE_URL}/how-it-works`,
+  },
+  openGraph: {
+    title: "How It Works | First in Queue",
+    description:
+      "3 simple steps to automated customer support. Connect WhatsApp, train your AI, go live in minutes.",
+    url: `${BASE_URL}/how-it-works`,
+  },
 };
 
 export default function HowItWorksPage() {

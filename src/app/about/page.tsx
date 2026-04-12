@@ -4,9 +4,21 @@ import { ArrowRight, Heart, Globe, Zap, Shield } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
+
 export const metadata: Metadata = {
-  title: "About",
-  description: "Built in Zambia. Automated WhatsApp & voice support so every customer gets an instant response — 24/7.",
+  title: "About Us — Built in Zambia for African Businesses",
+  description:
+    "First in Queue is built in Zambia to help African businesses deliver instant WhatsApp & voice customer support — 24/7, in local languages.",
+  alternates: {
+    canonical: `${BASE_URL}/about`,
+  },
+  openGraph: {
+    title: "About First in Queue",
+    description:
+      "Built in Zambia. AI-powered WhatsApp & voice customer care for African businesses.",
+    url: `${BASE_URL}/about`,
+  },
 };
 
 export default function AboutPage() {

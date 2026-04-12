@@ -4,9 +4,21 @@ import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
+
 export const metadata: Metadata = {
-  title: "Industries",
-  description: "Pre-configured templates for e-commerce, healthcare, restaurants, real estate, education, travel, finance, and SaaS.",
+  title: "Industries — AI Customer Care for Every Business Type",
+  description:
+    "Pre-configured AI templates for e-commerce, healthcare, restaurants, real estate, education, travel, finance, and SaaS. Ready in 5 minutes.",
+  alternates: {
+    canonical: `${BASE_URL}/industries`,
+  },
+  openGraph: {
+    title: "Industries | First in Queue",
+    description:
+      "AI customer care templates for 8+ industries. E-commerce, healthcare, restaurants, real estate and more.",
+    url: `${BASE_URL}/industries`,
+  },
 };
 
 const industries = [

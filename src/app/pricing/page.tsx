@@ -7,6 +7,7 @@ import { ArrowRight, CheckCircle2, Star, HelpCircle, ShieldCheck } from "lucide-
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 import { PLANS } from "@/lib/lipila/plans";
+import { FAQPageJsonLd } from "@/components/seo/json-ld";
 
 const faqs = [
   {
@@ -55,6 +56,7 @@ function PricingContent() {
 
   return (
     <div className="min-h-screen bg-white">
+      <FAQPageJsonLd faqs={faqs} />
       <Navbar />
 
       {/* Hero */}

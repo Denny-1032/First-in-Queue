@@ -2,9 +2,15 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
+
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Terms of Service for First in Queue. AI-powered WhatsApp customer care platform.",
+  description:
+    "Terms of Service for First in Queue. Read our terms governing the use of our AI-powered WhatsApp and voice customer care platform.",
+  alternates: {
+    canonical: `${BASE_URL}/terms`,
+  },
 };
 
 export default function TermsPage() {
