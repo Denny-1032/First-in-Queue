@@ -420,7 +420,7 @@ export default function VoiceConfigPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6" style={{ gridTemplateColumns: "minmax(0,220px) minmax(0,1fr) minmax(0,340px)" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)_minmax(0,340px)] gap-6">
           {/* Agent list */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
