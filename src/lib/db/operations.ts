@@ -232,13 +232,16 @@ export async function getMessages(
   limit = 50,
   offset = 0
 ): Promise<Message[]> {
+  // Fetch MOST RECENT messages first (descending), then reverse for chronological display.
+  // Using ascending + range(0,49) only returns the oldest 50 messages — once a conversation
+  // exceeds 50 messages, new messages (including agent handoff messages) silently disappear.
   const { data } = await getSupabaseAdmin()
     .from("messages")
     .select("*")
     .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
-  return (data || []) as Message[];
+  return data ? [...data].reverse() : [];
 }
 
 export async function updateMessageStatus(

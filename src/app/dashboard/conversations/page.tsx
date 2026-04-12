@@ -84,6 +84,7 @@ export default function ConversationsPage() {
   const prevHandoffIds = useRef<Set<string>>(new Set());
   const notifPermission = useRef<NotificationPermission>("default");
   const lastMessageCountRef = useRef(0);
+  const sendingRef = useRef(false);
 
   // Canned responses for agents
   const cannedResponses = [
@@ -202,6 +203,8 @@ export default function ConversationsPage() {
 
   // Fetch messages when conversation is selected + poll
   const fetchMessages = useCallback(async (id: string, isPolling = false) => {
+    // Skip polling while agent is actively sending to prevent overwriting optimistic message
+    if (isPolling && sendingRef.current) return;
     if (!isPolling) setLoadingMsgs(true);
     try {
       const res = await fetch(`/api/conversations/${id}/messages`);
@@ -264,6 +267,7 @@ export default function ConversationsPage() {
     const text = newMessage;
     setNewMessage("");
     setSending(true);
+    sendingRef.current = true;
 
     // Optimistic UI update
     const optimisticMsg: Message = {
@@ -314,8 +318,11 @@ export default function ConversationsPage() {
       prev.map((c) => c.id === selectedId && (c.status === "active" || c.status === "waiting") ? { ...c, status: "handoff" as ConversationStatus, ai_enabled: false } : c)
     );
     setSending(false);
+    sendingRef.current = false;
     // Refresh conversations list so latest message preview updates
     fetchConversations(true);
+    // Re-fetch messages to get the server-saved version
+    if (selectedId) fetchMessages(selectedId, true);
   };
 
   const getInitials = (name?: string) => {
@@ -482,7 +489,7 @@ export default function ConversationsPage() {
                       <span className="text-xs text-gray-500">{selectedConvo.customer_phone}</span>
                     </div>
                     {(() => {
-                      const escalationReason = (selectedConvo.status === "handoff" || selectedConvo.status === "waiting")
+                      const escalationReason = selectedConvo.status === "waiting"
                         ? String((selectedConvo.metadata as Record<string, unknown>)?.escalation_reason || "")
                         : "";
                       return escalationReason ? (
