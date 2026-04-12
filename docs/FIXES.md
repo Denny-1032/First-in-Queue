@@ -886,3 +886,58 @@ Changed from `status === "handoff" || status === "waiting"` to `status === "wait
 - When adding new `suggested_action` types, decide whether AI text should be suppressed
 - Auto-scroll must track user position; never unconditionally scroll
 - Polling must be paused during optimistic updates
+
+---
+
+## Chat Scroll, Message Order, Team & AI Config UX Fixes (Apr 12, 2026)
+
+### Problem
+Four issues reported:
+1. **Chat auto-scroll still broken**: Agent scrolls up to reference previous messages, chat scrolls back down
+2. **Agent message arrives before "joined" notification**: On WhatsApp, agent's first message appears before "Name has joined the chat."
+3. **Admin can delete themselves**: On `/dashboard/team`, the admin sees delete button on their own row
+4. **AI Config page cluttered**: All sections stacked vertically, hard to navigate
+
+### Root Cause
+
+**Issue 1 — Scroll**: Radix `ScrollArea` renders the scrollable viewport as a nested child (`ScrollAreaPrimitive.Viewport`), not the root element. The `onScroll` handler was on the root, so it **never fired** — `isAtBottomRef` stayed `true` forever.
+
+**Issue 2 — Message order**: `handleSend()` called POST (send message) before PATCH (set handoff status). The PATCH triggers the "agent joined" WhatsApp message. So on WhatsApp, the agent's text arrived first.
+
+**Issue 3 — Self-delete**: No check to identify the current user's agent record vs. other agents in the list.
+
+**Issue 4 — AI Config UX**: No tabs, all 6 sections rendered at once.
+
+### Fixes Applied
+
+**Fix 1 — Replace ScrollArea with plain div** (`src/app/dashboard/conversations/page.tsx`)
+```tsx
+<div
+  className="flex-1 overflow-y-auto px-6 py-4"
+  onScroll={(e) => {
+    const el = e.currentTarget;
+    isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+  }}
+>
+```
+
+**Fix 2 — Reorder PATCH before POST** (`src/app/dashboard/conversations/page.tsx`)
+If conversation is not already in handoff, PATCH first (sends "joined" msg), then POST the agent's message.
+
+**Fix 3 — Prevent self-delete/invite** (`src/app/dashboard/team/page.tsx`)
+- Fetch `/api/agents/me` to identify current user
+- Hide delete button when `myAgent.id === agent.id`
+- Block invite form when email matches `myAgent.email`
+
+**Fix 4 — Tabbed AI Config** (`src/app/dashboard/ai-config/page.tsx`)
+Tabs: Personality | Knowledge Base | FAQs & Instructions | Voice & Test. Matches Settings page pattern.
+
+### Files Changed
+- `src/app/dashboard/conversations/page.tsx` — Plain div scroll, message order fix
+- `src/app/dashboard/team/page.tsx` — Self-delete/invite prevention
+- `src/app/dashboard/ai-config/page.tsx` — Tabbed layout, removed expand/collapse toggle
+
+### Prevention
+- **Never use Radix ScrollArea when you need onScroll tracking** — use a plain div with `overflow-y-auto`
+- **Side effects that depend on order must be sequenced explicitly** — don't assume async fire-and-forget order
+- **Admin self-actions must always be guarded** — check `currentUser.id !== target.id`
