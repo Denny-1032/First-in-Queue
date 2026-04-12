@@ -17,6 +17,7 @@ A chronological record of all critical fixes, their root causes, and preventive 
 - [Voice Test Call Error (Apr 10, 2026)](#voice-test-call-error-apr-10-2026)
 - [Handoff & Flows Audit Fix (Apr 11, 2026)](#handoff--flows-audit-fix-apr-11-2026)
 - [Handoff & Team Management Audit (Apr 11, 2026)](#handoff--team-management-audit-apr-11-2026)
+- [Agent Chat UX Fixes (Apr 12, 2026)](#agent-chat-ux-fixes-apr-12-2026)
 
 ---
 
@@ -819,3 +820,80 @@ When applying a new fix:
 2. Include: Problem, Root Cause, Fix (with code snippets), Prevention
 3. Update the table of contents
 4. Update the update log
+
+---
+
+## Agent Chat UX Fixes (Apr 12, 2026)
+
+### Problem
+Three related issues in the agent dashboard chat interface:
+1. **Duplicate voice call messages**: When a user requested a voice call on WhatsApp, they received two separate messages — one saying "Tap here to talk on a call:" and another with the CTA button "Tap the button below to start a voice call with us."
+2. **Auto-scroll interruption**: When an agent scrolled up to reference previous conversation history, the chat would auto-scroll back to the bottom every 3 seconds when new messages arrived via polling.
+3. **Agent message visibility**: (Investigated but not reproduced) Reports that agent messages sometimes disappear from the agent's view after handoff.
+
+### Root Cause
+
+**Issue 1 — Duplicate messages:**
+The AI engine was generating both a text response AND a `web_call` suggested action. The handler was sending both:
+- `aiResponse.text` containing "Tap here to talk on a call:"
+- The system-generated CTA button with "Tap the button below to start a voice call with us."
+
+**Issue 2 — Auto-scroll:**
+The scroll effect was unconditional:
+```typescript
+useEffect(() => {
+  messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+}, [messages]);  // Fires on EVERY message update
+```
+
+### Fixes Applied
+
+**Fix 1 — Skip AI text when web_call action present** (`src/lib/engine/handler.ts`)
+
+Removed the code that sends AI text when a `web_call` suggestion is detected. The CTA button is the primary response:
+```typescript
+if (webCallSuggestion) {
+  console.log(`[Handler] Response path: WEB_CALL — sending web call link`);
+  // NOTE: Don't send AI text when web_call is suggested - the CTA button is the primary response
+  // The AI often generates text like "Tap here to talk on a call" which duplicates the button
+  // Get default voice agent for the web call link...
+}
+```
+
+**Fix 2 — Smart auto-scroll** (`src/app/dashboard/conversations/page.tsx`)
+
+Added scroll position tracking and conditional scrolling:
+```typescript
+// Track scroll position
+const isAtBottomRef = useRef(true);
+const lastMessageCountRef = useRef(0);
+
+// Scroll handler on ScrollArea
+onScroll={(e) => {
+  const target = e.target as HTMLDivElement;
+  const isAtBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 100;
+  isAtBottomRef.current = isAtBottom;
+}}
+
+// Smart scroll: only scroll if at bottom OR agent sent the last message
+useEffect(() => {
+  const lastMsg = messages[messages.length - 1];
+  const isLastMessageFromAgent = lastMsg.sender_type === "agent";
+  const messageCountIncreased = messages.length > lastMessageCountRef.current;
+
+  if (isAtBottomRef.current || (isLastMessageFromAgent && messageCountIncreased)) {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+  lastMessageCountRef.current = messages.length;
+}, [messages]);
+```
+
+### Files Changed
+- `src/lib/engine/handler.ts` — Removed AI text sending when `web_call` action present
+- `src/app/dashboard/conversations/page.tsx` — Added smart auto-scroll with position tracking
+
+### Prevention
+- When adding new `suggested_action` types, decide whether AI text should be suppressed or combined
+- Auto-scroll should always be user-aware: track position and only scroll when user is already at bottom
+- Use refs for scroll state to avoid re-renders
+- Test scroll behavior with simulated incoming messages during manual scroll
