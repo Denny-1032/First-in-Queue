@@ -24,8 +24,6 @@ import {
   Loader2,
   RefreshCw,
   Phone,
-  ChevronUp,
-  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -57,7 +55,6 @@ export default function AIConfigPage() {
 
   // Knowledge selection state
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
-  const [knowledgeBaseExpanded, setKnowledgeBaseExpanded] = useState(false);
 
   // Web crawl state
   const [showCrawl, setShowCrawl] = useState(false);
@@ -72,6 +69,16 @@ export default function AIConfigPage() {
   const [voiceCallbackEnabled, setVoiceCallbackEnabled] = useState(false);
   const [voiceCallbackAgentId, setVoiceCallbackAgentId] = useState<string>("");
   const [availableVoiceAgents, setAvailableVoiceAgents] = useState<{id: string; name: string}[]>([]);
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<"personality" | "knowledge" | "faqs" | "voice">("personality");
+
+  const AI_TABS = [
+    { id: "personality" as const, label: "Personality", icon: Bot },
+    { id: "knowledge" as const, label: "Knowledge Base", icon: Brain },
+    { id: "faqs" as const, label: "FAQs & Instructions", icon: MessageCircle },
+    { id: "voice" as const, label: "Voice & Test", icon: Phone },
+  ];
 
   // Load voice agents when component mounts
   useEffect(() => {
@@ -246,13 +253,14 @@ export default function AIConfigPage() {
   };
 
   return (
-    <div className="space-y-8 w-full pb-8">
+    <div className="space-y-6 w-full pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Configuration</h1>
           <p className="text-gray-500 mt-1 text-sm">Configure your AI assistant</p>
         </div>
         <div className="flex gap-2">
+          {activeTab === "voice" && (
           <Button
             variant="outline"
             className="gap-2"
@@ -266,6 +274,7 @@ export default function AIConfigPage() {
             )}
             {syncingVoice ? "Syncing..." : "Sync Voice Agents"}
           </Button>
+          )}
           <Button
             className="gap-2"
             disabled={saving}
@@ -351,6 +360,31 @@ export default function AIConfigPage() {
         </div>
       </div>
 
+      {/* Tab navigation */}
+      <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+        {AI_TABS.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all flex-1 justify-center",
+                activeTab === tab.id
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── PERSONALITY TAB ── */}
+      {activeTab === "personality" && (
+      <>
       {/* Bot Personality */}
       <Card>
         <CardHeader>
@@ -433,7 +467,12 @@ export default function AIConfigPage() {
           </div>
         </CardContent>
       </Card>
+      </>
+      )}
 
+      {/* ── KNOWLEDGE TAB ── */}
+      {activeTab === "knowledge" && (
+      <>
       {/* Knowledge Base */}
       <Card>
         <CardHeader>
@@ -444,17 +483,7 @@ export default function AIConfigPage() {
                 <CardTitle>Knowledge Base</CardTitle>
                 <Badge variant="secondary" className="text-[10px]">{knowledgeBase.length} entries</Badge>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setKnowledgeBaseExpanded(!knowledgeBaseExpanded)}
-                className="gap-1.5 text-gray-600"
-              >
-                {knowledgeBaseExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                {knowledgeBaseExpanded ? "Collapse" : "Expand"}
-              </Button>
             </div>
-            {knowledgeBaseExpanded && (
               <div className="flex gap-2 flex-wrap items-center">
                 {selectedEntries.size > 0 && (
                   <Button variant="outline" size="sm" onClick={deleteSelectedEntries} className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50">
@@ -475,10 +504,8 @@ export default function AIConfigPage() {
                   Add Entry
                 </Button>
               </div>
-            )}
           </div>
         </CardHeader>
-        {knowledgeBaseExpanded && (
         <CardContent className="space-y-4">
           {/* Web Crawl Panel */}
           {showCrawl && (
@@ -851,9 +878,13 @@ export default function AIConfigPage() {
             </div>
           ))}
         </CardContent>
-        )}
       </Card>
+      </>
+      )}
 
+      {/* ── FAQS & INSTRUCTIONS TAB ── */}
+      {activeTab === "faqs" && (
+      <>
       {/* FAQs */}
       <Card>
         <CardHeader>
@@ -924,7 +955,12 @@ export default function AIConfigPage() {
           />
         </CardContent>
       </Card>
+      </>
+      )}
 
+      {/* ── VOICE & TEST TAB ── */}
+      {activeTab === "voice" && (
+      <>
       {/* Voice Callback Settings */}
       <Card>
         <CardHeader>
@@ -1003,6 +1039,8 @@ export default function AIConfigPage() {
         faqs={faqs}
         customInstructions={customInstructions}
       />
+      </>
+      )}
     </div>
   );
 }

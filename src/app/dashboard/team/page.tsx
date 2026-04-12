@@ -53,12 +53,21 @@ export default function TeamPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<Partial<Agent>>({});
 
+  const [myAgent, setMyAgent] = useState<Agent | null>(null);
+
   const fetchAgents = useCallback(async () => {
     try {
-      const res = await fetch("/api/agents");
+      const [res, meRes] = await Promise.all([
+        fetch("/api/agents"),
+        fetch("/api/agents/me"),
+      ]);
       if (res.ok) {
         const data = await res.json();
         setAgents(Array.isArray(data) ? data : []);
+      }
+      if (meRes.ok) {
+        const me: Agent = await meRes.json();
+        setMyAgent(me);
       }
     } catch { /* silent */ }
     setLoading(false);
@@ -69,6 +78,11 @@ export default function TeamPage() {
   const handleCreate = async () => {
     if (!invite.name.trim() || !invite.email.trim()) {
       toast("Name and email are required", "error");
+      return;
+    }
+    // Prevent inviting yourself
+    if (myAgent && invite.email.trim().toLowerCase() === myAgent.email?.toLowerCase()) {
+      toast("You cannot invite yourself — you are already on the team", "error");
       return;
     }
     setInviting(true);
@@ -471,6 +485,8 @@ export default function TeamPage() {
                             >
                               <Edit2 className="h-3.5 w-3.5" />
                             </Button>
+                            {/* Hide delete button for current user (admin cannot delete themselves) */}
+                            {(!myAgent || myAgent.id !== agent.id) && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -480,6 +496,7 @@ export default function TeamPage() {
                             >
                               {deleting === agent.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                             </Button>
+                            )}
                           </div>
                         </div>
                       </div>

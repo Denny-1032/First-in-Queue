@@ -78,7 +78,6 @@ export default function ConversationsPage() {
   const [myAgent, setMyAgent] = useState<Agent | null>(null);
   const [togglingOnline, setTogglingOnline] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
   const initialLoadDone = useRef(false);
   const prevHandoffIds = useRef<Set<string>>(new Set());
@@ -283,6 +282,22 @@ export default function ConversationsPage() {
     };
     setMessages((prev) => [...prev, optimisticMsg]);
 
+    // If not already in handoff, PATCH first so "agent joined" message is sent BEFORE the agent's message
+    const convo = conversations.find((c) => c.id === selectedId);
+    if (convo && convo.status !== "handoff") {
+      try {
+        const patchBody: Record<string, unknown> = { status: "handoff", ai_enabled: false };
+        if (myAgent) patchBody.assigned_agent_id = myAgent.id;
+        await fetch(`/api/conversations/${selectedId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patchBody),
+        });
+        fetchAgents();
+      } catch { /* best effort */ }
+    }
+
+    // Now send the agent's actual message
     try {
       const res = await fetch(`/api/conversations/${selectedId}/messages`, {
         method: "POST",
@@ -302,17 +317,18 @@ export default function ConversationsPage() {
       toast("Failed to send message", "error");
     }
 
-    // Update conversation status to handoff + assign agent
-    try {
-      const patchBody: Record<string, unknown> = { status: "handoff", ai_enabled: false };
-      if (myAgent) patchBody.assigned_agent_id = myAgent.id;
-      await fetch(`/api/conversations/${selectedId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patchBody),
-      });
-      fetchAgents();
-    } catch { /* best effort */ }
+    // Ensure handoff status for already-handoff conversations too (idempotent)
+    if (convo && convo.status === "handoff") {
+      try {
+        const patchBody: Record<string, unknown> = { status: "handoff", ai_enabled: false };
+        if (myAgent) patchBody.assigned_agent_id = myAgent.id;
+        await fetch(`/api/conversations/${selectedId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patchBody),
+        });
+      } catch { /* best effort */ }
+    }
 
     setConversations((prev) =>
       prev.map((c) => c.id === selectedId && (c.status === "active" || c.status === "waiting") ? { ...c, status: "handoff" as ConversationStatus, ai_enabled: false } : c)
@@ -587,12 +603,11 @@ export default function ConversationsPage() {
               </div>
 
               {/* Messages */}
-              <ScrollArea
-                className="flex-1 px-6 py-4"
+              <div
+                className="flex-1 overflow-y-auto px-6 py-4"
                 onScroll={(e) => {
-                  const target = e.target as HTMLDivElement;
-                  const isAtBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 100;
-                  isAtBottomRef.current = isAtBottom;
+                  const el = e.currentTarget;
+                  isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
                 }}
               >
                 {loadingMsgs ? (
@@ -658,7 +673,7 @@ export default function ConversationsPage() {
                     <div ref={messagesEndRef} />
                   </div>
                 )}
-              </ScrollArea>
+              </div>
 
               {/* Canned Responses */}
               {showCanned && (
