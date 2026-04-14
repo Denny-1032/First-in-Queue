@@ -94,6 +94,9 @@ export default function Home() {
                   Free demo
                 </div>
               </div>
+              <p className="text-xs text-gray-400 mt-3">
+                30-day money-back guarantee. Try it risk-free.
+              </p>
             </div>
             {/* Demo Booking Form — right side of hero */}
             <div className="lg:pl-8">
@@ -125,6 +128,67 @@ export default function Home() {
           </div>
           <p className="text-center text-gray-500 mt-8 text-sm">
             Every missed message is a lost sale. FiQ makes sure that never happens.
+          </p>
+        </div>
+      </section>
+
+      {/* ROI COMPARISON — Price anchoring */}
+      <section className="py-16 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">The old way vs FiQ</h2>
+          </div>
+          <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white">
+            {/* Desktop table */}
+            <table className="w-full text-sm hidden md:table">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left p-4 font-semibold text-gray-700"></th>
+                  <th className="text-left p-4 font-semibold text-gray-500">Human Support Staff</th>
+                  <th className="text-left p-4 font-semibold text-emerald-600">FiQ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["Monthly cost", "K3,000\u20135,000", "From K499"],
+                  ["Available hours", "8hrs/day, 5 days", "24/7, 365 days"],
+                  ["Concurrent chats", "1 at a time", "Unlimited"],
+                  ["Response time", "Minutes to hours", "Under 10 seconds"],
+                  ["Languages (chat)", "1\u20132", "40+"],
+                  ["Sick days / leave", "Yes \u2014 business stops", "Never"],
+                  ["Setup time", "Weeks of hiring + training", "1\u20132 business days"],
+                ].map(([label, old, fiq], i) => (
+                  <tr key={label} className={i < 6 ? "border-b border-gray-100" : ""}>
+                    <td className="p-4 text-gray-600 font-medium">{label}</td>
+                    <td className="p-4 text-gray-400">{old}</td>
+                    <td className="p-4 text-emerald-600 font-semibold">{fiq}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {/* Mobile: stacked cards */}
+            <div className="md:hidden divide-y divide-gray-100">
+              {[
+                ["Monthly cost", "K3,000\u20135,000", "From K499"],
+                ["Available hours", "8hrs/day, 5 days", "24/7, 365 days"],
+                ["Concurrent chats", "1 at a time", "Unlimited"],
+                ["Response time", "Minutes to hours", "Under 10 seconds"],
+                ["Languages (chat)", "1\u20132", "40+"],
+                ["Sick days / leave", "Yes \u2014 business stops", "Never"],
+                ["Setup time", "Weeks of hiring + training", "1\u20132 business days"],
+              ].map(([label, old, fiq]) => (
+                <div key={label} className="p-4">
+                  <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
+                  <div className="flex justify-between items-baseline gap-4">
+                    <span className="text-sm text-gray-400 line-through">{old}</span>
+                    <span className="text-sm text-emerald-600 font-semibold">{fiq}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="text-center text-gray-600 mt-6 font-medium">
+            Most businesses save K2,500\u20134,500 every month. FiQ pays for itself in the first week.
           </p>
         </div>
       </section>
@@ -354,6 +418,9 @@ export default function Home() {
                 Contact Sales
               </Link>
             </div>
+            <p className="text-sm text-emerald-200 mt-4">
+              30-day money-back guarantee — if it doesn&apos;t work, every kwacha back.
+            </p>
           </div>
         </div>
       </section>
