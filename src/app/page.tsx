@@ -22,16 +22,16 @@ import { SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
 
 export const metadata: Metadata = {
-  title: "AI WhatsApp & Voice Customer Care for Zambian Businesses | First in Queue",
+  title: "WhatsApp & Voice Customer Care for Zambian Businesses",
   description:
     "Never lose a customer to slow responses again. First in Queue automates WhatsApp messages and phone calls with AI — 24/7, in 40+ languages. 5-minute setup, free demo.",
   alternates: {
     canonical: BASE_URL,
   },
   openGraph: {
-    title: "AI WhatsApp & Voice Customer Care | First in Queue",
+    title: "WhatsApp & Voice Customer Care | First in Queue",
     description:
-      "Automate WhatsApp and phone support with AI. Instant responses, 24/7, in 40+ languages.",
+      "Automate WhatsApp and phone support. Instant responses, 24/7, in 40+ languages.",
     url: BASE_URL,
     images: [
       {
@@ -128,67 +128,6 @@ export default function Home() {
           </div>
           <p className="text-center text-gray-500 mt-8 text-sm">
             Every missed message is a lost sale. FiQ makes sure that never happens.
-          </p>
-        </div>
-      </section>
-
-      {/* ROI COMPARISON — Price anchoring */}
-      <section className="py-16 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">The old way vs FiQ</h2>
-          </div>
-          <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white">
-            {/* Desktop table */}
-            <table className="w-full text-sm hidden md:table">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left p-4 font-semibold text-gray-700"></th>
-                  <th className="text-left p-4 font-semibold text-gray-500">Human Support Staff</th>
-                  <th className="text-left p-4 font-semibold text-emerald-600">FiQ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  ["Monthly cost", "K3,000\u20135,000", "From K499"],
-                  ["Available hours", "8hrs/day, 5 days", "24/7, 365 days"],
-                  ["Concurrent chats", "1 at a time", "Unlimited"],
-                  ["Response time", "Minutes to hours", "Under 10 seconds"],
-                  ["Languages (chat)", "1\u20132", "40+"],
-                  ["Sick days / leave", "Yes \u2014 business stops", "Never"],
-                  ["Setup time", "Weeks of hiring + training", "1\u20132 business days"],
-                ].map(([label, old, fiq], i) => (
-                  <tr key={label} className={i < 6 ? "border-b border-gray-100" : ""}>
-                    <td className="p-4 text-gray-600 font-medium">{label}</td>
-                    <td className="p-4 text-gray-400">{old}</td>
-                    <td className="p-4 text-emerald-600 font-semibold">{fiq}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {/* Mobile: stacked cards */}
-            <div className="md:hidden divide-y divide-gray-100">
-              {[
-                ["Monthly cost", "K3,000\u20135,000", "From K499"],
-                ["Available hours", "8hrs/day, 5 days", "24/7, 365 days"],
-                ["Concurrent chats", "1 at a time", "Unlimited"],
-                ["Response time", "Minutes to hours", "Under 10 seconds"],
-                ["Languages (chat)", "1\u20132", "40+"],
-                ["Sick days / leave", "Yes \u2014 business stops", "Never"],
-                ["Setup time", "Weeks of hiring + training", "1\u20132 business days"],
-              ].map(([label, old, fiq]) => (
-                <div key={label} className="p-4">
-                  <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
-                  <div className="flex justify-between items-baseline gap-4">
-                    <span className="text-sm text-gray-400 line-through">{old}</span>
-                    <span className="text-sm text-emerald-600 font-semibold">{fiq}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <p className="text-center text-gray-600 mt-6 font-medium">
-            Most businesses save K2,500\u20134,500 every month. FiQ pays for itself in the first week.
           </p>
         </div>
       </section>
@@ -300,8 +239,83 @@ export default function Home() {
               </div>
             ))}
           </div>
-          {/* Scrolling Testimonials */}
-          <div className="overflow-hidden">
+          {/* ROI COMPARISON — Price anchoring (moved from above) */}
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">The old way vs FiQ</h2>
+            <p className="text-gray-500 mt-2 text-sm">Why businesses are switching to automated support</p>
+          </div>
+          <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-lg">
+            {/* Desktop table */}
+            <table className="w-full text-sm hidden md:table">
+              <thead>
+                <tr className="bg-gray-900">
+                  <th className="text-left px-6 py-4 font-semibold text-gray-400 text-xs uppercase tracking-wider">Metric</th>
+                  <th className="text-left px-6 py-4 font-semibold text-gray-400 text-xs uppercase tracking-wider">Human Support Staff</th>
+                  <th className="text-left px-6 py-4 font-semibold text-emerald-400 text-xs uppercase tracking-wider">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                      FiQ
+                    </span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["Monthly cost", "K3,000\u20135,000", "From K499", true],
+                  ["Available hours", "8hrs/day, 5 days", "24/7, 365 days", false],
+                  ["Concurrent chats", "1 at a time", "Unlimited", false],
+                  ["Response time", "Minutes to hours", "Under 10 seconds", true],
+                  ["Languages (chat)", "1\u20132", "40+", false],
+                  ["Sick days / leave", "Yes \u2014 business stops", "Never", false],
+                  ["Setup time", "Weeks of hiring + training", "1\u20132 business days", false],
+                ].map(([label, old, fiq, highlight], i) => (
+                  <tr key={label as string} className={`border-b border-gray-100 ${highlight ? "bg-emerald-50/50" : i % 2 === 0 ? "bg-white" : "bg-gray-50/50"} hover:bg-emerald-50/30 transition-colors`}>
+                    <td className="px-6 py-4 text-gray-700 font-medium">{label as string}</td>
+                    <td className="px-6 py-4 text-gray-400">{old as string}</td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center gap-1.5 text-emerald-600 font-semibold">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        {fiq as string}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {/* Mobile: stacked cards */}
+            <div className="md:hidden divide-y divide-gray-100">
+              {[
+                ["Monthly cost", "K3,000\u20135,000", "From K499"],
+                ["Available hours", "8hrs/day, 5 days", "24/7, 365 days"],
+                ["Concurrent chats", "1 at a time", "Unlimited"],
+                ["Response time", "Minutes to hours", "Under 10 seconds"],
+                ["Languages (chat)", "1\u20132", "40+"],
+                ["Sick days / leave", "Yes \u2014 business stops", "Never"],
+                ["Setup time", "Weeks of hiring + training", "1\u20132 business days"],
+              ].map(([label, old, fiq]) => (
+                <div key={label} className="p-5 hover:bg-gray-50 transition-colors">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{label}</p>
+                  <div className="flex justify-between items-baseline gap-4">
+                    <span className="text-sm text-gray-400 line-through">{old}</span>
+                    <span className="text-sm text-emerald-600 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      {fiq}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center justify-center gap-2 mt-8">
+            <div className="h-px flex-1 max-w-[60px] bg-emerald-200" />
+            <p className="text-center text-gray-700 font-semibold text-sm">
+              Most businesses save K2,500\u20134,500 every month. FiQ pays for itself in the first week.
+            </p>
+            <div className="h-px flex-1 max-w-[60px] bg-emerald-200" />
+          </div>
+
+          {/* Scrolling Testimonials — temporarily hidden, will be re-enabled with real testimonials */}
+          {/* <div className="overflow-hidden mt-12">
             <div className="flex animate-marquee gap-6 hover:[animation-play-state:paused]" style={{ width: "max-content" }}>
               {[
                 {
@@ -344,7 +358,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          </div>
+          </div> */}
         </div>
       </section>
 

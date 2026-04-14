@@ -39,3 +39,35 @@ body {
 .animate-marquee:hover {
   animation-play-state: paused;
 }
+
+/* Scroll-triggered animations */
+.scroll-animate {
+  will-change: opacity, transform;
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-animate-fade-up {
+  opacity: 0;
+  transform: translateY(32px);
+}
+.scroll-animate-fade-left {
+  opacity: 0;
+  transform: translateX(-32px);
+}
+.scroll-animate-fade-right {
+  opacity: 0;
+  transform: translateX(32px);
+}
+.scroll-animate-fade-in {
+  opacity: 0;
+}
+.scroll-animate-scale-in {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
+.scroll-animate-visible {
+  opacity: 1 !important;
+  transform: translateY(0) translateX(0) scale(1) !important;
+}

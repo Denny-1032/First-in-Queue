@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "First in Queue — AI WhatsApp & Voice Customer Care",
+    default: "First in Queue — WhatsApp & Voice Customer Care",
     template: "%s | First in Queue",
   },
   description:
@@ -48,9 +48,9 @@ export const metadata: Metadata = {
     locale: "en_ZM",
     url: BASE_URL,
     siteName: "First in Queue",
-    title: "First in Queue — AI WhatsApp & Voice Customer Care",
+    title: "First in Queue — WhatsApp & Voice Customer Care",
     description:
-      "Automate WhatsApp messages and phone calls with AI. Instant responses, 24/7, in 40+ languages. No code required.",
+      "Automate WhatsApp messages and phone calls. Instant responses, 24/7, in 40+ languages. No code required.",
     images: [
       {
         url: `${BASE_URL}/fiq-logo.png`,
@@ -62,9 +62,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "First in Queue — AI WhatsApp & Voice Customer Care",
+    title: "First in Queue — WhatsApp & Voice Customer Care",
     description:
-      "Automate WhatsApp and phone support with AI. 24/7, 40+ languages, 5-minute setup.",
+      "Automate WhatsApp and phone support. 24/7, 40+ languages, 5-minute setup.",
     images: [`${BASE_URL}/fiq-logo.png`],
   },
   robots: {

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
+import { ScrollAnimate } from "@/components/ui/scroll-animate";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
 
@@ -85,24 +86,31 @@ export default function AboutPage() {
       {/* SECTION 1: Hero — Pain-Led Headline */}
       <section className="pt-32 pb-16 px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <p className="text-sm font-semibold text-emerald-600 tracking-wide uppercase mb-4">
-            Built in Lusaka. For African Business.
-          </p>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight leading-[1.1]">
-            Every missed message is a{" "}
-            <span className="bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
-              missed sale.
-            </span>
-          </h1>
-          <p className="text-lg text-gray-500 mt-6 max-w-2xl mx-auto leading-relaxed">
-            We built FiQ because we watched good Zambian businesses lose customers every night — not because they had a bad product, but because no one answered the WhatsApp at 9pm.
-          </p>
+          <ScrollAnimate animation="fade-in">
+            <p className="text-sm font-semibold text-emerald-600 tracking-wide uppercase mb-4">
+              Built in Lusaka. For African Business.
+            </p>
+          </ScrollAnimate>
+          <ScrollAnimate animation="fade-up" delay={100}>
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight leading-[1.1]">
+              Every missed message is a{" "}
+              <span className="bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
+                missed sale.
+              </span>
+            </h1>
+          </ScrollAnimate>
+          <ScrollAnimate animation="fade-up" delay={250}>
+            <p className="text-lg text-gray-500 mt-6 max-w-2xl mx-auto leading-relaxed">
+              We built FiQ because we watched good Zambian businesses lose customers every night — not because they had a bad product, but because no one answered the WhatsApp at 9pm.
+            </p>
+          </ScrollAnimate>
         </div>
       </section>
 
       {/* SECTION 2: The Problem We Set Out to Solve */}
       <section className="py-16 px-6 bg-gray-50 border-y border-gray-100">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          <ScrollAnimate animation="fade-left">
           <div>
             <p className="text-sm font-semibold text-emerald-600 tracking-wide uppercase mb-3">
               The problem we set out to solve
@@ -125,6 +133,8 @@ export default function AboutPage() {
               </p>
             </div>
           </div>
+          </ScrollAnimate>
+          <ScrollAnimate animation="fade-right" delay={200}>
           <div className="space-y-0">
             {stats.map((s) => (
               <div key={s.label} className="border border-gray-200 bg-white p-6 -mt-px first:mt-0 first:rounded-t-2xl last:rounded-b-2xl">
@@ -140,6 +150,7 @@ export default function AboutPage() {
               </div>
             ))}
           </div>
+          </ScrollAnimate>
         </div>
       </section>
 
@@ -147,7 +158,8 @@ export default function AboutPage() {
       <section className="py-20 px-6">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
           {/* Left sidebar */}
-          <div className="lg:col-span-4">
+          <ScrollAnimate animation="fade-left" className="lg:col-span-4">
+          <div>
             <p className="text-sm font-semibold text-emerald-600 tracking-wide uppercase mb-3">
               The founding story
             </p>
@@ -163,9 +175,11 @@ export default function AboutPage() {
               </p>
             </div>
           </div>
+          </ScrollAnimate>
 
           {/* Right story body */}
-          <div className="lg:col-span-8 space-y-5 text-gray-600 leading-relaxed">
+          <ScrollAnimate animation="fade-right" delay={200} className="lg:col-span-8">
+          <div className="space-y-5 text-gray-600 leading-relaxed">
             <p>
               Codarti is a Zambian technology company. We build software for African businesses. We have been doing it long enough to have seen the same pattern repeat itself across industries — healthcare, real estate, retail, finance, education — over and over.
             </p>
@@ -185,12 +199,14 @@ export default function AboutPage() {
               Enterprise-level customer care should not require an enterprise-level budget or an enterprise-level IT team. Every business doing good work deserves to respond like the best companies in the world.
             </p>
           </div>
+          </ScrollAnimate>
         </div>
       </section>
 
       {/* SECTION 4: The Numbers, Honestly Stated */}
       <section className="py-16 px-6 bg-gradient-to-br from-emerald-500 to-teal-600">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <ScrollAnimate animation="fade-up">
           <div>
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
               The numbers, honestly stated
@@ -199,6 +215,8 @@ export default function AboutPage() {
               We do not put made-up statistics on our site. Every number here reflects real performance across actual FiQ customers, as of April 2026. No rounding up. No cherry-picking the best-case scenario.
             </p>
           </div>
+          </ScrollAnimate>
+          <ScrollAnimate animation="scale-in" delay={200}>
           <div className="grid grid-cols-2 gap-0.5">
             {stats.map((s) => (
               <div key={s.label} className="bg-gray-900 p-6">
@@ -210,6 +228,7 @@ export default function AboutPage() {
               </div>
             ))}
           </div>
+          </ScrollAnimate>
         </div>
       </section>
 
@@ -223,12 +242,14 @@ export default function AboutPage() {
             Six things we believe without compromise
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {principles.map((p) => (
-              <div key={p.num} className="rounded-2xl border border-gray-200 p-7 hover:shadow-lg transition-shadow">
+            {principles.map((p, i) => (
+              <ScrollAnimate key={p.num} animation="fade-up" delay={i * 100}>
+              <div className="rounded-2xl border border-gray-200 p-7 hover:shadow-lg transition-shadow h-full">
                 <span className="text-5xl font-bold text-emerald-100 block mb-2">{p.num}</span>
                 <h3 className="text-base font-bold text-gray-900 mb-3">{p.title}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">{p.body}</p>
               </div>
+              </ScrollAnimate>
             ))}
           </div>
         </div>
@@ -238,6 +259,7 @@ export default function AboutPage() {
       <section className="py-16 px-6 bg-gray-50 border-y border-gray-100">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Guarantee badge */}
+          <ScrollAnimate animation="scale-in">
           <div className="flex justify-center">
             <div className="relative flex flex-col items-center justify-center w-64 h-64 rounded-full border-2 border-emerald-500 bg-emerald-50 text-center p-8">
               <div className="absolute inset-[-8px] rounded-full border border-emerald-300" />
@@ -248,8 +270,10 @@ export default function AboutPage() {
               <p className="text-xs text-gray-500 mt-2">On every paid plan.<br />No questions asked.</p>
             </div>
           </div>
+          </ScrollAnimate>
 
           {/* Guarantee text */}
+          <ScrollAnimate animation="fade-right" delay={200}>
           <div>
             <p className="text-sm font-semibold text-emerald-600 tracking-wide uppercase mb-3">
               Zero risk to start
@@ -279,11 +303,13 @@ export default function AboutPage() {
               ))}
             </div>
           </div>
+          </ScrollAnimate>
         </div>
       </section>
 
       {/* CTA */}
       <section className="py-20 px-6">
+        <ScrollAnimate animation="fade-up">
         <div className="max-w-4xl mx-auto text-center">
           <div className="rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 p-12 md:p-16 text-white">
             <p className="text-sm font-semibold text-emerald-200 tracking-wide uppercase mb-3">
@@ -315,6 +341,7 @@ export default function AboutPage() {
             </p>
           </div>
         </div>
+        </ScrollAnimate>
       </section>
 
       <Footer />
