@@ -197,7 +197,7 @@ export default function LoginPage() {
             ))}
           </div>
         </div>
-        <p className="text-xs text-emerald-200">Trusted by 230+ businesses across the country</p>
+        <p className="text-xs text-emerald-200">Trusted by businesses from various industries around the country</p>
       </div>
 
       {/* Right form panel */}

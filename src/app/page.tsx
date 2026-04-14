@@ -309,7 +309,7 @@ export default function Home() {
           <div className="flex items-center justify-center gap-2 mt-8">
             <div className="h-px flex-1 max-w-[60px] bg-emerald-200" />
             <p className="text-center text-gray-700 font-semibold text-sm">
-              Most businesses save K2,500\u20134,500 every month. FiQ pays for itself in the first week.
+              Most businesses save K2,500–4,500 every month. FiQ pays for itself in the first week.
             </p>
             <div className="h-px flex-1 max-w-[60px] bg-emerald-200" />
           </div>

@@ -15,7 +15,7 @@ export const fiqKnowledgeBase = {
 FiQ integrates with the WhatsApp Business API to enable automated messaging at scale, while maintaining a personal, conversational experience for customers. The platform is designed for businesses of all sizes, from solo entrepreneurs to large enterprises.`,
     
     keyValuePropositions: [
-      "24/7 automated customer support in 40+ languages",
+      "24/7 automated customer support in 40+ languages (text/WhatsApp chat; voice currently English only)",
       "Reduce response time from hours to seconds",
       "Handle unlimited concurrent conversations",
       "Human handoff when AI can't resolve issues",
@@ -31,9 +31,9 @@ FiQ integrates with the WhatsApp Business API to enable automated messaging at s
   features: [
     {
       name: "AI Chat Assistant",
-      description: "Intelligent WhatsApp chatbot that handles customer inquiries, answers FAQs, and guides users through conversation flows. Uses GPT-4 for natural language understanding.",
+      description: "Intelligent WhatsApp chatbot that handles customer inquiries, answers FAQs, and guides users through conversation flows. Uses GPT-4o for natural language understanding.",
       capabilities: [
-        "Natural conversation in 40+ languages",
+        "Natural conversation in 40+ languages (text/WhatsApp chat; voice calls English only)",
         "Context-aware responses based on conversation history",
         "Customizable personality and tone",
         "Knowledge base integration",
@@ -126,7 +126,7 @@ FiQ integrates with the WhatsApp Business API to enable automated messaging at s
           "30 AI voice call minutes per month",
           "1 WhatsApp phone number",
           "AI-powered responses (FAQs, enquiries, bookings)",
-          "24/7 support in 40+ languages",
+          "24/7 support in 40+ languages (text chat; voice English only)",
           "Basic analytics dashboard",
           "7-day free trial",
         ],
@@ -346,11 +346,10 @@ Key Dashboard Sections:
     settings: {
       description: "Account and integration settings",
       sections: [
-        "WhatsApp Connection: View connection status and credentials",
-        "Business Profile: Company information and branding",
-        "Plan & Usage: Current plan, usage statistics, billing cycle",
-        "Knowledge Base: Manage FAQ and information sources",
-        "Team Management: Add/remove team members",
+        "Business: Business name, industry, languages",
+        "Messages & Hours: Welcome message, fallback message, outside-hours message, operating hours schedule",
+        "Integrations: WhatsApp connection status and management",
+        "Plan & Billing: Current plan, usage meters, billing cycle toggle, upgrade/downgrade/cancel",
       ],
     },
   },
@@ -359,7 +358,7 @@ Key Dashboard Sections:
   // SECTION 6: BILLING & SUBSCRIPTIONS
   // ============================================
   billing: {
-    subscriptionManagement: `Manage your subscription in Dashboard → Settings → Plan & Usage:
+    subscriptionManagement: `Manage your subscription in Dashboard → Settings → Plan & Billing:
 - View current plan and usage statistics
 - See messages used vs. limit
 - See voice minutes used vs. limit
@@ -405,7 +404,7 @@ Failed Payments:
   // SECTION 7: AI & AUTOMATION
   // ============================================
   ai: {
-    howItWorks: `FiQ's AI uses GPT-4 combined with your business knowledge base to provide intelligent responses. The AI:
+    howItWorks: `FiQ's AI uses GPT-4o combined with your business knowledge base to provide intelligent responses. The AI:
 1. Receives customer message via WhatsApp
 2. Analyzes intent and context using conversation history
 3. Searches your knowledge base for relevant information
@@ -727,7 +726,7 @@ SELF-HELP:
     },
     {
       question: "Can the AI speak my local language?",
-      answer: "Yes! FiQ supports 40+ languages including English, Bemba, Nyanja, and Tonga. The AI automatically detects the customer's language and responds accordingly.",
+      answer: "Yes — for text/WhatsApp chat! FiQ supports 40+ languages including English, Bemba, Nyanja, and Tonga. The AI auto-detects the customer's language. Note: Voice calls currently support English only; local languages for voice are on the roadmap.",
     },
     {
       question: "How do I transfer from AI to human agent?",
@@ -747,7 +746,7 @@ SELF-HELP:
     },
     {
       question: "Can I cancel my subscription?",
-      answer: "Yes, cancel anytime in Dashboard → Settings → Plan & Usage. Your account remains active until the end of your current billing period, then downgrades to free (if available) or closes.",
+      answer: "Yes, cancel anytime in Dashboard → Settings → Plan & Billing. Your account remains active until the end of your current billing period, then downgrades to free (if available) or closes.",
     },
     {
       question: "What's the difference between plans?",
@@ -885,12 +884,7 @@ Rate limits:
         { method: "GET", endpoint: "/api/v1/analytics", description: "Get analytics data" },
         { method: "GET", endpoint: "/api/v1/usage", description: "Get current usage statistics" },
       ],
-      sdk: `Official SDKs available:
-- JavaScript/TypeScript: npm install @firstinqueue/sdk
-- Python: pip install firstinqueue
-- PHP: composer require firstinqueue/sdk
-
-SDKs handle authentication, retry logic, and provide typed interfaces.`,
+      sdk: `API documentation and access details available upon request. Contact support@codarti.com for API integration guidance.`,
     },
     
     multiNumberSetup: {
@@ -965,7 +959,7 @@ Customize with:
           "Call scheduling and automation",
           "Transcription and recording",
           "Human transfer during calls",
-          "Multi-language voice support",
+          "Voice support (English; local languages planned)",
         ],
       },
       {
@@ -1485,7 +1479,7 @@ Documentation:
       fiq: [
         "Built specifically for WhatsApp",
         "Zambian payment integration",
-        "Local language support",
+        "40+ languages for text chat",
         "Managed setup option",
         "Human + AI hybrid",
         "Voice AI included",

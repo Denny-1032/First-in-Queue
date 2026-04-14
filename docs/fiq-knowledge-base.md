@@ -1,7 +1,7 @@
 # First in Queue (FiQ) - Complete Knowledge Base
 
 > **For use by the FiQ Assistant**  
-> Last updated: April 2026
+> Last updated: April 13, 2026
 
 ---
 
@@ -15,16 +15,18 @@
 6. [Billing & Payments](#6-billing--payments)
 7. [AI & Automation](#7-ai--automation)
 8. [Voice AI](#8-voice-ai)
-9. [Security & Compliance](#9-security--compliance)
-10. [Troubleshooting](#10-troubleshooting)
-11. [FAQ](#11-faq)
-12. [Advanced Features](#12-advanced-features)
-13. [Integrations](#13-integrations)
-14. [Admin Guide](#14-admin-guide)
-15. [Industry-Specific Guidance](#15-industry-specific-guidance)
-16. [Edge Cases](#16-edge-cases)
-17. [Competitive Comparison](#17-competitive-comparison)
-18. [Getting Started Checklist](#18-getting-started-checklist)
+9. [Web Call Widget](#9-web-call-widget)
+10. [Multi-Tenant & Workspaces](#10-multi-tenant--workspaces)
+11. [Security & Compliance](#11-security--compliance)
+12. [Troubleshooting](#12-troubleshooting)
+13. [FAQ](#13-faq)
+14. [Advanced Features](#14-advanced-features)
+15. [Integrations](#15-integrations)
+16. [Admin Guide](#16-admin-guide)
+17. [Industry-Specific Guidance](#17-industry-specific-guidance)
+18. [Edge Cases](#18-edge-cases)
+19. [Competitive Comparison](#19-competitive-comparison)
+20. [Getting Started Checklist](#20-getting-started-checklist)
 
 ---
 
@@ -36,9 +38,25 @@
 
 FiQ integrates with the WhatsApp Business API to enable automated messaging at scale, while maintaining a personal, conversational experience for customers.
 
+**Built by:** Codarti, a Zambian technology company
+**Website:** https://firstinqueue.com
+**Support:** support@codarti.com
+**WhatsApp:** https://wa.me/260960667093
+**Location:** Lusaka, Zambia (serving businesses across Southern Africa and beyond)
+
+### Getting Started
+
+1. Visit https://firstinqueue.com
+2. Click "Book a Demo" for a personalised walkthrough, or "Get Started" to sign up directly
+3. Signing up is free — no payment required (free tier: 5 conversations, 3 voice minutes)
+4. The FiQ team handles WhatsApp setup at no extra cost (managed setup)
+5. Add your business information to the knowledge base and go live
+
+**Book a free demo:** https://firstinqueue.com/#book-demo — the FiQ team will reach out within 12 hours.
+
 ### Key Value Propositions
 
-- 24/7 automated customer support in 40+ languages
+- 24/7 automated customer support in 40+ languages (text/WhatsApp chat)
 - Reduce response time from hours to seconds
 - Handle unlimited concurrent conversations
 - Human handoff when AI can't resolve issues
@@ -52,10 +70,10 @@ FiQ integrates with the WhatsApp Business API to enable automated messaging at s
 
 ### AI Chat Assistant
 
-Intelligent WhatsApp chatbot that handles customer inquiries, answers FAQs, and guides users through conversation flows. Uses GPT-4 for natural language understanding.
+Intelligent WhatsApp chatbot that handles customer inquiries, answers FAQs, and guides users through conversation flows. Uses GPT-4o for natural language understanding.
 
 **Capabilities:**
-- Natural conversation in 40+ languages
+- Natural conversation in 40+ languages (text/WhatsApp chat; voice calls currently English only)
 - Context-aware responses based on conversation history
 - Customizable personality and tone
 - Knowledge base integration
@@ -64,16 +82,31 @@ Intelligent WhatsApp chatbot that handles customer inquiries, answers FAQs, and 
 
 ### Voice AI Agent
 
-AI-powered voice calling for automated reminders, appointment confirmations, follow-ups, and lead qualification.
+AI-powered voice calling for automated reminders, appointment confirmations, follow-ups, and lead qualification. Supports both browser-based WebRTC calls and traditional PSTN calls via Twilio or Telnyx.
 
 **Capabilities:**
-- Outbound call scheduling
+- Outbound PSTN call scheduling (Twilio/Telnyx)
+- Browser-based WebRTC calls (zero telephony cost)
 - Appointment reminders
 - Payment follow-ups
 - Lead qualification calls
 - Natural conversation flow
 - Call recording and transcription
 - Transfer to human agents
+- Answering machine detection (auto-hangup on voicemail)
+
+### Web Call Widget
+
+Embeddable voice call widget for any website or mobile app. Customers click to talk to your AI assistant directly from their browser — no phone number or telephony costs required.
+
+**Capabilities:**
+- One-click browser-to-AI voice calls via WebRTC
+- Fully customizable appearance (colors, text, position, branding)
+- Embed via JavaScript SDK, iframe, or direct link
+- Mobile app integration (Android, iOS, React Native, Flutter)
+- Real-time transcript streaming during calls
+- Mute/speaker controls and call timer
+- Widget configuration dashboard in FiQ
 
 ### Conversation Flows
 
@@ -128,36 +161,49 @@ Full integration with Meta's WhatsApp Business API for reliable, scalable messag
 
 ## 3. Pricing & Plans
 
-### Basic Plan - K499/month
+### Free Tier (New Signups)
+
+All new accounts receive a free tier to test the platform — no payment required to sign up.
+
+**Includes:**
+- 5 AI conversations
+- 3 voice call minutes
+- 1 WhatsApp number
+- Basic AI responses
+- Upgrade anytime to unlock more
+
+The free tier does not expire. Upgrade to a paid plan when ready.
+
+### Basic Plan - K499/month (K399/month yearly)
 
 **For:** Small businesses, startups, solo entrepreneurs
 
 **Includes:**
 - 1,000 AI conversations/month
-- 30 voice minutes
+- 30 voice minutes/month
 - 1 WhatsApp number
-- Basic AI customization
-- Standard response time
+- Automated responses (FAQs, enquiries, bookings)
+- 24/7 support in 40+ languages (text chat; voice calls English only)
+- Basic analytics dashboard
 - Email support
-- Basic analytics
 
-### Business Plan - K1,699/month
+### Business Plan - K1,699/month (K1,359/month yearly)
 
 **For:** Growing businesses, teams, medium enterprises
 
 **Includes:**
 - 5,000 AI conversations/month
-- 120 voice minutes
+- 120 voice minutes/month
 - 2 WhatsApp numbers
-- Advanced AI customization
-- Priority response time
-- Priority email & chat support
-- Advanced analytics
-- Human handoff system
+- Human agent handoff system
+- Scheduled outbound calls (reminders, follow-ups)
+- Advanced analytics & reporting
+- Dedicated onboarding support
 - Custom conversation flows
 - Webhook integrations
+- Priority email & chat support
 
-### Enterprise Plan - Custom Pricing
+### Enterprise Plan - Custom (Starting from K5,000/month)
 
 **For:** Large businesses, franchises, high-volume operations
 
@@ -165,26 +211,41 @@ Full integration with Meta's WhatsApp Business API for reliable, scalable messag
 - Unlimited AI conversations
 - Unlimited voice minutes
 - Unlimited WhatsApp numbers
-- Custom AI training
-- SLA guarantees
+- Custom AI trained on business data
+- 99.9% uptime SLA
 - Dedicated account manager
-- Custom integrations
+- Custom integrations (POS, ERP, CRM)
+- On-site onboarding & training
 - White-label options
 - API access
 - Advanced security features
 
+### Yearly Pricing
+
+Save 20% with annual billing:
+
+| Plan | Monthly | Yearly (per month) | Yearly Total |
+|------|---------|-------------------|--------------|
+| Basic | K499/mo | K399/mo | K4,790/yr |
+| Business | K1,699/mo | K1,359/mo | K16,310/yr |
+| Enterprise | Custom | Custom | Custom |
+
 ### Overage Pricing
 
-| Feature | Rate |
-|---------|------|
-| Additional conversations | K0.50 per conversation |
-| Additional voice minutes | K10 per minute |
+| Feature | Basic | Business |
+|---------|-------|----------|
+| Additional conversations | K1.70 per conversation | K1.70 per conversation |
+| Additional voice minutes | K3.80 per minute | K3.80 per minute |
+
+### 30-Day Money-Back Guarantee
+
+All paid plans include a 30-day money-back guarantee. If you're not satisfied, contact support within 30 days for a full refund. No free trials — pay upfront with confidence.
 
 ### Billing & Payments
 
 - **Currency:** ZMW (Zambian Kwacha)
-- **Payment Methods:** Airtel Money, MTN Mobile Money, Zamtel Kwacha
-- **Billing Cycle:** Monthly
+- **Payment Methods:** Airtel Money, MTN Mobile Money, Zamtel Kwacha, Visa/Mastercard (via Lenco)
+- **Billing Cycle:** Monthly or Yearly
 - **Proration:** Yes - charged proportionally when upgrading mid-cycle
 
 ---
@@ -270,19 +331,22 @@ Your business name appears in WhatsApp based on your **Meta Business Manager** s
 
 **Features:**
 - Real-time chat view
-- Filter by status (active, resolved, escalated)
+- Filter by status (all, active, waiting, handoff, resolved, archived)
 - Search conversations
 - Assign to agents
 - Tag conversations
 - View customer history
 
 **Statuses:**
-- `ai_handling` - AI is managing conversation
-- `human_requested` - Customer asked for human
-- `escalated` - AI couldn't help, sent to human
-- `in_progress` - Human agent responding
-- `resolved` - Conversation completed
-- `closed` - Archived conversation
+- Active: AI is currently handling the conversation
+- Waiting: Customer is waiting for a human agent (AI stops responding)
+- Handoff: A human agent has taken over from the AI
+- Resolved: The conversation has been completed and closed
+- Archived: Conversation has been permanently archived (hidden from main view)
+
+### Workspace Switcher
+
+If you belong to multiple businesses, click the workspace name in the sidebar to switch between them or create a new business.
 
 ### Flows
 
@@ -313,13 +377,13 @@ Your business name appears in WhatsApp based on your **Meta Business Manager** s
 
 ### AI Configuration
 
-**Settings:**
-- AI personality (professional, friendly, casual)
-- Business knowledge base
-- FAQ responses
-- Escalation triggers
-- Operating hours
-- Response style preferences
+The AI Config page uses a tabbed layout for easy navigation:
+
+**Tabs:**
+- **Personality** - Bot name, personality, tone, emoji usage, response style, welcome/fallback messages
+- **Knowledge Base** - Business information entries the AI uses to answer questions
+- **FAQs & Instructions** - Custom FAQ entries and special instructions for the AI
+- **Voice & Test** - Voice agent settings and "Test your Bot" chat simulator
 
 ### Analytics
 
@@ -334,13 +398,13 @@ Your business name appears in WhatsApp based on your **Meta Business Manager** s
 
 ### Settings
 
-**Account Settings:**
-- Business profile
-- WhatsApp connection status
-- Plan & billing
-- Team members
-- Notification preferences
-- Security settings
+Settings page uses a tabbed layout:
+
+**Tabs:**
+- **Business** - Business name, industry, languages
+- **Messages & Hours** - Welcome message, fallback message, outside-hours message, operating hours schedule
+- **Integrations** - WhatsApp connection status and management
+- **Plan & Billing** - Current plan, usage meters (conversations, voice minutes), days remaining, billing cycle toggle (monthly/yearly), upgrade/downgrade/cancel buttons
 
 ---
 
@@ -349,7 +413,7 @@ Your business name appears in WhatsApp based on your **Meta Business Manager** s
 ### Managing Your Subscription
 
 **View Plan:**
-Dashboard → Settings → Plan & Usage
+Dashboard → Settings → Plan & Billing
 
 **Upgrade/Downgrade:**
 - Upgrade anytime (immediate)
@@ -363,31 +427,39 @@ Dashboard → Settings → Plan & Usage
 
 ### Payment Methods
 
-**Available:**
+**Mobile Money:**
 - Airtel Money
 - MTN Mobile Money
 - Zamtel Kwacha
 
-**Process:**
-1. Select payment method
+**Card Payments:**
+- Visa and Mastercard (via Lenco payment gateway)
+
+**Mobile Money Process:**
+1. Select mobile money provider
 2. Enter mobile number
-3. Confirm on your phone
+3. Approve the payment prompt on your phone
+4. Payment processed instantly
+
+**Card Payment Process:**
+1. Select card payment
+2. Enter card details in the secure Lenco widget
+3. Complete 3D Secure verification if prompted
 4. Payment processed instantly
 
 **Failed Payments:**
+- Check wallet balance / card limits
 - Retry with different method
-- Check wallet balance
 - Contact support if issues persist
 
 ### Understanding Your Bill
 
-**Monthly Charges:**
-- Base plan fee
+**Monthly/Yearly Charges:**
+- Base plan fee (monthly or yearly)
 - Overage charges (if applicable)
-- Add-on services
 
 **Invoice:**
-- Available in Dashboard → Billing
+- Available in Dashboard → Settings → Plan & Billing
 - Download as PDF
 - Sent to email monthly
 
@@ -395,11 +467,11 @@ Dashboard → Settings → Plan & Usage
 
 When you exceed plan limits:
 
-| Plan | Conversation Overage | Voice Overage |
-|------|---------------------|---------------|
-| Basic | K0.50/conversation | K10/minute |
-| Business | K0.45/conversation | K9/minute |
-| Enterprise | Custom rate | Custom rate |
+| Feature | Rate |
+|---------|------|
+| Additional conversations | K1.70 per conversation |
+| Additional voice minutes | K3.80 per minute |
+| Enterprise | Custom rate |
 
 **Notifications:**
 - 80% usage alert
@@ -412,7 +484,7 @@ When you exceed plan limits:
 
 ### How the AI Works
 
-FiQ uses GPT-4 for natural language understanding, customized with your business knowledge.
+FiQ uses GPT-4o for natural language understanding, customized with your business knowledge.
 
 **AI Capabilities:**
 - Understand context and intent
@@ -420,7 +492,7 @@ FiQ uses GPT-4 for natural language understanding, customized with your business
 - Guide users through flows
 - Escalate when needed
 - Learn from interactions
-- Handle 40+ languages
+- Handle 40+ languages (text/WhatsApp chat; voice currently English only)
 
 ### Customizing AI Personality
 
@@ -428,7 +500,7 @@ FiQ uses GPT-4 for natural language understanding, customized with your business
 - **Professional:** Formal, business-focused
 - **Friendly:** Warm, approachable
 - **Casual:** Relaxed, conversational
-- **Custom:** Define your own style
+- **Formal:** Proper, traditional business tone
 
 **Settings:**
 - Name your AI (e.g., "Sarah from Support")
@@ -490,24 +562,47 @@ FiQ uses GPT-4 for natural language understanding, customized with your business
 
 ### Overview
 
-AI-powered voice calling for outbound calls including reminders, follow-ups, and lead qualification.
+AI-powered voice calling for outbound calls including reminders, follow-ups, and lead qualification. Powered by Retell AI for natural conversation, with PSTN connectivity via Twilio or Telnyx.
+
+**Voice Call Types:**
+- **PSTN Calls (Twilio/Telnyx):** Traditional phone calls to customer phone numbers. Telnyx recommended for Zambian numbers (87% cheaper than Twilio).
+- **Web Calls (WebRTC):** Browser-based calls via the Web Call Widget. Zero telephony cost — only Retell AI charges ($0.13/min).
 
 ### Setting Up Voice AI
 
 **Requirements:**
-- Active WhatsApp Business number
-- Voice-enabled phone number
+- Active WhatsApp Business number (for WhatsApp-triggered calls)
+- Voice-enabled phone number (for PSTN calls only; not needed for web calls)
 - Approved call scripts (for some industries)
 
 **Configuration:**
-Dashboard → Voice → Configuration
+Dashboard → Voice Agent
 
 **Settings:**
 - Select AI voice (male/female, accent)
 - Set call hours
-- Configure voicemail
-- Define max call duration
+- Configure voicemail handling
+- Define max call duration (default: 5 minutes)
 - Set retry attempts
+- Choose voice provider (Twilio or Telnyx via `VOICE_PROVIDER` env var)
+
+### Voice Providers
+
+| Provider | Best For | Cost to Zambia (+260) |
+|----------|----------|----------------------|
+| Twilio | International numbers | ~$1.08/min |
+| Telnyx (local) | Zambian numbers | ~$0.145/min |
+| Web Call (WebRTC) | Website visitors | $0.13/min (Retell only) |
+
+Telnyx with a local Zambian +260 number is **87% cheaper** than Twilio for calls within Zambia.
+
+### Call Safety Features
+
+- **Voice minutes gate:** Checks plan limits before placing any call
+- **Answering machine detection (AMD):** Auto-hangup on voicemail to prevent wasted minutes
+- **TwiML/Telnyx timeouts:** `timeout="30"` (ring time), `timeLimit="180"` (call cap)
+- **Max call duration:** Default 5 minutes, configurable per agent
+- **Single-source billing:** Usage recorded only from Retell webhook to prevent double-counting
 
 ### Scheduling Voice Calls
 
@@ -568,7 +663,148 @@ Dashboard → Voice → Scheduled Calls
 
 ---
 
-## 9. Security & Compliance
+## 9. Web Call Widget
+
+### Overview
+
+The Web Call Widget lets your customers have voice conversations with your AI assistant directly from any website or mobile app — using their browser's microphone. No phone number or telephony costs required.
+
+**Cost advantage:** Web calls use Retell WebRTC only ($0.13/min) vs PSTN calls which add Twilio/Telnyx costs ($0.50-1.08/min). This is an 87% cost reduction per call.
+
+### How It Works
+
+1. Customer clicks the widget on your website
+2. Browser requests microphone permission
+3. WebRTC connection established to Retell AI
+4. AI assistant handles the conversation in real-time
+5. Transcript streams live during the call
+6. Call duration is tracked against your voice minutes
+
+### Embed Options
+
+**Option 1: JavaScript SDK (Recommended)**
+```html
+<script 
+  src="https://app.firstinqueue.com/widget.js" 
+  data-tenant-id="YOUR_TENANT_ID" 
+  data-agent-id="YOUR_AGENT_ID"
+  data-theme="default"
+  data-position="bottom-right"
+></script>
+```
+
+**Option 2: Iframe Embed**
+```html
+<iframe 
+  src="https://app.firstinqueue.com/widget/iframe?tenantId=XXX&agentId=YYY"
+  width="320" height="500" frameborder="0"
+  allow="microphone">
+</iframe>
+```
+
+**Option 3: Direct Link**
+For email campaigns, SMS, or QR codes:
+```
+https://app.firstinqueue.com/widget/iframe?tenantId=XXX&agentId=YYY
+```
+
+### Widget Customization
+
+Configure via Dashboard → Integrations → Widget:
+
+- **Themes:** Default, Dark, Minimal, Custom
+- **Colors:** Primary, background, text (color pickers)
+- **Text:** Custom title and subtitle
+- **Position:** Bottom-right, bottom-left, top-right, top-left
+- **Branding:** Toggle "Powered by First in Queue" attribution
+
+### Mobile App Integration
+
+The widget works in mobile apps via WebView:
+- **Android:** WebView or Chrome Custom Tabs
+- **iOS:** WKWebView or SFSafariViewController
+- **React Native:** react-native-webview
+- **Flutter:** webview_flutter
+
+All methods require microphone permission declarations in the app manifest.
+
+### JavaScript API
+
+Control the widget programmatically:
+```javascript
+window.FiQWidget.open();
+window.FiQWidget.close();
+window.FiQWidget.toggle();
+window.FiQWidget.isOpen();
+```
+
+Listen for events:
+```javascript
+window.addEventListener('fiq-widget-event', (e) => {
+  // e.data.type: 'fiq-widget-call-started' | 'fiq-widget-call-ended'
+});
+```
+
+---
+
+## 10. Multi-Tenant & Workspaces
+
+### Overview
+
+FiQ supports multi-tenant workspaces. Each business is a separate "tenant" with its own WhatsApp number, AI configuration, conversation history, team members, and subscription plan.
+
+A single user account can belong to multiple businesses (tenants), enabling agencies, consultants, and multi-location operators to manage everything from one login.
+
+### How It Works
+
+- **Signup:** Creates a new tenant (business) + user account + free tier subscription
+- **Login:** If the user belongs to multiple tenants, a workspace picker is shown
+- **Sidebar:** Shows current business name; click to switch workspaces or create a new business
+- **Session:** Auth token carries one `tenantId` at a time (the active workspace)
+
+### Switching Workspaces
+
+1. Click your business name in the sidebar
+2. A dropdown shows all businesses you belong to
+3. Click a different business to switch
+4. Or click "Create New Business" to set up a new workspace
+
+All data (conversations, agents, flows, settings) is scoped to the active workspace.
+
+### Creating a New Business
+
+1. Click workspace name in sidebar → "Create New Business"
+2. Enter a business name (min 2 characters)
+3. FiQ creates: tenant, agent record, free tier subscription
+4. Session automatically switches to the new workspace
+
+### Team & Roles
+
+Each workspace has its own team. Roles:
+- **Owner:** Full access, billing, can delete workspace
+- **Admin:** Full access except billing
+- **Agent:** Can handle conversations, no settings access
+
+Team members are managed per-workspace at Dashboard → Team.
+
+### Inviting Users to a Workspace
+
+1. Go to Dashboard → Team
+2. Click "Add Agent"
+3. Enter name, email, role
+4. An invite email is sent automatically
+5. When the invitee accepts, they gain access to this workspace
+6. If they already have a FiQ account, the workspace appears in their switcher
+
+### Technical Details
+
+- **Junction table:** `user_tenants` (user_id, tenant_id, role) is the source of truth for membership
+- **Legacy compat:** `users.tenant_id` is kept as "last used tenant" for backward compatibility
+- **Session caching:** Tenant list is cached in sessionStorage for 60 seconds to reduce API calls
+
+---
+
+## 11. Security & Compliance
 
 ### Data Security
 
@@ -616,7 +852,7 @@ Dashboard → Voice → Scheduled Calls
 
 ---
 
-## 10. Troubleshooting
+## 12. Troubleshooting
 
 ### Common Issues
 
@@ -664,7 +900,7 @@ Dashboard → Voice → Scheduled Calls
 **Contact Support:**
 - Email: support@codarti.com
 - In-app chat (Business & Enterprise)
-- Phone: +260-XXX-XXXX (Enterprise)
+- Phone: Available on Enterprise plan (dedicated number provided at onboarding)
 
 **Response Times:**
 - Basic: 24-48 hours (email)
@@ -673,7 +909,7 @@ Dashboard → Voice → Scheduled Calls
 
 ---
 
-## 11. FAQ
+## 13. FAQ
 
 **Q: How long does WhatsApp setup take?**
 A: Managed setup: 1-2 business days. Self setup: 1-2 hours.
@@ -694,10 +930,13 @@ A: AI escalates to human agents with full conversation context.
 A: Yes, end-to-end encrypted, GDPR compliant, secure servers.
 
 **Q: Can I cancel anytime?**
-A: Yes, cancel in Dashboard → Settings → Plan. Active until end of billing period.
+A: Yes, cancel in Dashboard → Settings → Plan & Billing. Your account reverts to the free tier. Data is retained for 30 days.
 
 **Q: What's the difference between plans?**
-A: Basic (K499): 1,000 conversations, 30 voice mins, 1 number. Business (K1,699): 5,000 conversations, 120 voice mins, 2 numbers + advanced features. Enterprise: Unlimited everything + custom AI + SLA.
+A: Free: 5 conversations + 3 voice mins (test only). Basic (K499/mo): 1,000 conversations, 30 voice mins, 1 number. Business (K1,699/mo): 5,000 conversations, 120 voice mins, 2 numbers + advanced features. Enterprise: Unlimited everything + custom AI + SLA. Save 20% with yearly billing.
+
+**Q: Is there a free trial?**
+A: No free trial. New signups get a free tier (5 conversations, 3 voice minutes) to test the platform. All paid plans include a 30-day money-back guarantee.
 
 **Q: Do I need Meta/Facebook Business verification?**
 A: Not required for basic functionality. Green verification badge optional.
@@ -705,9 +944,48 @@ A: Not required for basic functionality. Green verification badge optional.
 **Q: Can FiQ integrate with my existing systems?**
 A: Enterprise plan includes custom integrations. Business plan has basic API webhooks.
 
+**Q: Can I manage multiple businesses from one account?**
+A: Yes. FiQ supports multi-tenant workspaces. Switch between businesses via the sidebar, or create new businesses anytime.
+
+**Q: What is the Web Call Widget?**
+A: An embeddable widget for your website that lets customers talk to your AI assistant via their browser. No phone number needed — uses WebRTC. Much cheaper than phone calls.
+
+**Q: Can I accept card payments?**
+A: Yes. FiQ supports Visa/Mastercard payments via Lenco in addition to Airtel Money, MTN, and Zamtel mobile money.
+
+**Q: Can I see a demo before signing up?**
+A: Yes. Book a free demo at https://firstinqueue.com/#book-demo. The FiQ team will give you a personalised walkthrough within 12 hours. You can also sign up for free and test with 5 conversations.
+
+**Q: How do I contact FiQ?**
+A: WhatsApp: https://wa.me/260960667093. Email: support@codarti.com. Website: https://firstinqueue.com/contact. Or book a demo at https://firstinqueue.com/#book-demo.
+
+**Q: Do I need any technical skills?**
+A: No. FiQ is designed for non-technical users. The managed setup option means the FiQ team handles all technical configuration for you.
+
+**Q: Can I test the AI before going live?**
+A: Yes. The dashboard includes a "Test your Bot" chat simulator in Dashboard → Chat Agent → Voice & Test tab. Available on all plans including the free tier.
+
+**Q: How does FiQ compare to hiring a customer support agent?**
+A: A typical support agent in Zambia costs K3,000–5,000/month for 8 hours/day. FiQ's Basic plan at K499/month works 24/7, handles hundreds of conversations simultaneously, and never takes sick leave. Human agents can still handle complex issues alongside FiQ.
+
+**Q: What if the AI gives a wrong answer?**
+A: The AI only answers based on your knowledge base. If unsure, it escalates to a human agent rather than guessing. You can review all conversations, refine your knowledge base, and test changes immediately.
+
+**Q: Is there training or onboarding included?**
+A: Yes. All plans include managed setup at no extra cost. Business and Enterprise plans include dedicated onboarding support with hands-on guidance.
+
+**Q: What happens if I exceed my plan limits?**
+A: You're notified at 80% and 100% usage. Additional conversations cost K1.70 each and voice minutes cost K3.80 each. Upgrade anytime to avoid overages.
+
+**Q: Can FiQ handle Zambian local languages?**
+A: Yes — for text/WhatsApp chat. FiQ supports 40+ languages and auto-detects the customer's language. **Note:** Voice AI calls currently support English only. Local Zambian languages (Bemba, Nyanja, Tonga, Lozi) for voice are planned for future release.
+
+**Q: Do you offer discounts for NGOs or schools?**
+A: Contact support@codarti.com for special pricing for non-profits, educational institutions, and charities.
+
 ---
 
-## 12. Advanced Features
+## 14. Advanced Features
 
 ### Custom Flows
 
@@ -796,11 +1074,6 @@ Business and Enterprise plans include REST API access.
 - Bearer token authentication
 - Rate limits apply
 
-**SDKs Available:**
-- JavaScript/TypeScript: `npm install @firstinqueue/sdk`
-- Python: `pip install firstinqueue`
-- PHP: `composer require firstinqueue/sdk`
-
 ### Multi-Number Setup
 
 Managing multiple WhatsApp numbers.
@@ -826,7 +1099,7 @@ Managing multiple WhatsApp numbers.
 
 ---
 
-## 13. Integrations
+## 15. Integrations
 
 ### Available Integrations
 
@@ -880,7 +1153,7 @@ Managing multiple WhatsApp numbers.
 
 ---
 
-## 14. Admin Guide
+## 16. Admin Guide
 
 ### Multi-Client Management
 
@@ -960,7 +1233,7 @@ When client rotates credentials:
 
 ---
 
-## 15. Industry-Specific Guidance
+## 17. Industry-Specific Guidance
 
 ### E-commerce
 
@@ -1096,7 +1369,7 @@ When client rotates credentials:
 
 ---
 
-## 16. Edge Cases
+## 18. Edge Cases
 
 ### Number Migration
 
@@ -1207,7 +1480,7 @@ When client rotates credentials:
 
 ---
 
-## 17. Competitive Comparison
+## 19. Competitive Comparison
 
 ### vs Traditional WhatsApp Business App
 
@@ -1220,6 +1493,8 @@ When client rotates credentials:
 | Analytics and insights | No analytics |
 | Voice calling automation | No voice automation |
 | Team collaboration | Single user only |
+| Web call widget for websites | Not available |
+| Multi-workspace management | Single business |
 
 ### vs Other Chatbots
 
@@ -1227,15 +1502,17 @@ When client rotates credentials:
 |-----|---------------|
 | Built specifically for WhatsApp | Generic messaging platforms |
 | Zambian payment integration | International payment only |
-| Local language support | English-centric |
+| 40+ languages for text chat | English-centric |
 | Managed setup option | Self-service setup |
 | Human + AI hybrid | AI-only or human-only |
-| Voice AI included | Voice as expensive add-on |
+| Voice AI + Web Widget included | Voice as expensive add-on |
 | Industry-specific templates | Generic templates |
+| Multi-tenant workspaces | Single account per business |
+| Free tier to test | Paid only or limited demos |
 
 ---
 
-## 18. Getting Started Checklist
+## 20. Getting Started Checklist
 
 ### Setup Checklist
 
@@ -1266,11 +1543,19 @@ When client rotates credentials:
 
 **Support Email:** support@codarti.com
 
+**WhatsApp:** https://wa.me/260960667093
+
+**Contact Page:** https://firstinqueue.com/contact
+
+**Book a Demo:** https://firstinqueue.com/#book-demo
+
 **Documentation:** https://docs.firstinqueue.com
 
 **Status Page:** https://status.firstinqueue.com
 
-**Emergency (Enterprise):** +260-XXX-XXXX
+**Emergency (Enterprise):** Dedicated phone line provided at onboarding
+
+**Support Hours:** Monday–Friday 8:00 AM – 5:00 PM (CAT). AI support available 24/7.
 
 ---
 

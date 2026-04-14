@@ -7,8 +7,10 @@ This document explains the payment system integration for First in Queue, which 
 The payment system handles:
 - **Mobile Money Payments**: Airtel Money, MTN Money, Zamtel Kwacha via Lipila
 - **Card Payments**: Visa, Mastercard via Lenco popup widget
-- **Free Trials**: 7-day trials with deferred billing
 - **Subscription Management**: Automatic activation and renewal
+- **30-Day Money-Back Guarantee**: All paid plans include a refund guarantee
+
+> **Note:** Free trials have been removed. New signups receive a free tier (5 conversations, 3 voice minutes) instead.
 
 ## Architecture
 
@@ -70,14 +72,15 @@ CRON_SECRET=your-secret-key-for-cron-jobs
 8. Frontend calls `/api/payments/verify-lenco`
 9. Backend verifies with Lenco and activates subscription
 
-### 3. Free Trials
+### 3. Free Tier (New Signups)
 
-1. User starts trial by adding payment method
-2. Backend creates trial subscription (`status: "trialing"`)
-3. No immediate charge
-4. Daily cron job checks for expired trials
-5. When trial ends, system charges saved payment method
-6. Subscription becomes `active`
+1. New user signs up — receives free tier automatically (5 conversations, 3 voice minutes)
+2. Free tier subscription created with `plan_id: "free"` and `status: "active"`
+3. No payment required to test the platform
+4. User can upgrade to a paid plan at any time
+5. All paid plans include a 30-day money-back guarantee
+
+> **Note:** The `processExpiredTrials` function is deprecated. Legacy trialing subscriptions are auto-cancelled if found.
 
 ## API Endpoints
 
@@ -200,10 +203,10 @@ Add to your crontab:
    - Verify payment status in database
    - Check for webhook signature verification failures
 
-3. **Trial billing not working**
-   - Verify cron job is running
-   - Check `processExpiredTrials` logs
-   - Ensure payment methods are saved correctly
+3. **Free tier not activating**
+   - Verify signup creates subscription with `plan_id: "free"`
+   - Check signup API logs for errors
+   - Note: Trials are deprecated; all new signups get free tier
 
 ### Logs to Monitor
 - `[Lenco Webhook]` - Lenco webhook events
