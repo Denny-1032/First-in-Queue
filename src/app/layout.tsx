@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ToastProvider } from "@/components/ui/toast";
 import { OrganizationJsonLd, WebSiteJsonLd } from "@/components/seo/json-ld";
+import { FiqSupportWidgetWrapper } from "@/components/voice/fiq-support-widget-wrapper";
 import "./globals.css";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
@@ -99,7 +100,10 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <OrganizationJsonLd />
         <WebSiteJsonLd />
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          {children}
+          <FiqSupportWidgetWrapper />
+        </ToastProvider>
       </body>
     </html>
   );
