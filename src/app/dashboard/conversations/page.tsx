@@ -33,10 +33,19 @@ import {
   AlertTriangle,
   Wifi,
   WifiOff,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { timeAgo, truncate } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import type { Conversation, Message, ConversationStatus, Agent } from "@/types";
 
 
@@ -84,6 +93,13 @@ export default function ConversationsPage() {
   const notifPermission = useRef<NotificationPermission>("default");
   const lastMessageCountRef = useRef(0);
   const sendingRef = useRef(false);
+
+  // New conversation dialog state
+  const [showNewConvo, setShowNewConvo] = useState(false);
+  const [newConvoPhone, setNewConvoPhone] = useState("");
+  const [newConvoName, setNewConvoName] = useState("");
+  const [newConvoMessage, setNewConvoMessage] = useState("");
+  const [initiating, setInitiating] = useState(false);
 
   // Canned responses for agents
   const cannedResponses = [
@@ -341,6 +357,50 @@ export default function ConversationsPage() {
     if (selectedId) fetchMessages(selectedId, true);
   };
 
+  const handleInitiateConversation = async () => {
+    if (!newConvoPhone.trim() || !newConvoMessage.trim() || initiating) return;
+    setInitiating(true);
+    try {
+      const res = await fetch("/api/conversations/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: newConvoPhone.trim(),
+          name: newConvoName.trim() || undefined,
+          message: newConvoMessage.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok || res.status === 207) {
+        // Add conversation to list and select it
+        const newConvo = data.conversation as Conversation;
+        setConversations((prev) => {
+          const exists = prev.some((c) => c.id === newConvo.id);
+          if (exists) return prev.map((c) => c.id === newConvo.id ? { ...newConvo, tags: newConvo.tags || [] } : c);
+          return [{ ...newConvo, tags: newConvo.tags || [] }, ...prev];
+        });
+        setSelectedId(newConvo.id);
+        setMessages([data.message]);
+        setShowNewConvo(false);
+        setNewConvoPhone("");
+        setNewConvoName("");
+        setNewConvoMessage("");
+        if (res.status === 207) {
+          toast(data.deliveryError || "Message saved but WhatsApp delivery failed.", "warning");
+        } else {
+          toast("Conversation started successfully", "success");
+        }
+        // Refresh the full list
+        fetchConversations(true);
+      } else {
+        toast(data.error || data.message || "Failed to start conversation", "error");
+      }
+    } catch {
+      toast("Failed to start conversation", "error");
+    }
+    setInitiating(false);
+  };
+
   const getInitials = (name?: string) => {
     if (!name) return "?";
     return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -356,8 +416,16 @@ export default function ConversationsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
+        <div className="flex items-center gap-3">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Conversations</h1>
+          <Button
+            size="sm"
+            className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+            onClick={() => setShowNewConvo(true)}
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">New Chat</span>
+          </Button>
         </div>
         {myAgent && (
           <div className="flex items-center gap-2">
@@ -737,6 +805,75 @@ export default function ConversationsPage() {
           )}
         </Card>
       </div>
+
+      {/* New Conversation Dialog */}
+      <Dialog open={showNewConvo} onOpenChange={setShowNewConvo}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Start a New Conversation</DialogTitle>
+            <DialogDescription>
+              Send the first message to a WhatsApp contact. Use international format for the phone number (e.g. +260971234567).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Phone Number *</label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="+260971234567"
+                  value={newConvoPhone}
+                  onChange={(e) => setNewConvoPhone(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Contact Name <span className="text-gray-400 font-normal">(optional)</span></label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="John Doe"
+                  value={newConvoName}
+                  onChange={(e) => setNewConvoName(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">First Message *</label>
+              <textarea
+                placeholder="Hi! How can we help you today?"
+                value={newConvoMessage}
+                onChange={(e) => setNewConvoMessage(e.target.value)}
+                rows={3}
+                className="flex w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+              />
+              <p className="text-[10px] text-amber-600 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3 shrink-0" />
+                If the contact hasn&apos;t messaged you in 24 hours, WhatsApp may reject free-form messages. Use a message template instead.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewConvo(false)} disabled={initiating}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+              onClick={handleInitiateConversation}
+              disabled={!newConvoPhone.trim() || !newConvoMessage.trim() || initiating}
+            >
+              {initiating ? (
+                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              {initiating ? "Sending..." : "Send Message"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
