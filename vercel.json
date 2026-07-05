@@ -7,10 +7,6 @@
     {
       "path": "/api/cron/handoff-timeout",
       "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/booking-reminders",
-      "schedule": "0 * * * *"
     }
   ]
 }

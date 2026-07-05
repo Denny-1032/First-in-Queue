@@ -1,0 +1,33 @@
+name: Booking Reminders
+
+# Vercel Hobby crons only run once per day, so the hourly booking-reminders
+# job is driven from here instead. Runs every hour and hits the deployed
+# endpoint with the shared CRON_SECRET.
+#
+# Required repo config (Settings -> Secrets and variables -> Actions):
+#   Secret   CRON_SECRET  -> same value as the CRON_SECRET env var on Vercel
+#   Variable APP_URL      -> production base URL, e.g. https://firstinqueue.com
+
+on:
+  schedule:
+    - cron: "0 * * * *" # top of every hour (UTC)
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger booking reminders
+        run: |
+          BASE="${{ vars.APP_URL }}"
+          if [ -z "$BASE" ]; then
+            echo "APP_URL repo variable is not set"; exit 1
+          fi
+          code=$(curl -s -o /tmp/body.txt -w "%{http_code}" \
+            -X GET "$BASE/api/cron/booking-reminders" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          echo "HTTP $code"
+          cat /tmp/body.txt
+          if [ "$code" != "200" ]; then
+            echo "Reminder trigger failed with HTTP $code"; exit 1
+          fi
