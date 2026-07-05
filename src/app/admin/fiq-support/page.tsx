@@ -127,7 +127,7 @@ export default function FiQSupportAdminPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
       </div>
     );
   }
@@ -137,8 +137,8 @@ export default function FiQSupportAdminPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">FiQ Support Line</h1>
-          <p className="text-gray-500 mt-1">Configure dedicated phone support for First in Queue</p>
+          <h1 className="text-2xl font-bold text-white">FiQ Support Line</h1>
+          <p className="text-slate-400 mt-1">Configure dedicated phone support for First in Queue</p>
         </div>
         <Button
           onClick={handleSave}
@@ -151,11 +151,11 @@ export default function FiQSupportAdminPage() {
       </div>
 
       {/* Status Overview */}
-      <Card>
+      <Card className="bg-slate-900 border-slate-800">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Headphones className="h-5 w-5 text-emerald-600" />
-            <CardTitle>Support Line Status</CardTitle>
+            <Headphones className="h-5 w-5 text-emerald-400" />
+            <CardTitle className="text-white">Support Line Status</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
@@ -163,13 +163,13 @@ export default function FiQSupportAdminPage() {
             <div className="flex items-center gap-3">
               <div className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-full",
-                isConfigured ? "bg-emerald-100" : "bg-gray-100"
+                isConfigured ? "bg-emerald-500/15" : "bg-slate-800"
               )}>
-                <Phone className={cn("h-5 w-5", isConfigured ? "text-emerald-600" : "text-gray-400")} />
+                <Phone className={cn("h-5 w-5", isConfigured ? "text-emerald-400" : "text-slate-500")} />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900">Phone Number</p>
-                <Badge variant={phoneNumber ? "default" : "secondary"} className={phoneNumber ? "bg-emerald-100 text-emerald-700" : ""}>
+                <p className="text-sm font-medium text-white">Phone Number</p>
+                <Badge variant={phoneNumber ? "default" : "secondary"} className={phoneNumber ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-800 text-slate-300"}>
                   {phoneNumber ? "Configured" : "Not Set"}
                 </Badge>
               </div>
@@ -178,13 +178,13 @@ export default function FiQSupportAdminPage() {
             <div className="flex items-center gap-3">
               <div className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-full",
-                selectedAgent ? "bg-emerald-100" : "bg-amber-100"
+                selectedAgent ? "bg-emerald-500/15" : "bg-amber-500/15"
               )}>
-                <Settings className={cn("h-5 w-5", selectedAgent ? "text-emerald-600" : "text-amber-600")} />
+                <Settings className={cn("h-5 w-5", selectedAgent ? "text-emerald-400" : "text-amber-400")} />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900">Voice Agent</p>
-                <Badge variant={selectedAgent ? "default" : "secondary"} className={selectedAgent ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}>
+                <p className="text-sm font-medium text-white">Voice Agent</p>
+                <Badge variant={selectedAgent ? "default" : "secondary"} className={selectedAgent ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400/90"}>
                   {selectedAgent ? "Selected" : "Not Selected"}
                 </Badge>
               </div>
@@ -193,13 +193,13 @@ export default function FiQSupportAdminPage() {
             <div className="flex items-center gap-3">
               <div className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-full",
-                isActive && isConfigured ? "bg-emerald-100" : "bg-gray-100"
+                isActive && isConfigured ? "bg-emerald-500/15" : "bg-slate-800"
               )}>
-                <CheckCircle2 className={cn("h-5 w-5", isActive && isConfigured ? "text-emerald-600" : "text-gray-400")} />
+                <CheckCircle2 className={cn("h-5 w-5", isActive && isConfigured ? "text-emerald-400" : "text-slate-500")} />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900">Support Line</p>
-                <Badge variant={isActive && isConfigured ? "default" : "secondary"} className={isActive && isConfigured ? "bg-emerald-100 text-emerald-700" : ""}>
+                <p className="text-sm font-medium text-white">Support Line</p>
+                <Badge variant={isActive && isConfigured ? "default" : "secondary"} className={isActive && isConfigured ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-800 text-slate-300"}>
                   {isActive && isConfigured ? "Active" : "Inactive"}
                 </Badge>
               </div>
@@ -209,20 +209,20 @@ export default function FiQSupportAdminPage() {
       </Card>
 
       {/* Configuration */}
-      <Card>
+      <Card className="bg-slate-900 border-slate-800">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Phone className="h-5 w-5 text-blue-600" />
-            <CardTitle>Support Line Configuration</CardTitle>
+            <Phone className="h-5 w-5 text-blue-400" />
+            <CardTitle className="text-white">Support Line Configuration</CardTitle>
           </div>
-          <CardDescription>
+          <CardDescription className="text-slate-400">
             Set up your local phone number and assign a voice agent
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Phone Number */}
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="phone" className="block text-sm font-medium text-slate-300 mb-1.5">
               Support Phone Number
             </label>
             <Input
@@ -230,23 +230,23 @@ export default function FiQSupportAdminPage() {
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               placeholder="+260xxxxxxxxx"
-              className="max-w-xs"
+              className="max-w-xs bg-slate-800 border-slate-700 text-white placeholder:text-slate-600"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-slate-400 mt-1">
               Your local SIP trunk phone number in E.164 format (e.g., +26095xxxxxxx)
             </p>
           </div>
 
           {/* Voice Agent Selection */}
           <div>
-            <label htmlFor="agent" className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="agent" className="block text-sm font-medium text-slate-300 mb-1.5">
               Voice Agent
             </label>
             <select
               id="agent"
               value={selectedAgent}
               onChange={(e) => setSelectedAgent(e.target.value)}
-              className="block w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="block w-full max-w-xs rounded-md border border-slate-700 bg-slate-800 text-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             >
               <option value="">Select a voice agent...</option>
               {availableAgents.map((agent) => (
@@ -255,7 +255,7 @@ export default function FiQSupportAdminPage() {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-slate-400 mt-1">
               The voice agent that will answer FiQ support calls
             </p>
           </div>
@@ -267,9 +267,9 @@ export default function FiQSupportAdminPage() {
               id="active"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              className="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500"
             />
-            <label htmlFor="active" className="text-sm font-medium text-gray-700">
+            <label htmlFor="active" className="text-sm font-medium text-slate-300">
               Enable support line
             </label>
           </div>
@@ -277,37 +277,37 @@ export default function FiQSupportAdminPage() {
       </Card>
 
       {/* Webhook Configuration */}
-      <Card>
+      <Card className="bg-slate-900 border-slate-800">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <ExternalLink className="h-5 w-5 text-purple-600" />
-            <CardTitle>SIP Trunk Webhook</CardTitle>
+            <ExternalLink className="h-5 w-5 text-purple-400" />
+            <CardTitle className="text-white">SIP Trunk Webhook</CardTitle>
           </div>
-          <CardDescription>
+          <CardDescription className="text-slate-400">
             Configure this webhook URL in your SIP trunk settings
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2">
-            <code className="flex-1 bg-gray-100 px-3 py-2 rounded text-sm font-mono text-gray-700">
+            <code className="flex-1 bg-slate-800 px-3 py-2 rounded text-sm font-mono text-slate-300">
               {typeof window !== "undefined" ? `${window.location.origin}/api/voice/fiq-support` : "Loading..."}
             </code>
             <Button
               variant="outline"
               size="sm"
               onClick={copyWebhookUrl}
-              className="gap-1.5"
+              className="gap-1.5 border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white"
             >
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               {copied ? "Copied" : "Copy"}
             </Button>
           </div>
-          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-amber-800">SIP Trunk Setup Required</p>
-                <p className="text-xs text-amber-700 mt-1">
+                <p className="text-sm font-medium text-amber-300">SIP Trunk Setup Required</p>
+                <p className="text-xs text-amber-400/90 mt-1">
                   To receive calls, you must configure your local telecom provider to route calls to this webhook URL. 
                   Contact your telecom provider for SIP trunk configuration details.
                 </p>
@@ -318,27 +318,30 @@ export default function FiQSupportAdminPage() {
       </Card>
 
       {/* Recent Calls */}
-      <Card>
+      <Card className="bg-slate-900 border-slate-800">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Phone className="h-5 w-5 text-gray-600" />
-            <CardTitle>Recent Support Calls</CardTitle>
+            <Phone className="h-5 w-5 text-slate-400" />
+            <CardTitle className="text-white">Recent Support Calls</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
           {recentCalls.length === 0 ? (
-            <p className="text-sm text-gray-500">No support calls yet.</p>
+            <p className="text-sm text-slate-400">No support calls yet.</p>
           ) : (
             <div className="space-y-2">
               {recentCalls.map((call) => (
-                <div key={call.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={call.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{call.caller_number || "Unknown"}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm font-medium text-white">{call.caller_number || "Unknown"}</p>
+                    <p className="text-xs text-slate-400">
                       {new Date(call.created_at).toLocaleString()}
                     </p>
                   </div>
-                  <Badge variant={call.status === "completed" ? "default" : "secondary"}>
+                  <Badge
+                    variant={call.status === "completed" ? "default" : "secondary"}
+                    className={call.status === "completed" ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-800 text-slate-300"}
+                  >
                     {call.status}
                   </Badge>
                 </div>

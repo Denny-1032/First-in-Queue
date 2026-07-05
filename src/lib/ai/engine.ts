@@ -1,5 +1,7 @@
 import OpenAI from "openai";
-import type { AIContext, AIResponse, BusinessConfig, Industry } from "@/types";
+import type { AIContext, AIResponse, BookingSettings, BusinessConfig, Industry, OperatingHours } from "@/types";
+import { BOOKING_TOOLS, executeBookingTool, type BookingToolContext } from "@/lib/ai/booking-tools";
+import { nowInTimezone } from "@/lib/booking/availability";
 
 // --- Industry-Specific Prompt Blocks ---
 
@@ -314,6 +316,22 @@ For suggested_actions, you can include:
 - { "type": "web_call", "label": "Talk on a call", "value": "web_call" } — Use when customer wants voice conversation. The system will provide the correct widget link with the assigned voice agent.`;
 }
 
+function buildBookingPrompt(settings: BookingSettings, opHours?: OperatingHours): string {
+  const now = nowInTimezone(opHours?.timezone);
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const weekday = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][now.getDay()];
+  return `
+
+BOOKING CAPABILITY:
+You can book, check, reschedule and cancel appointments using the provided tools.
+- Today's date is ${todayStr} (${weekday}).${opHours?.timezone ? ` Timezone: ${opHours.timezone}.` : ""}
+- ALWAYS call check_availability before proposing or creating a booking. NEVER invent or guess availability.
+- Collect the date and time (and the customer's name if you don't know it) before calling create_booking.
+- Slots are ${settings.slot_minutes || 30} minutes. Bookings need ${settings.min_notice_hours || 0}h notice and can be at most ${settings.max_days_ahead || 30} days ahead.
+- To reschedule or cancel, first call find_my_bookings to get the booking_id.
+- After a successful create_booking, confirm the booked date and time back to the customer in your final response text.`;
+}
+
 export class AIEngine {
   private openai: OpenAI;
   private model: string;
@@ -326,9 +344,15 @@ export class AIEngine {
   }
 
   async generateResponse(context: AIContext): Promise<AIResponse> {
-    const systemPrompt = buildSystemPrompt(context.tenant_config, context.tenant_id);
+    let systemPrompt = buildSystemPrompt(context.tenant_config, context.tenant_id);
 
-    const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+    const bookingSettings = context.tenant_config.booking_settings;
+    const bookingEnabled = !!(bookingSettings?.enabled && context.booking_context);
+    if (bookingEnabled) {
+      systemPrompt += buildBookingPrompt(bookingSettings!, context.tenant_config.operating_hours);
+    }
+
+    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
       { role: "system", content: systemPrompt },
     ];
 
@@ -354,35 +378,82 @@ export class AIEngine {
       }
     }
 
+    const toolCtx: BookingToolContext | null = bookingEnabled
+      ? {
+          tenant_id: context.tenant_id,
+          customer_phone: context.booking_context!.customer_phone,
+          customer_name: context.customer_name,
+          conversation_id: context.booking_context!.conversation_id,
+          settings: bookingSettings!,
+          operating_hours: context.tenant_config.operating_hours,
+        }
+      : null;
+
+    const MAX_TOOL_ITERATIONS = 5;
+    let createdBookingId: string | undefined;
+
     try {
-      const completion = await this.openai.chat.completions.create({
-        model: this.model,
-        messages,
-        temperature: 0.7,
-        max_tokens: 1000,
-        response_format: { type: "json_object" },
-      });
+      for (let iteration = 0; ; iteration++) {
+        // On the last allowed pass, withhold tools to force a final answer
+        const allowTools = bookingEnabled && iteration < MAX_TOOL_ITERATIONS;
+        const completion = await this.openai.chat.completions.create({
+          model: this.model,
+          messages,
+          temperature: 0.7,
+          max_tokens: 1000,
+          response_format: { type: "json_object" },
+          ...(allowTools && { tools: BOOKING_TOOLS }),
+        });
 
-      const responseText = completion.choices[0]?.message?.content || "";
-      const parsed = JSON.parse(responseText) as AIResponse;
+        const message = completion.choices[0]?.message;
 
-      return {
-        text: parsed.text || "I'm sorry, I couldn't process that. Could you please try again?",
-        should_escalate: parsed.should_escalate || false,
-        escalation_reason: parsed.escalation_reason || undefined,
-        detected_intent: parsed.detected_intent || "other",
-        sentiment: parsed.sentiment || "neutral",
-        confidence: parsed.confidence || 0.5,
-        suggested_actions: parsed.suggested_actions || [],
-      };
+        if (message?.tool_calls?.length && toolCtx && allowTools) {
+          console.log(`[AIEngine] Tool loop iteration ${iteration + 1}: ${message.tool_calls.length} call(s)`);
+          messages.push(message);
+          for (const toolCall of message.tool_calls) {
+            if (toolCall.type !== "function") continue;
+            let args: Record<string, unknown> = {};
+            try {
+              args = JSON.parse(toolCall.function.arguments || "{}");
+            } catch { /* pass empty args; executor returns an error the model can react to */ }
+            const output = await executeBookingTool(toolCall.function.name, args, toolCtx);
+            if (output.created_booking_id) createdBookingId = output.created_booking_id;
+            messages.push({
+              role: "tool",
+              tool_call_id: toolCall.id,
+              content: JSON.stringify(output.result),
+            });
+          }
+          continue;
+        }
+
+        const responseText = message?.content || "";
+        const parsed = JSON.parse(responseText) as AIResponse;
+
+        return {
+          text: parsed.text || "I'm sorry, I couldn't process that. Could you please try again?",
+          should_escalate: parsed.should_escalate || false,
+          escalation_reason: parsed.escalation_reason || undefined,
+          detected_intent: parsed.detected_intent || "other",
+          sentiment: parsed.sentiment || "neutral",
+          confidence: parsed.confidence || 0.5,
+          suggested_actions: parsed.suggested_actions || [],
+          created_booking_id: createdBookingId,
+        };
+      }
     } catch (error) {
       console.error("[AIEngine] Error generating response:", error);
       return {
-        text: "I'm experiencing a brief technical issue. Please try again in a moment, or I can connect you with a team member.",
+        // A booking may already exist even when the final completion failed —
+        // surface it so the handler still sends the confirm buttons
+        text: createdBookingId
+          ? "Your booking request has been recorded! Please confirm it below."
+          : "I'm experiencing a brief technical issue. Please try again in a moment, or I can connect you with a team member.",
         should_escalate: false,
         detected_intent: "other",
         sentiment: "neutral",
         confidence: 0,
+        created_booking_id: createdBookingId,
       };
     }
   }

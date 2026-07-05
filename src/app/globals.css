@@ -71,3 +71,16 @@ body {
   opacity: 1 !important;
   transform: translateY(0) translateX(0) scale(1) !important;
 }
+
+/* Chrome autofill paints inputs white/yellow, breaking dark-theme forms.
+   background-clip:text keeps the input's own background visible. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: currentColor;
+  caret-color: currentColor;
+  transition: background-color 999999s ease-in-out 0s;
+}

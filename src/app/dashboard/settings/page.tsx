@@ -20,6 +20,7 @@ import {
   MessageSquare,
   Plug,
   Wallet,
+  CalendarCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -29,6 +30,7 @@ import { PLANS } from "@/lib/lipila/plans";
 const TABS = [
   { id: "business", label: "Business", icon: Building2 },
   { id: "messaging", label: "Messages & Hours", icon: MessageSquare },
+  { id: "bookings", label: "Bookings", icon: CalendarCheck },
   { id: "integrations", label: "Integrations", icon: Plug },
   { id: "billing", label: "Plan & Billing", icon: Wallet },
 ] as const;
@@ -76,6 +78,16 @@ function SettingsContent() {
   ];
   const [schedule, setSchedule] = useState(defaultSchedule);
 
+  // Bookings tab
+  const [bookingEnabled, setBookingEnabled] = useState(false);
+  const [slotMinutes, setSlotMinutes] = useState("30");
+  const [capacityPerSlot, setCapacityPerSlot] = useState("1");
+  const [minNoticeHours, setMinNoticeHours] = useState("2");
+  const [maxDaysAhead, setMaxDaysAhead] = useState("30");
+  const [reminderTplEnabled, setReminderTplEnabled] = useState(false);
+  const [reminderTplName, setReminderTplName] = useState("fiq_booking_reminder");
+  const [reminderTplLanguage, setReminderTplLanguage] = useState("en");
+
   // Show toast if redirected after card payment
   const searchParams = useSearchParams();
   useEffect(() => {
@@ -108,6 +120,18 @@ function SettingsContent() {
             if (cfg.operating_hours?.outside_hours_message) setOutsideHoursMsg(cfg.operating_hours.outside_hours_message);
             if (cfg.operating_hours?.schedule) setSchedule(cfg.operating_hours.schedule);
             if (cfg.languages?.length) setLanguages(cfg.languages);
+            if (cfg.booking_settings) {
+              setBookingEnabled(!!cfg.booking_settings.enabled);
+              if (cfg.booking_settings.slot_minutes) setSlotMinutes(String(cfg.booking_settings.slot_minutes));
+              if (cfg.booking_settings.capacity_per_slot) setCapacityPerSlot(String(cfg.booking_settings.capacity_per_slot));
+              if (cfg.booking_settings.min_notice_hours != null) setMinNoticeHours(String(cfg.booking_settings.min_notice_hours));
+              if (cfg.booking_settings.max_days_ahead) setMaxDaysAhead(String(cfg.booking_settings.max_days_ahead));
+            }
+            if (cfg.reminder_template) {
+              setReminderTplEnabled(!!cfg.reminder_template.enabled);
+              if (cfg.reminder_template.name) setReminderTplName(cfg.reminder_template.name);
+              if (cfg.reminder_template.language) setReminderTplLanguage(cfg.reminder_template.language);
+            }
           }
         }
       } catch { /* use defaults */ }
@@ -157,6 +181,19 @@ function SettingsContent() {
               fallback_message: fallbackMessage,
               languages,
               operating_hours: { outside_hours_message: outsideHoursMsg, schedule },
+              // Config merge is shallow — always send these as complete objects
+              booking_settings: {
+                enabled: bookingEnabled,
+                slot_minutes: parseInt(slotMinutes) || 30,
+                capacity_per_slot: parseInt(capacityPerSlot) || 1,
+                min_notice_hours: parseInt(minNoticeHours) || 0,
+                max_days_ahead: parseInt(maxDaysAhead) || 30,
+              },
+              reminder_template: {
+                enabled: reminderTplEnabled,
+                name: reminderTplName.trim(),
+                language: reminderTplLanguage.trim() || "en",
+              },
             },
           }),
         });
@@ -182,7 +219,7 @@ function SettingsContent() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
           <p className="text-gray-500 mt-1 text-sm">Configure your business</p>
         </div>
-        {(activeTab === "business" || activeTab === "messaging") && (
+        {(activeTab === "business" || activeTab === "messaging" || activeTab === "bookings") && (
           <Button className="gap-2" disabled={saving} onClick={handleSave}>
             {saving ? (
               <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -362,6 +399,105 @@ function SettingsContent() {
                   )}
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      </>)}
+
+      {/* ── BOOKINGS TAB ── */}
+      {activeTab === "bookings" && (<>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CalendarCheck className="h-5 w-5 text-emerald-600" />
+              <CardTitle>AI Booking</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between max-w-md">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Enable AI booking</p>
+                <p className="text-xs text-gray-500">Your WhatsApp assistant can check availability and book appointments in chat</p>
+              </div>
+              <button
+                onClick={() => setBookingEnabled(!bookingEnabled)}
+                className={cn(
+                  "w-12 h-6 rounded-full transition-colors relative shrink-0",
+                  bookingEnabled ? "bg-emerald-500" : "bg-gray-200"
+                )}
+              >
+                <div className={cn(
+                  "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                  bookingEnabled ? "translate-x-6" : "translate-x-0.5"
+                )} />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4 max-w-md">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Slot length (minutes)</label>
+                <Input type="number" value={slotMinutes} onChange={(e) => setSlotMinutes(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Capacity per slot</label>
+                <Input type="number" value={capacityPerSlot} onChange={(e) => setCapacityPerSlot(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Min notice (hours)</label>
+                <Input type="number" value={minNoticeHours} onChange={(e) => setMinNoticeHours(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Max days ahead</label>
+                <Input type="number" value={maxDaysAhead} onChange={(e) => setMaxDaysAhead(e.target.value)} />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">
+              Availability follows your operating hours in the Messages &amp; Hours tab. Booked appointments appear on the Bookings page.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-blue-600" />
+              <CardTitle>Reminder Template (Meta)</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between max-w-md">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Template fallback for reminders</p>
+                <p className="text-xs text-gray-500">Used when a customer hasn&apos;t messaged in over 24 hours</p>
+              </div>
+              <button
+                onClick={() => setReminderTplEnabled(!reminderTplEnabled)}
+                className={cn(
+                  "w-12 h-6 rounded-full transition-colors relative shrink-0",
+                  reminderTplEnabled ? "bg-emerald-500" : "bg-gray-200"
+                )}
+              >
+                <div className={cn(
+                  "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                  reminderTplEnabled ? "translate-x-6" : "translate-x-0.5"
+                )} />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4 max-w-md">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Template name</label>
+                <Input value={reminderTplName} onChange={(e) => setReminderTplName(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Language code</label>
+                <Input value={reminderTplLanguage} onChange={(e) => setReminderTplLanguage(e.target.value)} placeholder="en" />
+              </div>
+            </div>
+            <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-xs text-gray-600 space-y-2">
+              <p className="font-medium text-gray-700">One-time manual step — register this template in Meta Business Manager:</p>
+              <p><span className="font-medium">Name:</span> fiq_booking_reminder &nbsp;·&nbsp; <span className="font-medium">Category:</span> Utility</p>
+              <p><span className="font-medium">Body:</span> Hi {"{{1}}"}! This is a reminder from {"{{2}}"}: you have a booking scheduled for {"{{3}}"}. We look forward to seeing you.</p>
+              <p><span className="font-medium">Buttons (Quick Reply):</span> 1. Confirm &nbsp; 2. Cancel — both buttons are required; reminders fail without them.</p>
+              <p>WhatsApp Manager → Account Tools → Message Templates → Create Template. Approval usually takes minutes to a few hours.</p>
             </div>
           </CardContent>
         </Card>

@@ -1172,9 +1172,11 @@ function BotTestChat({
           return `${tonePrefix}${faq.answer}${emojiSuffix}`;
         }
         const faqWords = faqLower.split(/\s+/).filter((w) => w.length > 2 && !stopWords.has(w));
-        const overlap = allSearchWords.filter((w) => faqWords.some((fw) => fw.includes(w) || w.includes(fw))).length;
+        // Count only words the USER actually typed (intent-expansion terms cause
+        // false positives, e.g. "tell me about..." matching a promotions FAQ)
+        const overlap = userWords.filter((w) => faqWords.some((fw) => fw === w || (fw.length > 3 && w.length > 3 && (fw.includes(w) || w.includes(fw))))).length;
         const score = faqWords.length > 0 ? overlap / Math.max(faqWords.length, 1) : 0;
-        if (score > bestFaqScore && score >= 0.35) {
+        if (overlap >= 2 && score > bestFaqScore && score >= 0.35) {
           bestFaqScore = score;
           bestFaqAnswer = faq.answer;
         }
@@ -1265,23 +1267,47 @@ function BotTestChat({
     [personality, knowledgeBase, faqs]
   );
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = input.trim();
     if (!text || thinking) return;
     const userMsg: ChatMsg = { id: Date.now().toString(), role: "user", text };
+    // Snapshot history before appending, excluding the synthetic welcome message
+    const history = messages
+      .filter((m) => m.id !== "welcome")
+      .map((m) => ({ role: m.role, content: m.text }));
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setThinking(true);
 
-    // Simulate typing delay
-    setTimeout(() => {
-      const reply = simulateResponse(text);
-      setMessages((prev) => [
-        ...prev,
-        { id: (Date.now() + 1).toString(), role: "assistant", text: reply },
-      ]);
-      setThinking(false);
-    }, 600 + Math.random() * 800);
+    let reply: string;
+    try {
+      const res = await fetch("/api/ai/test-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          history,
+          overrides: {
+            personality,
+            knowledge_base: knowledgeBase,
+            faqs,
+            custom_instructions: customInstructions,
+          },
+        }),
+      });
+      if (!res.ok) throw new Error(`test-chat ${res.status}`);
+      const data = await res.json();
+      reply = data.text || simulateResponse(text);
+    } catch {
+      // API unavailable (no key / offline) — fall back to local keyword simulation
+      reply = simulateResponse(text);
+    }
+
+    setMessages((prev) => [
+      ...prev,
+      { id: (Date.now() + 1).toString(), role: "assistant", text: reply },
+    ]);
+    setThinking(false);
   };
 
   const resetChat = () => {
@@ -1397,7 +1423,7 @@ function BotTestChat({
 
         <p className="text-xs text-gray-400 mt-3 flex items-center gap-1.5">
           <AlertCircle className="h-3 w-3" />
-          This is a local preview using your current settings. Live responses use OpenAI for more natural conversations.
+          Test messages use the real AI with your current settings — nothing is sent to WhatsApp. If AI is unavailable, a simplified local preview is used instead.
         </p>
       </CardContent>
     </Card>

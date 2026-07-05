@@ -45,14 +45,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * Health check endpoint
- */
-export async function GET() {
-  return NextResponse.json({ 
-    status: "Cron endpoint is active",
-    endpoint: "/api/cron/process-expired-trials",
-    method: "POST",
-    schedule: "Recommended: 0 2 * * * (daily at 2 AM)",
-  });
+// Vercel cron invokes GET, so it must run the actual job
+export async function GET(request: NextRequest) {
+  return POST(request);
 }

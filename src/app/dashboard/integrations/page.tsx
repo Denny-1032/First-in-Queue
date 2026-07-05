@@ -9,6 +9,7 @@ import {
   Mail,
 } from "lucide-react";
 import Link from "next/link";
+import { WhatsAppLinkCard } from "@/components/dashboard/whatsapp-link-card";
 
 export default function IntegrationsPage() {
   return (
@@ -17,6 +18,9 @@ export default function IntegrationsPage() {
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Integrations</h1>
         <p className="text-gray-500 mt-1 text-sm">All integrations are fully managed by First in Queue</p>
       </div>
+
+      {/* Shareable WhatsApp link + QR */}
+      <WhatsAppLinkCard />
 
       {/* Managed Services Banner */}
       <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50">

@@ -114,12 +114,7 @@ export async function POST(request: NextRequest) {
   });
 }
 
-export async function GET() {
-  return NextResponse.json({
-    status: "Handoff timeout cron is active",
-    endpoint: "/api/cron/handoff-timeout",
-    method: "POST",
-    schedule: "Every 5 minutes: */5 * * * *",
-    timeout_minutes: WAITING_TIMEOUT_MINUTES,
-  });
+// Vercel cron invokes GET, so it must run the actual job
+export async function GET(request: NextRequest) {
+  return POST(request);
 }

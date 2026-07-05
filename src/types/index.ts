@@ -36,6 +36,8 @@ export interface BusinessConfig {
   custom_instructions: string;
   voice_callback_enabled?: boolean;
   voice_callback_agent_id?: string;
+  booking_settings?: BookingSettings;
+  reminder_template?: ReminderTemplateConfig;
 }
 
 export type Industry =
@@ -62,6 +64,22 @@ export interface OperatingHours {
     [day: string]: { open: string; close: string } | null;
   };
   outside_hours_message: string;
+}
+
+// Availability slots follow operating_hours (schedule + timezone)
+export interface BookingSettings {
+  enabled: boolean;
+  slot_minutes: number;
+  capacity_per_slot: number;
+  min_notice_hours: number;
+  max_days_ahead: number;
+}
+
+// Meta-approved template used when a reminder falls outside the 24h window
+export interface ReminderTemplateConfig {
+  enabled: boolean;
+  name: string;
+  language: string;
 }
 
 export interface KnowledgeEntry {
@@ -170,6 +188,7 @@ export type WhatsAppMessageType =
   | "contact"
   | "interactive"
   | "template"
+  | "button"
   | "reaction"
   | "sticker";
 
@@ -205,7 +224,9 @@ export interface TemplateMessage {
   language: string;
   components?: Array<{
     type: "header" | "body" | "button";
-    parameters: Array<{ type: string; text?: string; image?: { link: string } }>;
+    sub_type?: "quick_reply" | "url";
+    index?: string;
+    parameters: Array<{ type: string; text?: string; payload?: string; image?: { link: string } }>;
   }>;
 }
 
@@ -284,6 +305,8 @@ export interface WhatsAppIncomingMessage {
     button_reply?: { id: string; title: string };
     list_reply?: { id: string; title: string; description?: string };
   };
+  // Template quick-reply presses arrive as type "button", not "interactive"
+  button?: { payload: string; text: string };
   reaction?: { message_id: string; emoji: string };
   context?: { from: string; id: string };
 }
@@ -401,6 +424,11 @@ export interface AIContext {
   current_flow?: ConversationFlow;
   flow_step?: string;
   collected_data?: Record<string, string>;
+  // Present only when the tenant has booking_settings.enabled — unlocks booking tools
+  booking_context?: {
+    customer_phone: string;
+    conversation_id: string;
+  };
 }
 
 export interface AIResponse {
@@ -415,6 +443,8 @@ export interface AIResponse {
   escalation_reason?: string;
   detected_intent?: string;
   confidence: number;
+  // Set by the engine when a create_booking tool call succeeded — never by the model
+  created_booking_id?: string;
 }
 
 // --- Subscription & Payment Types ---

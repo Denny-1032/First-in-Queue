@@ -133,15 +133,15 @@ export default function TelephonyAdminPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Telephony Configuration</h1>
-          <p className="text-gray-500 mt-1">Configure voice calling infrastructure for all tenants</p>
+          <h1 className="text-2xl font-bold text-white">Telephony Configuration</h1>
+          <p className="text-slate-400 mt-1">Configure voice calling infrastructure for all tenants</p>
         </div>
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
             onClick={testConfiguration}
             disabled={testing || !isConfigured}
-            className="gap-2"
+            className="gap-2 border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white"
           >
             {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
             Test Config
@@ -159,16 +159,16 @@ export default function TelephonyAdminPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
         </div>
       ) : (
         <div className="grid gap-6">
           {/* Status Overview */}
-          <Card>
+          <Card className="bg-slate-900 border-slate-800">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-blue-600" />
-                <CardTitle>System Status</CardTitle>
+                <Shield className="h-5 w-5 text-blue-400" />
+                <CardTitle className="text-white">System Status</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
@@ -176,13 +176,13 @@ export default function TelephonyAdminPage() {
                 <div className="flex items-center gap-3">
                   <div className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full",
-                    isConfigured ? "bg-emerald-100" : "bg-gray-100"
+                    isConfigured ? "bg-emerald-500/15" : "bg-slate-800"
                   )}>
-                    <Phone className={cn("h-5 w-5", isConfigured ? "text-emerald-600" : "text-gray-400")} />
+                    <Phone className={cn("h-5 w-5", isConfigured ? "text-emerald-400" : "text-slate-500")} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Voice Calling</p>
-                    <Badge variant={isConfigured ? "default" : "secondary"} className={isConfigured ? "bg-emerald-100 text-emerald-700" : ""}>
+                    <p className="text-sm font-medium text-white">Voice Calling</p>
+                    <Badge variant={isConfigured ? "default" : "secondary"} className={isConfigured ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-800 text-slate-300"}>
                       {isConfigured ? "Configured" : "Not Configured"}
                     </Badge>
                   </div>
@@ -191,25 +191,25 @@ export default function TelephonyAdminPage() {
                 <div className="flex items-center gap-3">
                   <div className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full",
-                    sipTrunkConfigured ? "bg-emerald-100" : "bg-amber-100"
+                    sipTrunkConfigured ? "bg-emerald-500/15" : "bg-amber-500/15"
                   )}>
-                    <PhoneCall className={cn("h-5 w-5", sipTrunkConfigured ? "text-emerald-600" : "text-amber-600")} />
+                    <PhoneCall className={cn("h-5 w-5", sipTrunkConfigured ? "text-emerald-400" : "text-amber-400")} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Inbound Calls</p>
-                    <Badge variant={sipTrunkConfigured ? "default" : "secondary"} className={sipTrunkConfigured ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}>
+                    <p className="text-sm font-medium text-white">Inbound Calls</p>
+                    <Badge variant={sipTrunkConfigured ? "default" : "secondary"} className={sipTrunkConfigured ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"}>
                       {sipTrunkConfigured ? "Active" : "Setup Required"}
                     </Badge>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-                    <Globe className="h-5 w-5 text-blue-600" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/15">
+                    <Globe className="h-5 w-5 text-blue-400" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Webhook URL</p>
-                    <Badge variant={webhookUrl ? "default" : "secondary"} className={webhookUrl ? "bg-blue-100 text-blue-700" : ""}>
+                    <p className="text-sm font-medium text-white">Webhook URL</p>
+                    <Badge variant={webhookUrl ? "default" : "secondary"} className={webhookUrl ? "bg-blue-500/15 text-blue-400" : "bg-slate-800 text-slate-300"}>
                       {webhookUrl ? "Set" : "Not Set"}
                     </Badge>
                   </div>
@@ -219,54 +219,56 @@ export default function TelephonyAdminPage() {
           </Card>
 
           {/* Twilio Configuration */}
-          <Card>
+          <Card className="bg-slate-900 border-slate-800">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Phone className="h-5 w-5 text-purple-600" />
-                <CardTitle>Twilio Configuration</CardTitle>
+                <Phone className="h-5 w-5 text-purple-400" />
+                <CardTitle className="text-white">Twilio Configuration</CardTitle>
               </div>
-              <CardDescription>
+              <CardDescription className="text-slate-400">
                 Configure Twilio for outbound calls and phone number management
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
                     Account SID
                   </label>
                   <Input
                     type="password"
+                    autoComplete="new-password"
                     value={twilioSid}
                     onChange={(e) => setTwilioSid(e.target.value)}
                     placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                    className="font-mono text-sm"
+                    className="font-mono text-sm bg-slate-800 border-slate-700 text-white placeholder:text-slate-600"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
                     Auth Token
                   </label>
                   <Input
                     type="password"
+                    autoComplete="new-password"
                     value={twilioToken}
                     onChange={(e) => setTwilioToken(e.target.value)}
                     placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                    className="font-mono text-sm"
+                    className="font-mono text-sm bg-slate-800 border-slate-700 text-white placeholder:text-slate-600"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
                   Voice Number
                 </label>
                 <Input
                   value={twilioNumber}
                   onChange={(e) => setTwilioNumber(e.target.value)}
                   placeholder="+1234567890"
-                  className="max-w-xs"
+                  className="max-w-xs bg-slate-800 border-slate-700 text-white placeholder:text-slate-600"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-400 mt-1">
                   The Twilio phone number used for outbound calls
                 </p>
               </div>
@@ -274,39 +276,40 @@ export default function TelephonyAdminPage() {
           </Card>
 
           {/* Retell AI Configuration */}
-          <Card>
+          <Card className="bg-slate-900 border-slate-800">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Settings className="h-5 w-5 text-emerald-600" />
-                <CardTitle>Retell AI Configuration</CardTitle>
+                <Settings className="h-5 w-5 text-emerald-400" />
+                <CardTitle className="text-white">Retell AI Configuration</CardTitle>
               </div>
-              <CardDescription>
+              <CardDescription className="text-slate-400">
                 Configure Retell AI for voice agent processing
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
                     API Key
                   </label>
                   <Input
                     type="password"
+                    autoComplete="new-password"
                     value={retellApiKey}
                     onChange={(e) => setRetellApiKey(e.target.value)}
                     placeholder="key_xxxxxxxxxxxxxxxx"
-                    className="font-mono text-sm"
+                    className="font-mono text-sm bg-slate-800 border-slate-700 text-white placeholder:text-slate-600"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
                     LLM ID
                   </label>
                   <Input
                     value={retellLlmId}
                     onChange={(e) => setRetellLlmId(e.target.value)}
                     placeholder="llm_xxxxxxxxxxxxxxxx"
-                    className="font-mono text-sm"
+                    className="font-mono text-sm bg-slate-800 border-slate-700 text-white placeholder:text-slate-600"
                   />
                 </div>
               </div>
@@ -314,28 +317,28 @@ export default function TelephonyAdminPage() {
           </Card>
 
           {/* Inbound Call Setup */}
-          <Card>
+          <Card className="bg-slate-900 border-slate-800">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <PhoneCall className="h-5 w-5 text-blue-600" />
-                <CardTitle>Inbound Call Configuration</CardTitle>
+                <PhoneCall className="h-5 w-5 text-blue-400" />
+                <CardTitle className="text-white">Inbound Call Configuration</CardTitle>
               </div>
-              <CardDescription>
+              <CardDescription className="text-slate-400">
                 Configure inbound call handling via SIP trunking
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
                   Webhook URL
                 </label>
                 <Input
                   value={webhookUrl}
                   onChange={(e) => setWebhookUrl(e.target.value)}
                   placeholder="https://your-domain.com/api/voice/webhook"
-                  className="font-mono text-sm"
+                  className="font-mono text-sm bg-slate-800 border-slate-700 text-white placeholder:text-slate-600"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-400 mt-1">
                   The webhook URL that Retell AI will call for inbound calls
                 </p>
               </div>
@@ -346,26 +349,26 @@ export default function TelephonyAdminPage() {
                   id="sipTrunk"
                   checked={sipTrunkConfigured}
                   onChange={(e) => setSipTrunkConfigured(e.target.checked)}
-                  className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  className="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500"
                 />
-                <label htmlFor="sipTrunk" className="text-sm font-medium text-gray-700">
+                <label htmlFor="sipTrunk" className="text-sm font-medium text-slate-300">
                   SIP Trunk Configured
                 </label>
               </div>
 
               {!sipTrunkConfigured && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-sm font-medium text-amber-800">SIP Trunk Setup Required</p>
-                      <p className="text-xs text-amber-700 mt-1">
+                      <p className="text-sm font-medium text-amber-300">SIP Trunk Setup Required</p>
+                      <p className="text-xs text-amber-400/90 mt-1">
                         To enable inbound calls, you need to configure Elastic SIP Trunking between Twilio and Retell AI.
                         <a 
                           href="https://docs.retellai.com/guide/inbound-call" 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 ml-1 text-amber-800 hover:text-amber-900 underline"
+                          className="inline-flex items-center gap-1 ml-1 text-amber-300 hover:text-amber-200 underline"
                         >
                           View setup guide <ExternalLink className="h-3 w-3" />
                         </a>
@@ -376,12 +379,12 @@ export default function TelephonyAdminPage() {
               )}
 
               {sipTrunkConfigured && (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-sm font-medium text-emerald-800">Inbound Calls Active</p>
-                      <p className="text-xs text-emerald-700 mt-1">
+                      <p className="text-sm font-medium text-emerald-300">Inbound Calls Active</p>
+                      <p className="text-xs text-emerald-400/90 mt-1">
                         AI voice agents will automatically answer incoming calls to WhatsApp-enabled phone numbers.
                       </p>
                     </div>

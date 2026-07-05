@@ -215,6 +215,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
                 value={waPhoneId}
                 onChange={(e) => setWaPhoneId(e.target.value)}
                 placeholder="106xxxxxxxxx"
+                autoComplete="off"
                 className="bg-slate-800 border-slate-700 text-white font-mono text-xs placeholder:text-slate-600"
               />
             </div>
@@ -224,6 +225,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
                 value={waBusinessId}
                 onChange={(e) => setWaBusinessId(e.target.value)}
                 placeholder="Optional"
+                autoComplete="off"
                 className="bg-slate-800 border-slate-700 text-white font-mono text-xs placeholder:text-slate-600"
               />
             </div>
@@ -235,6 +237,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
               onChange={(e) => setWaToken(e.target.value)}
               placeholder="EAABsbCS..."
               type="password"
+              autoComplete="new-password"
               className="bg-slate-800 border-slate-700 text-white font-mono text-xs placeholder:text-slate-600"
             />
           </div>
@@ -245,6 +248,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
               onChange={(e) => setOpenaiKey(e.target.value)}
               placeholder="sk-proj-... (uses FiQ default if blank)"
               type="password"
+              autoComplete="new-password"
               className="bg-slate-800 border-slate-700 text-white font-mono text-xs placeholder:text-slate-600"
             />
           </div>

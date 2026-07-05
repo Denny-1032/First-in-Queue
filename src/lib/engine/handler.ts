@@ -10,7 +10,12 @@ import {
   updateConversation,
   updateMessageStatus,
   getAvailableAgent,
+  getBooking,
+  createBooking,
+  updateBooking,
+  cancelBooking,
 } from "@/lib/db/operations";
+import { extractBookingFromCollectedData } from "@/lib/booking/extract";
 import { checkMessageUsage, incrementMessageUsage } from "@/lib/lipila/usage";
 import type {
   WhatsAppWebhookPayload,
@@ -21,6 +26,7 @@ import type {
   AIContext,
   AIResponse,
   ConversationFlow,
+  Booking,
 } from "@/types";
 
 // --- Flow State Management ---
@@ -117,6 +123,16 @@ async function processIncomingMessage(
       whatsapp_message_id: message.id,
       status: "delivered",
     });
+
+    // Booking confirm/cancel replies are handled before the handoff gate and
+    // the usage check on purpose: template-reminder replies often arrive while
+    // the conversation sits in handoff/waiting, and a cancellation should never
+    // be blocked by a plan limit.
+    const bookingButton = matchBookingButton(conversation, message, content);
+    if (bookingButton) {
+      await handleBookingButton(tenant, conversation, message, bookingButton, whatsapp);
+      return;
+    }
 
     // Check if conversation is in handoff or waiting mode (human agent pending)
     if (conversation.status === "handoff" || conversation.status === "waiting") {
@@ -372,6 +388,9 @@ async function handleAIResponse(
     current_flow: activeFlow,
     flow_step: activeFlow && flowState ? activeFlow.steps[flowState.step_index]?.id : undefined,
     collected_data: flowState?.collected_data,
+    booking_context: tenant.config.booking_settings?.enabled
+      ? { customer_phone: message.from, conversation_id: conversation.id }
+      : undefined,
   };
 
   const aiResponse: AIResponse = await aiEngine.generateResponse(aiContext);
@@ -460,6 +479,28 @@ async function handleAIResponse(
         metadata: buildFlowMetadata(newFlowState, conversation.metadata as Record<string, unknown>),
       });
       await sendFlowStep(tenant, conversation, message.from, suggestedFlow, 0, newFlowState, whatsapp);
+      return;
+    }
+  }
+
+  // AI created a booking via tools — send its text, then confirm buttons
+  if (aiResponse.created_booking_id) {
+    const booking = await getBooking(aiResponse.created_booking_id);
+    if (booking && booking.tenant_id === tenant.id) {
+      if (aiResponse.text) {
+        const textMsgId = await whatsapp.sendText(message.from, aiResponse.text);
+        await saveMessage({
+          conversation_id: conversation.id,
+          tenant_id: tenant.id,
+          direction: "outbound",
+          sender_type: "bot",
+          message_type: "text",
+          content: { text: aiResponse.text },
+          whatsapp_message_id: textMsgId,
+          status: "sent",
+        });
+      }
+      await sendBookingConfirmButtons(tenant, conversation, message.from, booking, whatsapp);
       return;
     }
   }
@@ -690,6 +731,183 @@ function isOutsideOperatingHours(tenant: Tenant): boolean {
   const closeMinutes = closeH * 60 + (closeM || 0);
 
   return currentMinutes < openMinutes || currentMinutes > closeMinutes;
+}
+
+// --- Booking Helpers ---
+
+const BOOKING_BUTTON_REGEX = /^booking_(confirm|cancel)_(.+)$/;
+
+function formatBookingDateTime(booking: Booking): string {
+  const date = new Date(`${booking.scheduled_date}T${booking.scheduled_time || "00:00"}`);
+  const dateStr = date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  return booking.scheduled_time ? `${dateStr} at ${booking.scheduled_time.slice(0, 5)}` : dateStr;
+}
+
+function matchBookingButton(
+  conversation: Conversation,
+  message: WhatsAppIncomingMessage,
+  content: MessageContent
+): { bookingId: string; action: "confirm" | "cancel" } | null {
+  // Interactive reply buttons (sendBookingConfirmButtons)
+  if (message.type === "interactive" && message.interactive?.type === "button_reply") {
+    const match = message.interactive.button_reply?.id.match(BOOKING_BUTTON_REGEX);
+    if (match) return { action: match[1] as "confirm" | "cancel", bookingId: match[2] };
+    return null;
+  }
+
+  // Template quick-reply buttons arrive as type "button" with our payload
+  if (message.type === "button") {
+    const match = (message.button?.payload || "").match(BOOKING_BUTTON_REGEX);
+    if (match) return { action: match[1] as "confirm" | "cancel", bookingId: match[2] };
+    // Payload-less template button — fall through to text matching below
+  }
+
+  // Plain "confirm"/"cancel" text while a booking is awaiting confirmation
+  const meta = conversation.metadata as Record<string, unknown> | null;
+  const pendingId = meta?.pending_booking_id;
+  if (typeof pendingId === "string" && pendingId) {
+    const text = (message.button?.text || content.text || "").trim().toLowerCase();
+    if (text === "confirm" || text === "✅ confirm" || text === "yes") {
+      return { action: "confirm", bookingId: pendingId };
+    }
+    if (text === "cancel" || text === "❌ cancel") {
+      return { action: "cancel", bookingId: pendingId };
+    }
+  }
+  return null;
+}
+
+async function handleBookingButton(
+  tenant: Tenant,
+  conversation: Conversation,
+  message: WhatsAppIncomingMessage,
+  button: { bookingId: string; action: "confirm" | "cancel" },
+  whatsapp: ReturnType<typeof createWhatsAppClient>
+): Promise<void> {
+  console.log(`[Handler] Response path: BOOKING_${button.action.toUpperCase()} — booking ${button.bookingId}`);
+  const booking = await getBooking(button.bookingId);
+
+  let reply: string;
+  if (!booking || booking.tenant_id !== tenant.id || booking.customer_phone !== message.from) {
+    reply = "Sorry, I couldn't find that booking. Please contact us if you need help.";
+  } else if (button.action === "confirm") {
+    if (booking.status === "pending") {
+      await updateBooking(booking.id, { status: "confirmed", confirmed_at: new Date().toISOString() });
+      reply = `✅ Your booking on ${formatBookingDateTime(booking)} is confirmed. See you then!`;
+    } else if (booking.status === "confirmed") {
+      reply = `Your booking on ${formatBookingDateTime(booking)} is already confirmed. See you then!`;
+    } else {
+      reply = `That booking is already ${booking.status.replace("_", " ")}.`;
+    }
+  } else {
+    if (booking.status === "pending" || booking.status === "confirmed") {
+      await cancelBooking(booking.id, "Cancelled by customer via WhatsApp");
+      reply = "Your booking has been cancelled. Reply anytime if you'd like to book a new slot.";
+    } else {
+      reply = `That booking is already ${booking.status.replace("_", " ")}.`;
+    }
+  }
+
+  const waMessageId = await whatsapp.sendText(message.from, reply);
+  await saveMessage({
+    conversation_id: conversation.id,
+    tenant_id: tenant.id,
+    direction: "outbound",
+    sender_type: "bot",
+    message_type: "text",
+    content: { text: reply },
+    whatsapp_message_id: waMessageId,
+    status: "sent",
+  });
+
+  // Clear the pending-confirmation pointer
+  const meta = (conversation.metadata || {}) as Record<string, unknown>;
+  if (meta.pending_booking_id) {
+    const { pending_booking_id: _, ...rest } = meta;
+    await updateConversation(conversation.id, { metadata: rest });
+  }
+}
+
+async function sendBookingConfirmButtons(
+  tenant: Tenant,
+  conversation: Conversation,
+  to: string,
+  booking: Booking,
+  whatsapp: ReturnType<typeof createWhatsAppClient>
+): Promise<void> {
+  const body = `📅 Booking request: ${formatBookingDateTime(booking)}${booking.customer_name ? ` for ${booking.customer_name}` : ""}.\nPlease confirm:`;
+  const buttons = [
+    { id: `booking_confirm_${booking.id}`, title: "✅ Confirm" },
+    { id: `booking_cancel_${booking.id}`, title: "❌ Cancel" },
+  ];
+  const waMessageId = await whatsapp.sendButtons(to, body, buttons);
+  await saveMessage({
+    conversation_id: conversation.id,
+    tenant_id: tenant.id,
+    direction: "outbound",
+    sender_type: "bot",
+    message_type: "interactive",
+    content: { text: body, interactive: { type: "button", body, buttons } },
+    whatsapp_message_id: waMessageId,
+    status: "sent",
+  });
+  await updateConversation(conversation.id, {
+    metadata: { ...((conversation.metadata || {}) as Record<string, unknown>), pending_booking_id: booking.id },
+  });
+}
+
+async function createBookingFromFlow(
+  tenant: Tenant,
+  conversation: Conversation,
+  flowState: FlowState
+): Promise<Booking | null> {
+  try {
+    const extracted = await extractBookingFromCollectedData(flowState.collected_data, {
+      apiKey: tenant.openai_api_key,
+      timezone: tenant.config.operating_hours?.timezone,
+    });
+
+    let scheduledDate = extracted?.date;
+    if (!scheduledDate) {
+      // Best-effort: look for an ISO date in the raw answers
+      for (const value of Object.values(flowState.collected_data)) {
+        const isoMatch = value.match(/\d{4}-\d{2}-\d{2}/);
+        if (isoMatch) {
+          scheduledDate = isoMatch[0];
+          break;
+        }
+      }
+    }
+    if (!scheduledDate) {
+      console.log(`[Handler] Flow booking skipped — no usable date in collected data`);
+      return null;
+    }
+
+    const validTypes = ["appointment", "reservation", "viewing", "consultation", "tour", "callback", "service", "custom"];
+    const bookingType = extracted?.type && validTypes.includes(extracted.type) ? extracted.type : "appointment";
+
+    return await createBooking({
+      tenant_id: tenant.id,
+      conversation_id: conversation.id,
+      customer_phone: conversation.customer_phone,
+      customer_name: extracted?.name || conversation.customer_name || undefined,
+      booking_type: bookingType as Booking["booking_type"],
+      status: "pending",
+      scheduled_date: scheduledDate,
+      scheduled_time: extracted?.time,
+      duration_minutes: tenant.config.booking_settings?.slot_minutes,
+      notes: extracted?.notes,
+      details: {
+        source: "flow",
+        flow_id: flowState.flow_id,
+        raw_collected_data: flowState.collected_data,
+        extraction: extracted || null,
+      },
+    });
+  } catch (error) {
+    console.error("[Handler] createBookingFromFlow failed:", error);
+    return null;
+  }
 }
 
 function matchFlowTrigger(
@@ -941,6 +1159,17 @@ async function sendFlowStep(
     }
 
     if (step.type === "action") {
+      if (step.action === "book_appointment") {
+        const booking = await createBookingFromFlow(tenant, conversation, flowState);
+        if (booking) {
+          await sendBookingConfirmButtons(tenant, conversation, to, booking, whatsapp);
+          currentIndex++;
+          continue;
+        }
+        // Extraction produced nothing usable — fall through to the generic
+        // acknowledgment; the collected data is still preserved in metadata
+      }
+
       // Send a confirmation message for the action
       const actionLabels: Record<string, string> = {
         book_appointment: "booking your appointment",
