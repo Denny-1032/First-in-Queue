@@ -131,7 +131,7 @@ export default function VoiceCallsPage() {
   };
 
   const formatTime = (iso: string | null) => {
-    if (!iso) return "—";
+    if (!iso) return "-";
     return new Date(iso).toLocaleString("en-ZM", {
       day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
     });

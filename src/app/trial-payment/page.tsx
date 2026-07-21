@@ -93,7 +93,7 @@ function TrialPaymentContent() {
             Complete payment to activate your {plan.name} plan immediately.
           </p>
           <p className="text-sm text-emerald-600 mt-2 font-medium">
-            30-day money-back guarantee — full refund if not satisfied
+            30-day money-back guarantee - full refund if not satisfied
           </p>
         </div>
 

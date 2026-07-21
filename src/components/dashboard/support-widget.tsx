@@ -35,7 +35,7 @@ export function DashboardSupportWidget() {
             </button>
             <WebCallWidget
               agentId=""
-              greeting="Talk to FiQ Support — ask about features, billing, setup, or anything else."
+              greeting="Talk to FiQ Support - ask about features, billing, setup, or anything else."
             />
           </div>
         </div>

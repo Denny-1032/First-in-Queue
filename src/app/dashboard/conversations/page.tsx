@@ -108,7 +108,7 @@ export default function ConversationsPage() {
     { label: "Need more info", text: "Could you provide more details so I can assist you better?" },
     { label: "Escalating", text: "I'm going to connect you with a specialist who can help further." },
     { label: "Resolved", text: "Glad I could help! Is there anything else you need?" },
-    { label: "Follow up", text: "Just following up — were you able to resolve the issue?" },
+    { label: "Follow up", text: "Just following up - were you able to resolve the issue?" },
   ];
 
   // Request browser notification permission on mount
@@ -155,7 +155,7 @@ export default function ConversationsPage() {
         const updated: Agent = await res.json();
         setMyAgent(updated);
         setAgents((prev) => prev.map((a) => a.id === updated.id ? updated : a));
-        toast(newStatus ? "You are now online — handoffs will be assigned to you" : "You are now offline", newStatus ? "success" : "info");
+        toast(newStatus ? "You are now online - handoffs will be assigned to you" : "You are now offline", newStatus ? "success" : "info");
       }
     } catch { /* silent */ }
     setTogglingOnline(false);
@@ -688,7 +688,7 @@ export default function ConversationsPage() {
                       const isInbound = msg.direction === "inbound";
                       const isSystemJoin = (msg.content as Record<string, unknown>)?._system === true;
 
-                      // System "agent joined" banner — centred, not a bubble
+                      // System "agent joined" banner - centred, not a bubble
                       if (isSystemJoin) {
                         const agentName = String((msg.content as Record<string, unknown>)?._agent_name || "Agent");
                         return (
@@ -879,7 +879,7 @@ export default function ConversationsPage() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Message Bubble Content — renders text, media, location, interactive */
+/* Message Bubble Content - renders text, media, location, interactive */
 /* ------------------------------------------------------------------ */
 function MessageBubbleContent({ msg, isInbound }: { msg: Message; isInbound: boolean }) {
   const c = msg.content;
@@ -999,7 +999,7 @@ function MessageBubbleContent({ msg, isInbound }: { msg: Message; isInbound: boo
       return <span className="text-xl">{c.text || "👍"}</span>;
 
     default:
-      // Text message (most common) — also handle links
+      // Text message (most common) - also handle links
       if (c.text) {
         return <>{renderTextWithLinks(c.text)}</>;
       }

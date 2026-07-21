@@ -24,7 +24,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
 export const metadata: Metadata = {
   title: "WhatsApp & Voice Customer Care for Zambian Businesses",
   description:
-    "Never lose a customer to slow responses again. First in Queue automates WhatsApp messages and phone calls with AI — 24/7, in 40+ languages. 5-minute setup, free demo.",
+    "Never lose a customer to slow responses again. First in Queue automates WhatsApp messages and phone calls with AI - 24/7, in 40+ languages. 5-minute setup, free demo.",
   alternates: {
     canonical: BASE_URL,
   },
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
         url: `${BASE_URL}/fiq-logo.png`,
         width: 1200,
         height: 630,
-        alt: "First in Queue — AI-Powered Customer Care",
+        alt: "First in Queue - AI-Powered Customer Care",
       },
     ],
   },
@@ -50,7 +50,7 @@ export default function Home() {
       <SoftwareApplicationJsonLd />
       <Navbar />
 
-      {/* HERO — Business outcome focused */}
+      {/* HERO - Business outcome focused */}
       <section className="pt-32 pb-16 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -63,7 +63,7 @@ export default function Home() {
                 again
               </h1>
               <p className="text-lg text-gray-500 mt-6 max-w-lg">
-                An automated assistant answers your WhatsApp messages and phone calls instantly — 24/7, in 40+ languages. Your customers get help in seconds, not hours.
+                An automated assistant answers your WhatsApp messages and phone calls instantly - 24/7, in 40+ languages. Your customers get help in seconds, not hours.
               </p>
               <div className="flex flex-col sm:flex-row items-start gap-4 mt-8">
                 <Link
@@ -98,7 +98,7 @@ export default function Home() {
                 30-day money-back guarantee. Try it risk-free.
               </p>
             </div>
-            {/* Demo Booking Form — right side of hero */}
+            {/* Demo Booking Form - right side of hero */}
             <div className="lg:pl-8">
               <DemoBooking id="book-demo" />
             </div>
@@ -106,7 +106,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PROBLEM SECTION — Pain points */}
+      {/* PROBLEM SECTION - Pain points */}
       <section className="py-16 px-6 bg-gray-50 border-y border-gray-100">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
@@ -114,7 +114,7 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { icon: Clock, text: "Customers wait hours for a reply — and leave", color: "text-red-500 bg-red-50" },
+              { icon: Clock, text: "Customers wait hours for a reply - and leave", color: "text-red-500 bg-red-50" },
               { icon: AlertTriangle, text: "Your team misses messages on nights and weekends", color: "text-amber-500 bg-amber-50" },
               { icon: Users, text: "Support staff are overwhelmed and burning out", color: "text-orange-500 bg-orange-50" },
             ].map((p) => (
@@ -132,13 +132,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SOLUTION SECTION — What FiQ does */}
+      {/* SOLUTION SECTION - What FiQ does */}
       <section className="py-20 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">How FiQ solves it</h2>
             <p className="text-gray-500 mt-3 max-w-2xl mx-auto">
-              One platform handles all your customer conversations — WhatsApp and phone — so your team can focus on growing the business.
+              One platform handles all your customer conversations - WhatsApp and phone - so your team can focus on growing the business.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -146,13 +146,13 @@ export default function Home() {
               {
                 icon: MessageSquare,
                 title: "WhatsApp on autopilot",
-                desc: "Replies instantly to customer messages — orders, questions, complaints — in their language.",
+                desc: "Replies instantly to customer messages - orders, questions, complaints - in their language.",
                 color: "bg-green-100 text-green-600",
               },
               {
                 icon: Phone,
                 title: "Answers the phone for you",
-                desc: "Handles inbound calls, makes follow-ups, and schedules appointments — no extra staff needed.",
+                desc: "Handles inbound calls, makes follow-ups, and schedules appointments - no extra staff needed.",
                 color: "bg-purple-100 text-purple-600",
               },
               {
@@ -174,7 +174,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* LIVE DEMO — Chat simulation */}
+      {/* LIVE DEMO - Chat simulation */}
       <section className="pb-20 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
@@ -207,7 +207,7 @@ export default function Home() {
               </div>
               <div className="flex justify-end">
                 <div className="bg-emerald-500 rounded-2xl rounded-tr-sm px-4 py-3 text-sm text-white shadow-sm max-w-[75%] whitespace-pre-line">
-                  {"Found it! Here's your order status:\n\n✅ Order confirmed\n✅ Payment processed\n✅ Packed & shipped\n🚚 In transit — arriving tomorrow by 5 PM\n\nTracking: TRK-99281746\n\nAnything else I can help with?"}
+                  {"Found it! Here's your order status:\n\n✅ Order confirmed\n✅ Payment processed\n✅ Packed & shipped\n🚚 In transit - arriving tomorrow by 5 PM\n\nTracking: TRK-99281746\n\nAnything else I can help with?"}
                 </div>
               </div>
               <div className="flex justify-center">
@@ -221,7 +221,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SOCIAL PROOF — Stats + Testimonials */}
+      {/* SOCIAL PROOF - Stats + Testimonials */}
       <section className="py-16 px-6 bg-gray-50 border-y border-gray-100">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center mb-16">
@@ -239,7 +239,7 @@ export default function Home() {
               </div>
             ))}
           </div>
-          {/* ROI COMPARISON — Price anchoring (moved from above) */}
+          {/* ROI COMPARISON - Price anchoring (moved from above) */}
           <div className="text-center mb-10">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900">The old way vs FiQ</h2>
             <p className="text-gray-500 mt-2 text-sm">Why businesses are switching to automated support</p>
@@ -314,12 +314,12 @@ export default function Home() {
             <div className="h-px flex-1 max-w-[60px] bg-emerald-200" />
           </div>
 
-          {/* Scrolling Testimonials — temporarily hidden, will be re-enabled with real testimonials */}
+          {/* Scrolling Testimonials - temporarily hidden, will be re-enabled with real testimonials */}
           {/* <div className="overflow-hidden mt-12">
             <div className="flex animate-marquee gap-6 hover:[animation-play-state:paused]" style={{ width: "max-content" }}>
               {[
                 {
-                  quote: "Honestly didn't expect much but wow — my WhatsApp replies are instant now. Customers actually think I never sleep lol.",
+                  quote: "Honestly didn't expect much but wow - my WhatsApp replies are instant now. Customers actually think I never sleep lol.",
                   name: "Cosmas K.",
                   role: "Shop Owner, Lusaka",
                 },
@@ -362,7 +362,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* HOW IT WORKS — Brief */}
+      {/* HOW IT WORKS - Brief */}
       <section id="how-it-works" className="py-20 px-6 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
@@ -393,7 +393,7 @@ export default function Home() {
             {[
               { icon: Shield, title: "Secure & Private", desc: "Your data is encrypted and never shared. Fully compliant." },
               { icon: Zap, title: "99.9% Uptime", desc: "Enterprise-grade reliability. Your support never goes offline." },
-              { icon: Globe, title: "40+ Languages", desc: "Responds in your customer's language — automatically." },
+              { icon: Globe, title: "40+ Languages", desc: "Responds in your customer's language - automatically." },
             ].map((t) => (
               <div key={t.title} className="flex items-start gap-3 p-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 shrink-0">
@@ -415,7 +415,7 @@ export default function Home() {
           <div className="rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 p-12 md:p-16 text-white">
             <h2 className="text-3xl md:text-4xl font-bold">Stop losing customers to slow responses</h2>
             <p className="text-emerald-100 mt-4 max-w-lg mx-auto">
-              Book a free demo and see how FiQ can handle your customer support — instantly.
+              Book a free demo and see how FiQ can handle your customer support - instantly.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
               <Link
@@ -433,7 +433,7 @@ export default function Home() {
               </Link>
             </div>
             <p className="text-sm text-emerald-200 mt-4">
-              30-day money-back guarantee — if it doesn&apos;t work, every kwacha back.
+              30-day money-back guarantee - if it doesn&apos;t work, every kwacha back.
             </p>
           </div>
         </div>

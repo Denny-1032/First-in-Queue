@@ -12,7 +12,7 @@ async function sendInviteEmail(params: {
 }): Promise<void> {
   const resendApiKey = process.env.RESEND_API_KEY;
   if (!resendApiKey) {
-    console.warn("[Team Invite] RESEND_API_KEY not set — skipping email send");
+    console.warn("[Team Invite] RESEND_API_KEY not set - skipping email send");
     return;
   }
 
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       });
     } catch (emailErr) {
       console.error("[Team Invite] Email failed:", emailErr);
-      // Don't fail — token is stored, link can be shared manually
+      // Don't fail - token is stored, link can be shared manually
       return NextResponse.json({
         success: true,
         warning: "Agent added but invite email could not be sent. Share this link manually.",

@@ -90,7 +90,7 @@ export function FiqSupportWidget() {
     }
   };
 
-  // Closed state — floating button
+  // Closed state - floating button
   if (!isOpen) {
     return (
       <button
@@ -104,7 +104,7 @@ export function FiqSupportWidget() {
     );
   }
 
-  // Open state — compact card
+  // Open state - compact card
   return (
     <div className="fixed bottom-6 left-6 z-50 w-80 rounded-2xl bg-white border border-gray-200 shadow-2xl overflow-hidden">
       {/* Header */}
@@ -137,7 +137,7 @@ export function FiqSupportWidget() {
               <Phone className="h-6 w-6 text-emerald-600" />
             </div>
             <p className="text-xs text-gray-500 mb-4">
-              Speak to our AI support agent — no phone number needed.
+              Speak to our AI support agent - no phone number needed.
             </p>
             <button
               onClick={startCall}

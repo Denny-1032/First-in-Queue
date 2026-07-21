@@ -426,7 +426,7 @@ export default function FlowsPage() {
                         <div className="flex-1 min-w-0">
                           <span className="text-[10px] font-medium text-gray-400 uppercase">{step.type}</span>
                           <p className="text-xs text-gray-700 truncate">
-                            {step.type === "handoff" ? "Transfer to human agent" : step.type === "action" ? (step.action || "—") : (step.content || "—")}
+                            {step.type === "handoff" ? "Transfer to human agent" : step.type === "action" ? (step.action || "-") : (step.content || "-")}
                           </p>
                         </div>
                         {idx < flow.steps.length - 1 && (

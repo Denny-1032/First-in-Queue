@@ -3,7 +3,9 @@ import Retell from "retell-sdk";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { recordVoiceUsage } from "@/lib/voice/usage";
 import { createWhatsAppClient } from "@/lib/whatsapp/client";
-import { getTenantById, getAvailableAgent } from "@/lib/db/operations";
+import { getTenantById, getAvailableAgent, createBooking } from "@/lib/db/operations";
+import { extractBookingFromTranscript } from "@/lib/booking/extract";
+import type { BookingType } from "@/types";
 
 // =============================================
 // Retell AI Webhook Endpoint
@@ -24,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!Retell.verify(rawBody, apiKey, signature)) {
-      console.warn("[Voice Webhook] Invalid signature — rejecting request");
+      console.warn("[Voice Webhook] Invalid signature - rejecting request");
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
@@ -79,7 +81,7 @@ async function handleCallStarted(payload: Record<string, unknown>) {
       })
       .eq("retell_call_id", retellCallId);
   } else {
-    // Inbound call — need to find tenant from agent
+    // Inbound call - need to find tenant from agent
     const agentId = call.agent_id as string;
     const { data: voiceAgent } = await supabase
       .from("voice_agents")
@@ -115,7 +117,7 @@ function needsFollowUp(call: Record<string, unknown>): { needed: boolean; reason
   const direction = (call.direction as string || "").toLowerCase();
   const callerPhone = (call.from_number as string || "");
 
-  // Never trigger follow-up for web calls (browser test calls) — they have no real phone number
+  // Never trigger follow-up for web calls (browser test calls) - they have no real phone number
   if (callType === "web_call" || direction === "web" || !callerPhone || callerPhone.length < 8) {
     return { needed: false, reason: "" };
   }
@@ -132,8 +134,8 @@ function needsFollowUp(call: Record<string, unknown>): { needed: boolean; reason
   const isVeryShort = durationMs < 30000; // < 30s real PSTN call
 
   if (hitEscalation) return { needed: true, reason: "Caller requested human assistance during call" };
-  if (disconnection === "voicemail") return { needed: true, reason: "Call went to voicemail — missed caller" };
-  if (isVeryShort) return { needed: true, reason: "Short call — may not have been resolved" };
+  if (disconnection === "voicemail") return { needed: true, reason: "Call went to voicemail - missed caller" };
+  if (isVeryShort) return { needed: true, reason: "Short call - may not have been resolved" };
   return { needed: false, reason: "" };
 }
 
@@ -165,6 +167,13 @@ async function handleCallEnded(payload: Record<string, unknown>) {
   // Record voice usage
   if (voiceCall && durationSeconds > 0) {
     await recordVoiceUsage(voiceCall.tenant_id, durationSeconds);
+  }
+
+  // ── Post-call booking safety net ─────────────────────────────────
+  // Catches appointments the live booking tool didn't capture (agent skipped
+  // it, tool errored, or an older agent isn't re-synced yet). Deduped by call id.
+  if (voiceCall?.tenant_id) {
+    await maybeBookFromTranscript(call, voiceCall.tenant_id, voiceCall.caller_phone, retellCallId);
   }
 
   // ── Voice → WhatsApp handoff ─────────────────────────────────────
@@ -260,6 +269,69 @@ async function handleCallEnded(payload: Record<string, unknown>) {
   }
 
   console.log(`[Voice Webhook] Call ended: ${retellCallId} (${durationSeconds}s) followUp=${followUp.needed}`);
+}
+
+const VALID_BOOKING_TYPES: BookingType[] = [
+  "appointment", "reservation", "viewing", "consultation",
+  "tour", "callback", "service", "custom",
+];
+
+/**
+ * Fallback booking creation from a finished call's transcript. Runs only for PSTN
+ * calls with a real number, only when the tenant has booking enabled, and only if no
+ * booking already exists for this call (the live tool path stamps the same call id).
+ */
+async function maybeBookFromTranscript(
+  call: Record<string, unknown>,
+  tenantId: string,
+  fallbackPhone: string | null | undefined,
+  retellCallId: string
+) {
+  try {
+    const callerPhone = (call.from_number as string) || fallbackPhone || "";
+    if (callerPhone.replace(/\D/g, "").length < 8) return; // web/anonymous - skip
+
+    const tenant = await getTenantById(tenantId);
+    const settings = tenant?.config?.booking_settings;
+    if (!tenant || !settings?.enabled) return;
+
+    const supabase = getSupabaseAdmin();
+    const { data: existing } = await supabase
+      .from("bookings")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("details->>retell_call_id", retellCallId)
+      .limit(1)
+      .maybeSingle();
+    if (existing) return; // already booked live (or a prior webhook retry)
+
+    const extracted = await extractBookingFromTranscript((call.transcript as string) || "", {
+      apiKey: tenant.openai_api_key,
+      timezone: tenant.config.operating_hours?.timezone,
+    });
+    if (!extracted?.date) return;
+
+    const bookingType = extracted.type && VALID_BOOKING_TYPES.includes(extracted.type as BookingType)
+      ? (extracted.type as BookingType)
+      : "appointment";
+
+    await createBooking({
+      tenant_id: tenantId,
+      conversation_id: undefined,
+      customer_phone: callerPhone,
+      customer_name: extracted.name || undefined,
+      booking_type: bookingType,
+      status: "pending",
+      scheduled_date: extracted.date,
+      scheduled_time: extracted.time || undefined,
+      duration_minutes: settings.slot_minutes || undefined,
+      notes: extracted.notes || undefined,
+      details: { source: "voice_postcall", retell_call_id: retellCallId },
+    });
+    console.log(`[Voice Webhook] Post-call booking created for ${retellCallId} on ${extracted.date} ${extracted.time || ""}`);
+  } catch (err) {
+    console.error("[Voice Webhook] Post-call booking net failed:", err);
+  }
 }
 
 async function handleCallAnalyzed(payload: Record<string, unknown>) {

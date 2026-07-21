@@ -18,7 +18,7 @@ import { Footer } from "@/components/landing/footer";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
 
 export const metadata: Metadata = {
-  title: "How It Works — 3 Steps to Automated WhatsApp & Voice Support",
+  title: "How It Works - 3 Steps to Automated WhatsApp & Voice Support",
   description:
     "Set up AI-powered WhatsApp and voice customer care in 5 minutes. No coding, no technical skills. Connect WhatsApp, train your AI, go live.",
   alternates: {
@@ -143,7 +143,7 @@ export default function HowItWorksPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { icon: Bot, title: "Smart Assistant", desc: "Available 24/7, in 40+ languages.", color: "text-emerald-600 bg-emerald-100" },
-              { icon: Phone, title: "Voice Calls", desc: "Outbound, inbound, and scheduled phone calls — handled automatically.", color: "text-purple-600 bg-purple-100" },
+              { icon: Phone, title: "Voice Calls", desc: "Outbound, inbound, and scheduled phone calls - handled automatically.", color: "text-purple-600 bg-purple-100" },
               { icon: Users, title: "Smart Handoff", desc: "Seamless transfer to human agents with full context.", color: "text-blue-600 bg-blue-100" },
               { icon: MessageSquare, title: "Rich Messages", desc: "Buttons, lists, images, and documents.", color: "text-indigo-600 bg-indigo-100" },
               { icon: Shield, title: "Fully Managed", desc: "We handle hosting, API, and updates.", color: "text-amber-600 bg-amber-100" },

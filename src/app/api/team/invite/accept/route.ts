@@ -4,7 +4,7 @@ import { hashPassword, generateAuthToken } from "@/lib/auth/password";
 
 const TOKEN_TTL_MS = 72 * 60 * 60 * 1000; // 72 hours
 
-// GET — validate token, return agent name + business name
+// GET - validate token, return agent name + business name
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
   if (!token) return NextResponse.json({ valid: false });
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ valid: true, name: agent.name, businessName });
 }
 
-// POST — accept invite, create user account, set auth cookie
+// POST - accept invite, create user account, set auth cookie
 export async function POST(request: NextRequest) {
   try {
     const { token, password } = await request.json();
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!agent.email) {
-      return NextResponse.json({ error: "Agent has no email — contact your admin" }, { status: 400 });
+      return NextResponse.json({ error: "Agent has no email - contact your admin" }, { status: 400 });
     }
 
     // Check if user already exists for this email
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     let userId: string;
 
     if (existingUser) {
-      // Existing user joining another team — update password
+      // Existing user joining another team - update password
       userId = existingUser.id;
       await db.from("users").update({
         password_hash: hashPassword(password),
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       userId = newUser.id;
     }
 
-    // Add user↔tenant membership (safe upsert — no error if already exists)
+    // Add user↔tenant membership (safe upsert - no error if already exists)
     await db.from("user_tenants").upsert({
       user_id: userId,
       tenant_id: agent.tenant_id,

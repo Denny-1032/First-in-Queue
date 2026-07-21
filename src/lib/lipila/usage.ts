@@ -15,15 +15,22 @@ export interface UsageCheckResult {
 export async function checkMessageUsage(tenantId: string): Promise<UsageCheckResult> {
   const supabase = getSupabaseAdmin();
 
+  // A tenant can accumulate more than one active/trialing subscription row
+  // (e.g. an expired paid plan lazily-marked plus a new free row). A bare
+  // .single() throws on >1 row -> data null -> we'd wrongly report limit 0
+  // and block every message. Pick the newest row instead, matching
+  // /api/subscriptions.
   const { data: sub } = await supabase
     .from("subscriptions")
     .select("id, plan_id, messages_used")
     .eq("tenant_id", tenantId)
     .in("status", ["active", "trialing"])
-    .single();
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   if (!sub) {
-    // No active/trialing subscription — block messages
+    // No active/trialing subscription - block messages
     return { allowed: false, messagesUsed: 0, messagesLimit: 0, planId: "none" };
   }
 
@@ -52,13 +59,15 @@ export async function incrementMessageUsage(tenantId: string): Promise<void> {
 
   if (error) {
     // Fallback: non-atomic increment if RPC doesn't exist yet
-    console.warn("[Usage] RPC fallback — using non-atomic increment:", error.message);
+    console.warn("[Usage] RPC fallback - using non-atomic increment:", error.message);
     const { data: sub } = await supabase
       .from("subscriptions")
       .select("id, messages_used")
       .eq("tenant_id", tenantId)
       .in("status", ["active", "trialing"])
-      .single();
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (sub) {
       await supabase

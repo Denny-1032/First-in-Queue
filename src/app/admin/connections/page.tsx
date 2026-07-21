@@ -159,7 +159,7 @@ export default function AdminConnectionsPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">{client.config?.business_name || client.name}</p>
-                    <p className="text-xs text-slate-500">{client.config?.industry || "—"}</p>
+                    <p className="text-xs text-slate-500">{client.config?.industry || "-"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -243,8 +243,8 @@ export default function AdminConnectionsPage() {
               {/* Show current status when not editing */}
               {editingId !== client.id && client.setup_complete && (
                 <div className="flex items-center gap-4 text-xs text-slate-500 border-t border-slate-800/50 pt-3 mt-2">
-                  <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> Phone: ••••{client.whatsapp_phone_number_id?.slice(-4) || "—"}</span>
-                  <span className="flex items-center gap-1"><Key className="h-3 w-3" /> Token: ••••{client.whatsapp_access_token?.slice(-4) || "—"}</span>
+                  <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> Phone: ••••{client.whatsapp_phone_number_id?.slice(-4) || "-"}</span>
+                  <span className="flex items-center gap-1"><Key className="h-3 w-3" /> Token: ••••{client.whatsapp_access_token?.slice(-4) || "-"}</span>
                 </div>
               )}
             </CardContent>

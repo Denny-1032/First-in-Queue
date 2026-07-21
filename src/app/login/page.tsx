@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +9,6 @@ import { MessageSquare, ArrowRight, Mail, Lock, User, Eye, EyeOff, Bot, Building
 import { useToast } from "@/components/ui/toast";
 
 export default function LoginPage() {
-  const router = useRouter();
   const { toast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -74,8 +72,14 @@ export default function LoginPage() {
       }
 
       toast(isSignUp ? "Account created! Welcome aboard." : "Welcome back!");
-      const redirect = new URLSearchParams(window.location.search).get("redirect") || "/dashboard";
-      router.push(redirect);
+      // Hard navigation so middleware re-runs with the freshly set auth cookie;
+      // a soft router.push can reuse a cached unauthenticated prefetch and
+      // bounce back to login (the "had to refresh to get in" bug).
+      const redirectParam = new URLSearchParams(window.location.search).get("redirect");
+      const redirect = redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")
+        ? redirectParam
+        : "/dashboard";
+      window.location.assign(redirect);
     } catch {
       setError("Something went wrong. Please try again.");
       toast("Something went wrong. Please try again.", "error");
@@ -101,8 +105,14 @@ export default function LoginPage() {
         return;
       }
       toast("Welcome back!");
-      const redirect = new URLSearchParams(window.location.search).get("redirect") || "/dashboard";
-      router.push(redirect);
+      // Hard navigation so middleware re-runs with the freshly set auth cookie;
+      // a soft router.push can reuse a cached unauthenticated prefetch and
+      // bounce back to login (the "had to refresh to get in" bug).
+      const redirectParam = new URLSearchParams(window.location.search).get("redirect");
+      const redirect = redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")
+        ? redirectParam
+        : "/dashboard";
+      window.location.assign(redirect);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -174,14 +184,14 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex overflow-x-hidden">
-      {/* Left branded panel — hidden on mobile */}
+      {/* Left branded panel - hidden on mobile */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex-col justify-between p-12">
         <div className="flex items-center gap-3">
           <Image src="/fiq-logo.png?v=2" alt="First in Queue" width={200} height={200} className="h-10 w-10 object-contain rounded-xl bg-white/20 p-0.5" />
           <span className="text-2xl font-bold">First in Queue</span>
         </div>
         <div className="space-y-8 max-w-md">
-          <h2 className="text-3xl font-bold leading-tight">Faster responses on WhatsApp and phone — automatically</h2>
+          <h2 className="text-3xl font-bold leading-tight">Faster responses on WhatsApp and phone - automatically</h2>
           <div className="space-y-4">
             {[
               { icon: MessageSquare, text: "WhatsApp messages answered instantly, 24/7" },
@@ -203,7 +213,7 @@ export default function LoginPage() {
       {/* Right form panel */}
       <div className="flex-1 bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo — visible only on mobile */}
+        {/* Logo - visible only on mobile */}
         <div className="flex items-center justify-center gap-2 mb-8 lg:hidden">
               <Image src="/fiq-logo.png?v=2" alt="First in Queue" width={200} height={200} className="h-10 w-10 object-contain" />
               <span className="text-xl font-bold text-gray-900">First in Queue</span>

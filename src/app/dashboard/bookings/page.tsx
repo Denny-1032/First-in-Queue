@@ -176,25 +176,25 @@ export default function BookingsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900">{loading ? "—" : stats.today}</p>
+            <p className="text-2xl font-bold text-gray-900">{loading ? "-" : stats.today}</p>
             <p className="text-xs text-gray-500">Today</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-amber-600">{loading ? "—" : stats.pending}</p>
+            <p className="text-2xl font-bold text-amber-600">{loading ? "-" : stats.pending}</p>
             <p className="text-xs text-gray-500">Pending</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-emerald-600">{loading ? "—" : stats.confirmed}</p>
+            <p className="text-2xl font-bold text-emerald-600">{loading ? "-" : stats.confirmed}</p>
             <p className="text-xs text-gray-500">Confirmed</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900">{loading ? "—" : stats.total}</p>
+            <p className="text-2xl font-bold text-gray-900">{loading ? "-" : stats.total}</p>
             <p className="text-xs text-gray-500">Total Shown</p>
           </CardContent>
         </Card>

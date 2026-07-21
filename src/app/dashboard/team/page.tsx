@@ -82,7 +82,7 @@ export default function TeamPage() {
     }
     // Prevent inviting yourself
     if (myAgent && invite.email.trim().toLowerCase() === myAgent.email?.toLowerCase()) {
-      toast("You cannot invite yourself — you are already on the team", "error");
+      toast("You cannot invite yourself - you are already on the team", "error");
       return;
     }
     setInviting(true);
@@ -104,8 +104,8 @@ export default function TeamPage() {
         });
         const invData = await invRes.json();
         if (invData.warning) {
-          // Email failed but link was generated — show it
-          toast(`${invite.name} added. Invite email failed — share this link: ${invData.inviteUrl}`, "warning");
+          // Email failed but link was generated - show it
+          toast(`${invite.name} added. Invite email failed - share this link: ${invData.inviteUrl}`, "warning");
         } else {
           toast(`${invite.name} added and invite email sent!`, "success");
         }
@@ -289,8 +289,8 @@ export default function TeamPage() {
                   onChange={(e) => setInvite((p) => ({ ...p, role: e.target.value as "admin" | "agent" }))}
                   className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
-                  <option value="agent">Agent — handles chats</option>
-                  <option value="admin">Admin — full access</option>
+                  <option value="agent">Agent - handles chats</option>
+                  <option value="admin">Admin - full access</option>
                 </select>
               </div>
               <div>

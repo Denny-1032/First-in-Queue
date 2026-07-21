@@ -8,7 +8,7 @@ import type { AIContext, BusinessConfig } from "@/types";
 /**
  * Test-mode chat for the "Test Your Bot" panel in the AI Config dashboard.
  * Runs the real AI engine against the tenant's config, with the unsaved
- * edits from the form applied on top — no messages are sent to WhatsApp
+ * edits from the form applied on top - no messages are sent to WhatsApp
  * and booking tools are disabled so no real bookings can be created.
  */
 export async function POST(request: NextRequest) {
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     const rate = checkRateLimit(`test-chat:${session.tenantId}`, 30, 60_000);
     if (!rate.allowed) {
-      return NextResponse.json({ error: "Too many test messages — wait a moment." }, { status: 429 });
+      return NextResponse.json({ error: "Too many test messages - wait a moment." }, { status: 429 });
     }
 
     const tenant = await getTenantById(session.tenantId);
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!tenant.openai_api_key && !process.env.OPENAI_API_KEY) {
-      // No key available — client falls back to the local simulator
+      // No key available - client falls back to the local simulator
       return NextResponse.json({ error: "AI not configured" }, { status: 503 });
     }
 

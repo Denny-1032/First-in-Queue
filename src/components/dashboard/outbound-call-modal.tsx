@@ -51,7 +51,7 @@ export function OutboundCallModal({ isOpen, onClose, tenantId, remainingMinutes 
 
       setCallResult(data);
       setStep("done");
-      toast(`Call initiated — calling ${name || phone}...`, "success");
+      toast(`Call initiated - calling ${name || phone}...`, "success");
     } catch (err) {
       toast(err instanceof Error ? err.message : "Call failed", "error");
       setStep("form");

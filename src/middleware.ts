@@ -46,7 +46,7 @@ async function isValidSignedToken(token: string): Promise<boolean> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Rate limit API routes (except webhooks — external services need unrestricted access)
+  // Rate limit API routes (except webhooks - external services need unrestricted access)
   const isWebhook =
     pathname.startsWith("/api/webhook") ||
     pathname.startsWith("/api/webhooks/") ||
@@ -90,7 +90,7 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Protect admin dashboard routes — validate signed admin token
+  // Protect admin dashboard routes - validate signed admin token
   if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
     const adminToken = request.cookies.get("fiq-admin-auth")?.value;
     if (!adminToken || !(await isValidSignedToken(adminToken))) {
@@ -100,7 +100,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Protect business dashboard routes — validate signed user token
+  // Protect business dashboard routes - validate signed user token
   if (pathname.startsWith("/dashboard")) {
     const authToken = request.cookies.get("fiq-auth")?.value;
     if (!authToken || !(await isValidSignedToken(authToken))) {

@@ -213,7 +213,7 @@ export default function AdminDashboardPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-white">{client.config?.business_name || client.name}</p>
-                      <p className="text-xs text-slate-500">{client.config?.industry || "—"}</p>
+                      <p className="text-xs text-slate-500">{client.config?.industry || "-"}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

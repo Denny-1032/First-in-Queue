@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Shield, Lock } from "lucide-react";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -31,13 +29,21 @@ export default function AdminLoginPage() {
 
       if (!res.ok) {
         setError(data.error || "Login failed");
+        setLoading(false);
         return;
       }
 
-      router.push("/admin");
+      // Hard navigation (not router.push): the auth cookie was just set by the
+      // fetch response. A soft client nav can reuse a cached, unauthenticated
+      // RSC prefetch of /admin and bounce straight back to login - which is why
+      // it used to take a manual refresh. A full load re-runs middleware with
+      // the new cookie present.
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect");
+      const dest = redirect && redirect.startsWith("/admin") ? redirect : "/admin";
+      window.location.assign(dest);
     } catch {
       setError("Network error. Please try again.");
-    } finally {
       setLoading(false);
     }
   };

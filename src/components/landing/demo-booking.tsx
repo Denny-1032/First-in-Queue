@@ -49,7 +49,7 @@ export function DemoBooking({ id }: { id?: string }) {
   return (
     <div id={id} className="rounded-2xl border border-gray-200 bg-white shadow-xl p-8">
       <h3 className="text-xl font-bold text-gray-900 mb-1">Book a Free Demo</h3>
-      <p className="text-sm text-gray-500 mb-6">See FiQ in action — personalized for your business.</p>
+      <p className="text-sm text-gray-500 mb-6">See FiQ in action - personalized for your business.</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <input

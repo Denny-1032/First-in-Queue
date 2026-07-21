@@ -100,7 +100,7 @@ async function processIncomingMessage(
     // Mark as read immediately
     await whatsapp.markAsRead(message.id);
 
-    // Get or create conversation — isNew only true for brand-new customers
+    // Get or create conversation - isNew only true for brand-new customers
     const { conversation, isNew } = await getOrCreateConversation(
       tenant.id,
       message.from,
@@ -136,7 +136,7 @@ async function processIncomingMessage(
 
     // Check if conversation is in handoff or waiting mode (human agent pending)
     if (conversation.status === "handoff" || conversation.status === "waiting") {
-      console.log(`[Handler] Response path: HANDOFF — conversation ${conversation.id} in ${conversation.status} mode, skipping bot`);
+      console.log(`[Handler] Response path: HANDOFF - conversation ${conversation.id} in ${conversation.status} mode, skipping bot`);
       return;
     }
 
@@ -157,14 +157,14 @@ async function processIncomingMessage(
         whatsapp_message_id: waLimitId,
         status: "sent",
       });
-      console.log(`[Handler] Response path: LIMIT — message limit reached`);
+      console.log(`[Handler] Response path: LIMIT - message limit reached`);
       return;
     }
 
     // Increment message counter (all paths below send a bot response)
     await incrementMessageUsage(tenant.id);
 
-    // Check operating hours — if outside hours, send the outside-hours message
+    // Check operating hours - if outside hours, send the outside-hours message
     if (isOutsideOperatingHours(tenant)) {
       const outsideMsg = tenant.config.operating_hours?.outside_hours_message
         || "Thanks for reaching out! We're currently outside business hours. We'll get back to you as soon as possible.";
@@ -211,7 +211,7 @@ async function processIncomingMessage(
         await processFlowStep(tenant, conversation, message, content, flow, flowState, whatsapp);
         return;
       }
-      // Flow no longer exists — clear stale state
+      // Flow no longer exists - clear stale state
       await updateConversation(conversation.id, {
         metadata: buildFlowMetadata(null, conversation.metadata as Record<string, unknown>),
       });
@@ -244,7 +244,7 @@ async function processIncomingMessage(
       const isGreetingInput = GREETING_TRIGGERS.includes(normalizedInput);
 
       if (!isNew && isGreetingInput) {
-        console.log(`[Handler] Skipping greeting quick reply for existing conversation — falling through to AI`);
+        console.log(`[Handler] Skipping greeting quick reply for existing conversation - falling through to AI`);
       } else {
         console.log(`[Handler] Response path: QUICK_REPLY for input="${normalizedInput}"`);
         const waMessageId = await whatsapp.sendText(message.from, quickReply);
@@ -274,7 +274,7 @@ async function processIncomingMessage(
         metadata: { ...meta, welcome_sent: true, welcome_sent_at: new Date().toISOString() },
       });
 
-      console.log(`[Handler] New conversation — sending welcome message`);
+      console.log(`[Handler] New conversation - sending welcome message`);
       const welcomeMsg = tenant.config.welcome_message
         .replace("{customer_name}", customerName || "there")
         .replace("{business_name}", tenant.config.business_name);
@@ -344,14 +344,14 @@ async function processIncomingMessage(
     }
 
     if (conversation.ai_enabled) {
-      console.log(`[Handler] Response path: AI — generating AI response (history=${history.length} msgs)`);
+      console.log(`[Handler] Response path: AI - generating AI response (history=${history.length} msgs)`);
       whatsapp.sendTypingIndicator(message.from).catch(() => {});
       await handleAIResponse(tenant, conversation, message, content, history, whatsapp);
     } else {
-      console.log(`[Handler] Response path: AI_DISABLED — ai_enabled=${conversation.ai_enabled} for conversation ${conversation.id}`);
+      console.log(`[Handler] Response path: AI_DISABLED - ai_enabled=${conversation.ai_enabled} for conversation ${conversation.id}`);
     }
   } catch (error) {
-    console.error("[Handler] Response path: FALLBACK — error processing message:", error);
+    console.error("[Handler] Response path: FALLBACK - error processing message:", error);
     // Send fallback message
     try {
       const fallback = tenant.config.fallback_message || "Sorry, something went wrong. Please try again.";
@@ -376,7 +376,7 @@ async function handleAIResponse(
   console.log(`[Handler] AI engine: keySource=${keySource}, model=${process.env.OPENAI_MODEL || "gpt-4o"}`);
   const aiEngine = createAIEngine(tenant.openai_api_key);
 
-  // Build AI context — include flow state if active
+  // Build AI context - include flow state if active
   const flowState = getFlowState(conversation);
   const activeFlow = flowState ? tenant.config.flows.find((f) => f.id === flowState.flow_id) : undefined;
 
@@ -416,7 +416,7 @@ async function handleAIResponse(
   // Handle web_call suggestion from AI
   const webCallSuggestion = aiResponse.suggested_actions?.find((a) => a.type === "web_call");
   if (webCallSuggestion) {
-    console.log(`[Handler] Response path: WEB_CALL — sending web call link`);
+    console.log(`[Handler] Response path: WEB_CALL - sending web call link`);
     // NOTE: Don't send AI text when web_call is suggested - the CTA button is the primary response
     // The AI often generates text like "Tap here to talk on a call" which duplicates the button
     // Get default voice agent for the web call link
@@ -483,7 +483,7 @@ async function handleAIResponse(
     }
   }
 
-  // AI created a booking via tools — send its text, then confirm buttons
+  // AI created a booking via tools - send its text, then confirm buttons
   if (aiResponse.created_booking_id) {
     const booking = await getBooking(aiResponse.created_booking_id);
     if (booking && booking.tenant_id === tenant.id) {
@@ -655,7 +655,7 @@ function matchQuickReply(tenant: Tenant, text: string, customerName?: string): s
   for (const qr of tenant.config.quick_replies) {
     const trigger = qr.trigger.toLowerCase().trim();
 
-    // Skip empty triggers — they match everything with "contains" (JS: "".includes("") === true)
+    // Skip empty triggers - they match everything with "contains" (JS: "".includes("") === true)
     if (!trigger) {
       console.warn(`[Handler] Skipping quick reply "${qr.id}" with empty trigger`);
       continue;
@@ -663,7 +663,7 @@ function matchQuickReply(tenant: Tenant, text: string, customerName?: string): s
 
     // For non-exact matches, require minimum trigger length to prevent overly broad matching
     if (qr.match_type !== "exact" && trigger.length < 3) {
-      console.warn(`[Handler] Skipping quick reply "${qr.id}" — trigger "${trigger}" too short for ${qr.match_type} match`);
+      console.warn(`[Handler] Skipping quick reply "${qr.id}" - trigger "${trigger}" too short for ${qr.match_type} match`);
       continue;
     }
 
@@ -759,7 +759,7 @@ function matchBookingButton(
   if (message.type === "button") {
     const match = (message.button?.payload || "").match(BOOKING_BUTTON_REGEX);
     if (match) return { action: match[1] as "confirm" | "cancel", bookingId: match[2] };
-    // Payload-less template button — fall through to text matching below
+    // Payload-less template button - fall through to text matching below
   }
 
   // Plain "confirm"/"cancel" text while a booking is awaiting confirmation
@@ -784,7 +784,7 @@ async function handleBookingButton(
   button: { bookingId: string; action: "confirm" | "cancel" },
   whatsapp: ReturnType<typeof createWhatsAppClient>
 ): Promise<void> {
-  console.log(`[Handler] Response path: BOOKING_${button.action.toUpperCase()} — booking ${button.bookingId}`);
+  console.log(`[Handler] Response path: BOOKING_${button.action.toUpperCase()} - booking ${button.bookingId}`);
   const booking = await getBooking(button.bookingId);
 
   let reply: string;
@@ -879,7 +879,7 @@ async function createBookingFromFlow(
       }
     }
     if (!scheduledDate) {
-      console.log(`[Handler] Flow booking skipped — no usable date in collected data`);
+      console.log(`[Handler] Flow booking skipped - no usable date in collected data`);
       return null;
     }
 
@@ -1005,7 +1005,7 @@ function getUrgentSafetyMessage(industry: string, keyword: string): string {
       safety: "🚨 If you're in immediate danger, call campus security at (555) 222-3399 or 911. I'm alerting our safety team now.",
       harassment: "I'm sorry you're experiencing this. I'm connecting you immediately with the Dean of Students office. You can also reach campus security at (555) 222-3399.",
       bullying: "I'm sorry you're going through this. I'm connecting you with the Dean of Students office immediately to address this properly.",
-      suicide: "🚨 Please reach out to the 988 Suicide & Crisis Lifeline — call or text 988. Campus counseling is available at (555) 222-3345. You are not alone. I'm connecting you with support now.",
+      suicide: "🚨 Please reach out to the 988 Suicide & Crisis Lifeline - call or text 988. Campus counseling is available at (555) 222-3345. You are not alone. I'm connecting you with support now.",
       "self-harm": "🚨 Please contact the 988 Suicide & Crisis Lifeline (call or text 988). Campus counseling: (555) 222-3345. I'm connecting you with our support team immediately.",
     },
     saas: {
@@ -1152,7 +1152,7 @@ async function sendFlowStep(
       await handleEscalation(tenant, conversation, { from: to } as WhatsAppIncomingMessage, {
         text: "",
         should_escalate: true,
-        escalation_reason: `Flow "${flow.name}" handoff` + (Object.keys(flowState.collected_data).length > 0 ? ` — ${Object.entries(flowState.collected_data).map(([k, v]) => `${k}: ${v}`).join(", ")}` : ""),
+        escalation_reason: `Flow "${flow.name}" handoff` + (Object.keys(flowState.collected_data).length > 0 ? ` - ${Object.entries(flowState.collected_data).map(([k, v]) => `${k}: ${v}`).join(", ")}` : ""),
         confidence: 1.0,
       }, whatsapp);
       return;
@@ -1166,7 +1166,7 @@ async function sendFlowStep(
           currentIndex++;
           continue;
         }
-        // Extraction produced nothing usable — fall through to the generic
+        // Extraction produced nothing usable - fall through to the generic
         // acknowledgment; the collected data is still preserved in metadata
       }
 
@@ -1197,7 +1197,7 @@ async function sendFlowStep(
     currentIndex++;
   }
 
-  // Flow completed — clear state and send completion message
+  // Flow completed - clear state and send completion message
   await updateConversation(conversation.id, {
     metadata: buildFlowMetadata(null, conversation.metadata as Record<string, unknown>),
   });
@@ -1226,7 +1226,7 @@ async function processFlowStep(
 ): Promise<void> {
   const currentStep = flow.steps[flowState.step_index];
   if (!currentStep) {
-    // Flow complete or invalid state — clear
+    // Flow complete or invalid state - clear
     await updateConversation(conversation.id, {
       metadata: buildFlowMetadata(null, conversation.metadata as Record<string, unknown>),
     });
@@ -1262,7 +1262,7 @@ async function processFlowStep(
     : currentStep.id;
   const updatedData = { ...flowState.collected_data, [dataKey]: userResponse };
 
-  // Determine next step — if current step has options with next_step routing, use that
+  // Determine next step - if current step has options with next_step routing, use that
   let nextIndex = flowState.step_index + 1;
   if (currentStep.options && currentStep.options.length > 0) {
     // Check if user selected a specific option (button reply)
@@ -1307,7 +1307,7 @@ async function processFlowStep(
   };
 
   if (nextIndex >= flow.steps.length) {
-    // Flow completed — clear state and send completion message
+    // Flow completed - clear state and send completion message
     await updateConversation(conversation.id, {
       metadata: buildFlowMetadata(null, conversation.metadata as Record<string, unknown>),
     });
@@ -1452,7 +1452,7 @@ async function handleVoiceCallbackRequest(
     }
 
     // Resolve telephony provider (default: twilio)
-    // When set to "web" or "none", phone callbacks are disabled — suggest web call instead
+    // When set to "web" or "none", phone callbacks are disabled - suggest web call instead
     const voiceProvider = process.env.VOICE_PROVIDER || "twilio";
     if (voiceProvider === "web" || voiceProvider === "none") {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.firstinqueue.com";
@@ -1480,7 +1480,7 @@ async function handleVoiceCallbackRequest(
 
     if (!fromNumber) {
       const providerLabel = isTelnyx ? "Telnyx (TELNYX_VOICE_NUMBER)" : "Twilio (TWILIO_VOICE_NUMBER)";
-      console.error(`[VoiceCallback] ${providerLabel} not configured — cannot place call`);
+      console.error(`[VoiceCallback] ${providerLabel} not configured - cannot place call`);
       const noNumberMsg = "Sorry, our voice call service isn't fully configured yet. Please continue chatting here and we'll help you.";
       const noNumberId = await whatsapp.sendText(customerPhone, noNumberMsg);
       await saveMessage({
@@ -1521,7 +1521,7 @@ async function handleVoiceCallbackRequest(
     const toNumber = customerPhone.startsWith("+") ? customerPhone : "+" + customerPhone;
 
     // Send confirmation BEFORE placing the call
-    const confirmMsg = "Sure! I'll call you right now — please keep your phone ready. 📞";
+    const confirmMsg = "Sure! I'll call you right now - please keep your phone ready. 📞";
     const waMessageId = await whatsapp.sendText(customerPhone, confirmMsg);
     await saveMessage({
       conversation_id: conversation.id,
@@ -1534,7 +1534,7 @@ async function handleVoiceCallbackRequest(
       status: "sent",
     });
 
-    // Place the outbound call — provider determined by VOICE_PROVIDER env var
+    // Place the outbound call - provider determined by VOICE_PROVIDER env var
     // Cap WhatsApp callbacks at 3 minutes to prevent runaway charges
     let retellCallId: string;
     let providerCallId: string;
@@ -1597,7 +1597,7 @@ async function handleVoiceCallbackRequest(
     });
 
     // Follow-up message
-    const followUpMsg = `Calling you now from ${fromNumber}! Please answer — you'll be connected to our AI assistant. 🤖📞`;
+    const followUpMsg = `Calling you now from ${fromNumber}! Please answer - you'll be connected to our AI assistant. 🤖📞`;
     const followUpId = await whatsapp.sendText(customerPhone, followUpMsg);
     await saveMessage({
       conversation_id: conversation.id,

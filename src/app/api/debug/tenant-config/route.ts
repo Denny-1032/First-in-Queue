@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 
-// TEMPORARY diagnostic endpoint — remove after debugging
+// TEMPORARY diagnostic endpoint - remove after debugging
 // Usage: GET /api/debug/tenant-config?phone_number_id=YOUR_PHONE_NUMBER_ID
 export async function GET(request: NextRequest) {
   const phoneNumberId = request.nextUrl.searchParams.get("phone_number_id");

@@ -33,7 +33,7 @@ export function PricingPlans() {
         )}
       </div>
 
-      {/* Plans — centered grid for 3 cards */}
+      {/* Plans - centered grid for 3 cards */}
       <section className="py-12 px-6">
         <div className="flex justify-center">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl">

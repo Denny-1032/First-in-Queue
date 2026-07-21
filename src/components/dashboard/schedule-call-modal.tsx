@@ -48,7 +48,7 @@ export function ScheduleCallModal({ isOpen, onClose, tenantId, onScheduled }: Sc
       if (!res.ok) throw new Error(data.error || "Failed to schedule call");
 
       setDone(true);
-      toast(`Call scheduled — ${name || phone} on ${date} at ${time}`, "success");
+      toast(`Call scheduled - ${name || phone} on ${date} at ${time}`, "success");
       onScheduled?.();
     } catch (err) {
       toast(err instanceof Error ? err.message : "Failed to schedule", "error");
@@ -179,7 +179,7 @@ export function ScheduleCallModal({ isOpen, onClose, tenantId, onScheduled }: Sc
               <div className="text-center">
                 <p className="text-lg font-semibold text-gray-900">Call Scheduled</p>
                 <p className="text-sm text-gray-500">
-                  {name || phone} — {date} at {time}
+                  {name || phone} - {date} at {time}
                 </p>
               </div>
               <Button onClick={handleClose} variant="outline" className="gap-2">

@@ -198,14 +198,14 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
         </Card>
       </div>
 
-      {/* WhatsApp Credentials — Admin Configures */}
+      {/* WhatsApp Credentials - Admin Configures */}
       <Card className="bg-slate-900 border-slate-800">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Phone className="h-5 w-5 text-green-400" />
             <CardTitle className="text-white">WhatsApp Connection</CardTitle>
           </div>
-          <p className="text-xs text-slate-400 mt-1">Configure WhatsApp Business API credentials for this client. This is managed by FiQ — the client never sees these.</p>
+          <p className="text-xs text-slate-400 mt-1">Configure WhatsApp Business API credentials for this client. This is managed by FiQ - the client never sees these.</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -242,7 +242,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-400 mb-1.5 block">OpenAI API Key (optional — leave blank to use platform default)</label>
+            <label className="text-xs font-medium text-slate-400 mb-1.5 block">OpenAI API Key (optional - leave blank to use platform default)</label>
             <Input
               value={openaiKey}
               onChange={(e) => setOpenaiKey(e.target.value)}
@@ -267,23 +267,23 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
         </CardContent>
       </Card>
 
-      {/* Business Config Summary — Read-only view for admin */}
+      {/* Business Config Summary - Read-only view for admin */}
       <Card className="bg-slate-900 border-slate-800">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-blue-400" />
             <CardTitle className="text-white">Business Configuration</CardTitle>
           </div>
-          <p className="text-xs text-slate-400 mt-1">Client-managed settings — visible here for reference</p>
+          <p className="text-xs text-slate-400 mt-1">Client-managed settings - visible here for reference</p>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {[
-              { label: "Business Name", value: config.business_name || "—" },
-              { label: "Industry", value: config.industry || "—" },
-              { label: "Bot Name", value: config.personality?.name || "—" },
-              { label: "Tone", value: config.personality?.tone || "—" },
-              { label: "Welcome Message", value: config.welcome_message || "—" },
+              { label: "Business Name", value: config.business_name || "-" },
+              { label: "Industry", value: config.industry || "-" },
+              { label: "Bot Name", value: config.personality?.name || "-" },
+              { label: "Tone", value: config.personality?.tone || "-" },
+              { label: "Welcome Message", value: config.welcome_message || "-" },
               { label: "Languages", value: config.languages?.join(", ") || "English" },
               { label: "Knowledge Base", value: `${config.knowledge_base?.length || 0} entries` },
               { label: "FAQs", value: `${config.faqs?.length || 0} items` },

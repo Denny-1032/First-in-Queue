@@ -16,6 +16,10 @@ export interface BookingToolContext {
   conversation_id?: string;
   settings: BookingSettings;
   operating_hours?: OperatingHours;
+  /** Channel that created the booking. Defaults to "ai_tool" (WhatsApp/chat). */
+  source?: string;
+  /** Extra fields merged into booking.details - e.g. { retell_call_id } for voice. */
+  details?: Record<string, unknown>;
 }
 
 export interface BookingToolResult {
@@ -108,7 +112,7 @@ export const BOOKING_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   },
 ];
 
-/** Booking must belong to this tenant AND this customer — the model can pass any id */
+/** Booking must belong to this tenant AND this customer - the model can pass any id */
 async function getOwnedBooking(bookingId: string, ctx: BookingToolContext): Promise<Booking | null> {
   const booking = await getBooking(bookingId);
   if (!booking || booking.tenant_id !== ctx.tenant_id || booking.customer_phone !== ctx.customer_phone) {
@@ -170,7 +174,7 @@ export async function executeBookingTool(
           scheduled_time: time,
           duration_minutes: ctx.settings.slot_minutes || 30,
           notes: (args.notes as string) || undefined,
-          details: { source: "ai_tool" },
+          details: { source: ctx.source || "ai_tool", ...(ctx.details || {}) },
         });
 
         return {

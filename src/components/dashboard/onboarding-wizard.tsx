@@ -72,7 +72,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     switch (step) {
       case 0: return businessName.trim().length >= 2;
       case 1: return botName.trim().length >= 1;
-      case 2: return true; // Knowledge is optional — can add later
+      case 2: return true; // Knowledge is optional - can add later
       case 3: return true;
       default: return false;
     }
@@ -200,7 +200,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   </div>
                 </div>
                 <CardTitle className="text-2xl">Welcome to First in Queue</CardTitle>
-                <CardDescription>Let&apos;s set up your AI customer care bot in under 5 minutes — no technical skills needed</CardDescription>
+                <CardDescription>Let&apos;s set up your AI customer care bot in under 5 minutes - no technical skills needed</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-4">
                 <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4">
@@ -209,7 +209,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     <div>
                       <p className="text-sm font-medium text-emerald-800">We handle everything for you</p>
                       <p className="text-xs text-emerald-600 mt-1">
-                        WhatsApp integration, AI infrastructure, and hosting — all managed by First in Queue. Just tell us about your business and we&apos;ll do the rest.
+                        WhatsApp integration, AI infrastructure, and hosting - all managed by First in Queue. Just tell us about your business and we&apos;ll do the rest.
                       </p>
                     </div>
                   </div>
@@ -341,7 +341,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     placeholder="e.g., +27 82 123 4567"
                     className="max-w-xs"
                   />
-                  <p className="text-xs text-gray-400 mt-1">We&apos;ll connect your bot to this number — our team handles the setup</p>
+                  <p className="text-xs text-gray-400 mt-1">We&apos;ll connect your bot to this number - our team handles the setup</p>
                 </div>
 
                 <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3 flex items-start gap-2">

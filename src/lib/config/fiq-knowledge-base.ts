@@ -702,7 +702,7 @@ SELF-HELP:
   faq: [
     {
       question: "What is FiQ and how does it work?",
-      answer: "FiQ (First in Queue) is an AI-powered WhatsApp automation platform. It connects to your WhatsApp Business API account and automatically responds to customer messages using AI. You configure the knowledge base, personality, and flows — the AI handles conversations 24/7, escalating to humans when needed.",
+      answer: "FiQ (First in Queue) is an AI-powered WhatsApp automation platform. It connects to your WhatsApp Business API account and automatically responds to customer messages using AI. You configure the knowledge base, personality, and flows - the AI handles conversations 24/7, escalating to humans when needed.",
     },
     {
       question: "Do I need technical skills to use FiQ?",
@@ -726,7 +726,7 @@ SELF-HELP:
     },
     {
       question: "Can the AI speak my local language?",
-      answer: "Yes — for text/WhatsApp chat! FiQ supports 40+ languages including English, Bemba, Nyanja, and Tonga. The AI auto-detects the customer's language. Note: Voice calls currently support English only; local languages for voice are on the roadmap.",
+      answer: "Yes - for text/WhatsApp chat! FiQ supports 40+ languages including English, Bemba, Nyanja, and Tonga. The AI auto-detects the customer's language. Note: Voice calls currently support English only; local languages for voice are on the roadmap.",
     },
     {
       question: "How do I transfer from AI to human agent?",
@@ -754,7 +754,7 @@ SELF-HELP:
     },
     {
       question: "Do I need Meta/Facebook Business verification?",
-      answer: "Not required for basic functionality. You need WhatsApp Business API access (we help with this). The green verification badge is optional — your business name and profile will show without it.",
+      answer: "Not required for basic functionality. You need WhatsApp Business API access (we help with this). The green verification badge is optional - your business name and profile will show without it.",
     },
     {
       question: "Can FiQ integrate with my existing systems?",
@@ -822,7 +822,7 @@ Rejection reasons:
     
     webhooks: {
       description: "Real-time notifications when events occur",
-      whatAreWebhooks: "Webhooks are HTTP callbacks that notify your external systems when something happens in FiQ — like a new message, completed flow, or escalated conversation.",
+      whatAreWebhooks: "Webhooks are HTTP callbacks that notify your external systems when something happens in FiQ - like a new message, completed flow, or escalated conversation.",
       availableEvents: [
         "message.received - New customer message",
         "message.sent - AI response sent",

@@ -7,7 +7,7 @@ import { Footer } from "@/components/landing/footer";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
 
 export const metadata: Metadata = {
-  title: "Industries — AI Customer Care for Every Business Type",
+  title: "Industries - AI Customer Care for Every Business Type",
   description:
     "Pre-configured AI templates for e-commerce, healthcare, restaurants, real estate, education, travel, finance, and SaaS. Ready in 5 minutes.",
   alternates: {
@@ -25,8 +25,8 @@ const industries = [
   {
     emoji: "🛒",
     name: "E-Commerce",
-    pain: "A customer asks about delivery times at 8pm. No one answers. They buy from the shop that replied first. Every unanswered WhatsApp message is a lost sale — and most e-commerce businesses lose dozens every week without realising it.",
-    outcome: "FiQ handles order enquiries, stock checks, and delivery updates instantly — day or night. Stores typically recover 30–40% of otherwise lost after-hours sales.",
+    pain: "A customer asks about delivery times at 8pm. No one answers. They buy from the shop that replied first. Every unanswered WhatsApp message is a lost sale - and most e-commerce businesses lose dozens every week without realising it.",
+    outcome: "FiQ handles order enquiries, stock checks, and delivery updates instantly - day or night. Stores typically recover 30–40% of otherwise lost after-hours sales.",
     useCases: [
       "Order tracking and delivery updates",
       "Return and refund processing",
@@ -38,7 +38,7 @@ const industries = [
   {
     emoji: "🏥",
     name: "Healthcare",
-    pain: "Your clinic misses appointment bookings every evening after 5pm. Patients call, get no answer, and book somewhere else — or worse, they no-show because no one reminded them. The average clinic loses K15,000–25,000 a month to no-shows alone.",
+    pain: "Your clinic misses appointment bookings every evening after 5pm. Patients call, get no answer, and book somewhere else - or worse, they no-show because no one reminded them. The average clinic loses K15,000–25,000 a month to no-shows alone.",
     outcome: "FiQ sends automated reminders and handles bookings 24/7. Most clinics see no-shows drop by 25–40% in the first month.",
     useCases: [
       "Appointment scheduling and reminders",
@@ -51,7 +51,7 @@ const industries = [
   {
     emoji: "🍽️",
     name: "Restaurants",
-    pain: "The phone rings during dinner service and no one picks up. The customer books elsewhere. You never even knew they called. Empty tables on a Friday night are not a capacity problem — they are a response time problem.",
+    pain: "The phone rings during dinner service and no one picks up. The customer books elsewhere. You never even knew they called. Empty tables on a Friday night are not a capacity problem - they are a response time problem.",
     outcome: "WhatsApp reservations increase when customers can book instantly at any hour. Your staff stays focused on service, not answering phones.",
     useCases: [
       "Table reservations and party bookings",
@@ -77,7 +77,7 @@ const industries = [
   {
     emoji: "🎓",
     name: "Education",
-    pain: "A parent sends a WhatsApp at 9pm asking about school fees and enrollment. No response until Monday. By then, they have already enquired at two other schools. Every delayed response is a delayed enrollment — or a lost one worth K5,000–20,000 in tuition.",
+    pain: "A parent sends a WhatsApp at 9pm asking about school fees and enrollment. No response until Monday. By then, they have already enquired at two other schools. Every delayed response is a delayed enrollment - or a lost one worth K5,000–20,000 in tuition.",
     outcome: "Parents get instant answers when they ask, not when your office opens. Schools using FiQ see measurable improvements in enrollment conversion rates.",
     useCases: [
       "Admissions process and requirements",
@@ -90,7 +90,7 @@ const industries = [
   {
     emoji: "✈️",
     name: "Travel & Hospitality",
-    pain: "A guest in a different time zone needs help at 3am your time. No one answers. They leave a bad review. In hospitality, one bad review costs more than a dozen good ones can recover — and it stays visible for years.",
+    pain: "A guest in a different time zone needs help at 3am your time. No one answers. They leave a bad review. In hospitality, one bad review costs more than a dozen good ones can recover - and it stays visible for years.",
     outcome: "24/7 guest support across all time zones. Enquiries handled instantly, in the guest's language.",
     useCases: [
       "Booking confirmations and modifications",
@@ -103,7 +103,7 @@ const industries = [
   {
     emoji: "💰",
     name: "Finance",
-    pain: "A client sends an urgent query about a suspicious transaction at 10pm. Your team sees it at 8am the next day. In financial services, delayed responses erode trust faster than any competitor can — and a single escalation handled late can cost K50,000+ in client churn.",
+    pain: "A client sends an urgent query about a suspicious transaction at 10pm. Your team sees it at 8am the next day. In financial services, delayed responses erode trust faster than any competitor can - and a single escalation handled late can cost K50,000+ in client churn.",
     outcome: "Instant acknowledgement and escalation for sensitive queries. Routine account questions handled automatically, around the clock.",
     useCases: [
       "Account balance and transaction history",
@@ -116,7 +116,7 @@ const industries = [
   {
     emoji: "💻",
     name: "SaaS & Technology",
-    pain: "Support tickets pile up overnight. A frustrated user churns before your team even reads the ticket. Each churned customer is K1,000–10,000 per month in recurring revenue gone — not because your product failed, but because your support was asleep.",
+    pain: "Support tickets pile up overnight. A frustrated user churns before your team even reads the ticket. Each churned customer is K1,000–10,000 per month in recurring revenue gone - not because your product failed, but because your support was asleep.",
     outcome: "Resolve the majority of support tickets automatically. Reduce response time to seconds while keeping complex issues routed to the right human.",
     useCases: [
       "Account setup and onboarding",

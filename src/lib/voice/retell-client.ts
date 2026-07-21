@@ -1,5 +1,6 @@
 import Retell from "retell-sdk";
 import type { BusinessConfig } from "@/types";
+import { nowInTimezone } from "@/lib/booking/availability";
 
 // =============================================
 // Retell AI Voice Agent Client
@@ -75,6 +76,8 @@ export function buildVoiceSystemPrompt(config: BusinessConfig, transferNumber?: 
     ? `\n\nFREQUENTLY ASKED QUESTIONS:\n${config.faqs.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join("\n\n")}`
     : "";
 
+  const bookingBlock = buildVoiceBookingPrompt(config);
+
   return `You are ${personality.name}, the AI phone assistant for ${config.business_name}.
 
 ROLE: You are a dedicated customer care representative handling phone calls. Your ONLY purpose is to help customers of ${config.business_name} with their questions, issues, and needs.
@@ -100,10 +103,134 @@ PHONE CONVERSATION RULES:
 3. NEVER make up information about products, prices, policies, or services.
 4. If you don't know the answer, say so honestly and offer to transfer to a human agent.
 5. If the caller seems frustrated or requests a human, offer to transfer immediately.
-6. Keep responses concise — callers prefer quick answers on the phone.
+6. Keep responses concise - callers prefer quick answers on the phone.
 7. Confirm important details by repeating them back (phone numbers, names, dates).
 8. End calls politely: summarise what was discussed and ask if there's anything else.
-${transferNumber ? `9. When a caller needs urgent human assistance or explicitly asks to speak to a person: say "I'm going to transfer you to a team member now — please hold" and then trigger the transfer to ${transferNumber}.` : "9. If a caller needs to speak to a human, let them know a team member will contact them and collect their callback number."}`;
+${transferNumber ? `9. When a caller needs urgent human assistance or explicitly asks to speak to a person: say "I'm going to transfer you to a team member now - please hold" and then trigger the transfer to ${transferNumber}.` : "9. If a caller needs to speak to a human, let them know a team member will contact them and collect their callback number."}${bookingBlock}`;
+}
+
+/**
+ * Booking guidance appended to the voice prompt when the tenant has booking enabled.
+ * Mirrors buildBookingPrompt in the chat engine but tuned for phone: relative dates
+ * are resolved against "today" in the tenant timezone, and web callers (no caller ID)
+ * are asked for a callback number before booking.
+ */
+function buildVoiceBookingPrompt(config: BusinessConfig): string {
+  if (!config.booking_settings?.enabled) return "";
+
+  const tz = config.operating_hours?.timezone;
+  const now = nowInTimezone(tz);
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const weekday = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][now.getDay()];
+
+  return `
+
+APPOINTMENT BOOKING:
+You can book, look up, reschedule, and cancel appointments for callers using your tools.
+- Today is ${weekday}, ${todayStr}${tz ? ` (${tz})` : ""}. Resolve relative dates like "tomorrow" or "next Friday" to a concrete date yourself.
+- ALWAYS call check_availability for the requested date before offering or confirming a time. Offer the caller real open slots - never invent availability.
+- Only call create_booking AFTER the caller has agreed to a specific date and time you confirmed was available.
+- Collect the caller's name for the booking. If this is a web/online call with no phone number, politely ask for a callback phone number and pass it as customer_phone - do not create the booking without one.
+- To change or cancel, use find_my_bookings first to get the booking, then reschedule_booking or cancel_booking.
+- After booking, read the date and time back to confirm, and let them know it's saved.`;
+}
+
+// =============================================
+// Retell Booking Tools (custom functions)
+// Registered once on the shared LLM; the /api/voice/tools endpoint does
+// per-tenant resolution + gating, so a single registration serves all tenants.
+// =============================================
+
+const BOOKING_TYPE_ENUM = [
+  "appointment", "reservation", "viewing", "consultation",
+  "tour", "callback", "service", "custom",
+];
+
+function buildVoiceBookingToolDefs(url: string) {
+  // Retell "custom" general_tools - mirror BOOKING_TOOLS in src/lib/ai/booking-tools.ts.
+  const base = { type: "custom" as const, url, speak_during_execution: true, speak_after_execution: true };
+  return [
+    {
+      ...base,
+      name: "check_availability",
+      description: "Get available appointment slots for a date. Always call this before proposing or confirming a time.",
+      parameters: {
+        type: "object",
+        properties: { date: { type: "string", description: "Date to check, format YYYY-MM-DD" } },
+        required: ["date"],
+      },
+    },
+    {
+      ...base,
+      name: "create_booking",
+      description: "Create an appointment after check_availability confirmed the slot is free and the caller agreed.",
+      parameters: {
+        type: "object",
+        properties: {
+          date: { type: "string", description: "YYYY-MM-DD" },
+          time: { type: "string", description: "24h HH:MM slot start time from check_availability" },
+          customer_name: { type: "string", description: "Caller's name" },
+          customer_phone: { type: "string", description: "Callback phone number - REQUIRED on web calls that have no caller ID" },
+          booking_type: { type: "string", enum: BOOKING_TYPE_ENUM },
+          notes: { type: "string", description: "Anything the business should know" },
+        },
+        required: ["date", "time"],
+      },
+    },
+    {
+      ...base,
+      name: "find_my_bookings",
+      description: "List the caller's upcoming bookings (needed to get a booking_id before rescheduling or cancelling).",
+      parameters: {
+        type: "object",
+        properties: { customer_phone: { type: "string", description: "Callback number on web calls with no caller ID" } },
+        required: [],
+      },
+    },
+    {
+      ...base,
+      name: "reschedule_booking",
+      description: "Move an existing booking to a new date/time. Get booking_id from find_my_bookings and confirm the new slot with check_availability first.",
+      parameters: {
+        type: "object",
+        properties: {
+          booking_id: { type: "string" },
+          date: { type: "string", description: "New date YYYY-MM-DD" },
+          time: { type: "string", description: "New time HH:MM" },
+        },
+        required: ["booking_id", "date", "time"],
+      },
+    },
+    {
+      ...base,
+      name: "cancel_booking",
+      description: "Cancel an existing booking. Get booking_id from find_my_bookings.",
+      parameters: {
+        type: "object",
+        properties: { booking_id: { type: "string" }, reason: { type: "string" } },
+        required: ["booking_id"],
+      },
+    },
+  ];
+}
+
+/**
+ * Register (or refresh) the booking custom functions on a Retell LLM. Idempotent -
+ * llm.update patches only general_tools, leaving knowledge_base_ids etc. untouched.
+ * No-op (logs a warning) if the tool endpoint secret/app URL are not configured.
+ */
+export async function registerBookingToolsOnLLM(llmId: string): Promise<void> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const secret = process.env.RETELL_FUNCTION_SECRET;
+  if (!appUrl || !secret) {
+    console.warn("[Retell Tools] NEXT_PUBLIC_APP_URL or RETELL_FUNCTION_SECRET not set - skipping booking tool registration");
+    return;
+  }
+  const url = `${appUrl.replace(/\/$/, "")}/api/voice/tools?secret=${encodeURIComponent(secret)}`;
+  const client = getRetellClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await client.llm.update(llmId, { general_tools: buildVoiceBookingToolDefs(url) } as any);
+  console.log(`[Retell Tools] Registered ${buildVoiceBookingToolDefs(url).length} booking tools on LLM ${llmId}`);
 }
 
 /**
@@ -144,6 +271,14 @@ export async function createRetellAgent(params: {
   };
 
   const agentResponse = await client.agent.create(createParams);
+
+  // Ensure the shared LLM has the booking custom functions (idempotent, non-fatal).
+  try {
+    await registerBookingToolsOnLLM(llmId);
+  } catch (err) {
+    console.warn("[Retell] Booking tool registration failed (non-fatal):", err);
+  }
+
   return agentResponse;
 }
 
@@ -444,6 +579,13 @@ export async function syncKnowledgeBaseToRetell(params: {
   } catch (err) {
     console.error(`[Retell KB Sync] LLM update failed:`, err);
     throw new Error(`Failed to attach KB to LLM: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // Keep booking custom functions registered whenever we sync (idempotent, non-fatal).
+  try {
+    await registerBookingToolsOnLLM(llmId);
+  } catch (err) {
+    console.warn(`[Retell KB Sync] Booking tool registration failed (non-fatal):`, err);
   }
 
   return { knowledgeBaseId: kbResponse.knowledge_base_id };

@@ -4,7 +4,7 @@ import { checkCollectionStatus } from "@/lib/lipila/client";
 import { activateSubscription } from "@/lib/lipila/subscription-helpers";
 
 /**
- * Check payment status — polls Lipila and updates local record.
+ * Check payment status - polls Lipila and updates local record.
  * Used by the frontend to check MoMo payment status after prompt is sent.
  */
 export async function GET(request: NextRequest) {
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
         });
       }
     } catch {
-      // Lipila check failed — return local status
+      // Lipila check failed - return local status
     }
 
     return NextResponse.json({

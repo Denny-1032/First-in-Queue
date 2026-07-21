@@ -222,12 +222,12 @@ export async function PATCH(request: NextRequest) {
           dbUpdates.retell_kb_id = kbResult.knowledgeBaseId;
           console.log(`[Voice Agents] KB synced successfully: ${kbResult.knowledgeBaseId}`);
         } catch (kbError) {
-          // Log error but don't fail the save — KB sync is not critical for chat functionality
+          // Log error but don't fail the save - KB sync is not critical for chat functionality
           const errorMsg = kbError instanceof Error ? kbError.message : String(kbError);
           console.error(`[Voice Agents] KB sync FAILED (non-fatal):`, kbError);
           
           // Store warning but continue with save
-          warnings.push(`Voice agent "${existing.name}": Knowledge base sync failed — ${errorMsg.includes("RETELL_LLM_ID") ? "RETELL_LLM_ID not configured" : errorMsg.includes("RETELL_API_KEY") ? "RETELL_API_KEY not configured" : "check server logs"}`);
+          warnings.push(`Voice agent "${existing.name}": Knowledge base sync failed - ${errorMsg.includes("RETELL_LLM_ID") ? "RETELL_LLM_ID not configured" : errorMsg.includes("RETELL_API_KEY") ? "RETELL_API_KEY not configured" : "check server logs"}`);
         }
       } else {
         console.warn(`[Voice Agents] No tenant config found for ID ${tenantId}`);

@@ -74,7 +74,7 @@ export function WhatsAppLinkCard() {
           <div>
             <h3 className="font-semibold text-gray-900">Share Your WhatsApp Assistant</h3>
             <p className="text-sm text-gray-500 mt-1">
-              Put this link or QR code anywhere — Instagram bio, Facebook page, flyers, receipts.
+              Put this link or QR code anywhere - Instagram bio, Facebook page, flyers, receipts.
               Customers tap it and land straight in a chat with your AI assistant. No website needed.
             </p>
           </div>

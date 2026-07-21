@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     const toVisit: string[] = [parsedUrl.href];
     const crawledPages: CrawledPage[] = [];
 
-    // Crawl the site — prioritize business-relevant pages
+    // Crawl the site - prioritize business-relevant pages
     while (toVisit.length > 0 && crawledPages.length < MAX_PAGES) {
       const currentUrl = toVisit.shift()!;
       const normalized = normalizeUrl(currentUrl);
@@ -73,11 +73,11 @@ export async function POST(request: NextRequest) {
           const n = normalizeUrl(l);
           return !visited.has(n) && !toVisit.includes(l);
         });
-        // Sort by business relevance — about, services, pricing, FAQ, contact first
+        // Sort by business relevance - about, services, pricing, FAQ, contact first
         unseen.sort((a, b) => urlPriority(b) - urlPriority(a));
         toVisit.push(...unseen);
 
-        // Be polite — small delay between requests
+        // Be polite - small delay between requests
         if (toVisit.length > 0) {
           await sleep(CRAWL_DELAY);
         }
@@ -280,7 +280,7 @@ function convertToKnowledgeEntries(pages: CrawledPage[], hostname: string): Know
     const sections = splitIntoSections(page.content);
 
     if (sections.length === 0) {
-      // No headers found — treat entire page as one entry
+      // No headers found - treat entire page as one entry
       const topic = cleanTitle(page.title, hostname);
       if (!seenTopics.has(topic.toLowerCase()) && page.content.length > 50) {
         seenTopics.add(topic.toLowerCase());
@@ -358,7 +358,7 @@ function splitIntoSections(text: string): Section[] {
 function cleanTitle(title: string, hostname: string): string {
   // Remove common suffixes like "| Company Name", "- Company Name"
   return title
-    .replace(/\s*[|–—-]\s*.*$/, "")
+    .replace(/\s*[-|–—]\s*.*$/, "")
     .replace(new RegExp(hostname.replace(/\./g, "\\."), "gi"), "")
     .trim() || "Website Information";
 }

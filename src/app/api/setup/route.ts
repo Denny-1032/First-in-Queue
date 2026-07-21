@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     const authToken = request.cookies.get("fiq-auth")?.value;
     if (authToken) {
       try {
-        // Token format is "payloadB64.signature" — split to decode only the payload
+        // Token format is "payloadB64.signature" - split to decode only the payload
         const [payloadB64] = authToken.split(".");
         if (payloadB64) {
           const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString());
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
           }
         }
       } catch {
-        // Token parse error — fall through to global check
+        // Token parse error - fall through to global check
       }
     }
 

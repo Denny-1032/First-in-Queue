@@ -132,7 +132,7 @@ export default function VoiceConfigPage() {
 
   useEffect(() => { fetchAgents(); }, [fetchAgents]);
 
-  // Auto-scroll transcript container only — never scrolls the page
+  // Auto-scroll transcript container only - never scrolls the page
   useEffect(() => {
     if (transcript.length > 0) {
       const timeoutId = setTimeout(() => {
@@ -792,7 +792,7 @@ export default function VoiceConfigPage() {
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-gray-900">Test Your Agent</p>
                       <p className="text-xs text-gray-500">
-                        {testCallActive ? "Call in progress — speak into your mic" : "Talk to your AI agent from the browser"}
+                        {testCallActive ? "Call in progress - speak into your mic" : "Talk to your AI agent from the browser"}
                       </p>
                     </div>
                   </div>

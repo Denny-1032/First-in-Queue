@@ -11,7 +11,7 @@ export async function startTrial(
   billingInterval: "monthly" | "yearly",
   paymentMethodId?: string
 ) {
-  console.warn("[Trial] startTrial is deprecated — trials are no longer offered");
+  console.warn("[Trial] startTrial is deprecated - trials are no longer offered");
   throw new Error("Free trials are no longer available. Please use the payment flow to upgrade.");
 }
 
@@ -26,7 +26,7 @@ export async function activatePaidSubscription(
 ) {
   const supabase = getSupabaseAdmin();
   
-  // Find plan from amount — match exact prices (monthly or yearly)
+  // Find plan from amount - match exact prices (monthly or yearly)
   // Sort paid plans by price descending to match highest first
   const paidPlans = PLANS.filter((p) => p.priceZMW > 0);
   

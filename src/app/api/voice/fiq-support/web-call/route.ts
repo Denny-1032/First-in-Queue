@@ -4,7 +4,7 @@ import Retell from "retell-sdk";
 
 // =============================================
 // Public FiQ Support Web Call
-// No auth required — this is for the website support widget.
+// No auth required - this is for the website support widget.
 // Uses fiq_support_config to find the FiQ support voice agent.
 // =============================================
 

@@ -174,7 +174,7 @@ export default function AdminOnboardingPage() {
                       <div>
                         <p className="text-sm font-medium text-white">{client.config?.business_name || client.name}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-slate-500">{client.config?.industry || "—"}</span>
+                          <span className="text-xs text-slate-500">{client.config?.industry || "-"}</span>
                           {client.config?.customer_whatsapp && (
                             <>
                               <span className="text-slate-700">&middot;</span>

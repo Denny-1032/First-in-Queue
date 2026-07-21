@@ -23,7 +23,7 @@ export default function ContactPage() {
             </span>
           </h1>
           <p className="text-lg text-gray-500 mt-6 max-w-2xl mx-auto">
-            Questions, demos, or custom plans — we&apos;re here to help.
+            Questions, demos, or custom plans - we&apos;re here to help.
           </p>
         </div>
       </section>
@@ -41,7 +41,7 @@ export default function ContactPage() {
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">Talk to Support</h2>
             <p className="text-gray-600 text-sm">
-              Speak directly with our AI support agent. No phone number needed — just your browser and microphone.
+              Speak directly with our AI support agent. No phone number needed - just your browser and microphone.
             </p>
             <p className="text-emerald-600 font-semibold mt-3 text-sm">Click to start →</p>
           </button>

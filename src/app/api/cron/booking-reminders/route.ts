@@ -44,7 +44,7 @@ function buildReminderText(booking: Booking, tenant: Tenant): string {
 
 // Fallback for customers outside the 24h service window. The registered Meta
 // template must match: body {{1}} name, {{2}} business, {{3}} datetime, plus
-// two quick-reply buttons (Confirm, Cancel) — see the settings page hint.
+// two quick-reply buttons (Confirm, Cancel) - see the settings page hint.
 function buildReminderTemplate(booking: Booking, tenant: Tenant, cfg: ReminderTemplateConfig): TemplateMessage {
   return {
     name: cfg.name,
@@ -127,7 +127,7 @@ async function runReminders() {
       console.log(`[BookingReminders] Text reminder sent for booking ${booking.id}`);
     } catch (textErr) {
       // Usually outside the WhatsApp 24h customer service window (Meta 131047)
-      // — retry with the tenant's approved template if one is configured.
+      // - retry with the tenant's approved template if one is configured.
       const textError = describeSendError(textErr);
       const tpl = tenant.config?.reminder_template;
 
@@ -178,7 +178,7 @@ async function runReminders() {
         }
       }
 
-      // No template configured — record the failure so the cron doesn't
+      // No template configured - record the failure so the cron doesn't
       // retry the same booking forever.
       failed++;
       console.error(`[BookingReminders] Failed for booking ${booking.id}:`, textError);

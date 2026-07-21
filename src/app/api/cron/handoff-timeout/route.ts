@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
             to: convo.customer_phone,
             type: "text",
             text: {
-              body: "We apologise for the wait — our team is currently busy but will attend to you very shortly. Thank you for your patience! 🙏",
+              body: "We apologise for the wait - our team is currently busy but will attend to you very shortly. Thank you for your patience! 🙏",
             },
           }),
         }
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
           sender_type: "bot",
           message_type: "text",
           content: {
-            text: "We apologise for the wait — our team is currently busy but will attend to you very shortly. Thank you for your patience! 🙏",
+            text: "We apologise for the wait - our team is currently busy but will attend to you very shortly. Thank you for your patience! 🙏",
           },
           status: "sent",
         });

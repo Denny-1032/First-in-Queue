@@ -80,7 +80,7 @@ export function CheckoutModal({
         return;
       }
 
-      // Still pending — continue polling (max 60 attempts = ~5 minutes)
+      // Still pending - continue polling (max 60 attempts = ~5 minutes)
       if (pollCount < 60) {
         setPollCount((c) => c + 1);
       } else {
@@ -143,13 +143,13 @@ export function CheckoutModal({
 
       setReferenceId(data.referenceId);
 
-      // Card payment — redirect to Lipila 3D Secure page
+      // Card payment - redirect to Lipila 3D Secure page
       if (paymentMethod === "card" && data.cardRedirectionUrl) {
         window.location.href = data.cardRedirectionUrl;
         return;
       }
 
-      // Mobile money — show processing screen and start polling
+      // Mobile money - show processing screen and start polling
       setStep("processing");
     } catch (err) {
       setErrorMsg(

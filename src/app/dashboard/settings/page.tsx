@@ -181,7 +181,7 @@ function SettingsContent() {
               fallback_message: fallbackMessage,
               languages,
               operating_hours: { outside_hours_message: outsideHoursMsg, schedule },
-              // Config merge is shallow — always send these as complete objects
+              // Config merge is shallow - always send these as complete objects
               booking_settings: {
                 enabled: bookingEnabled,
                 slot_minutes: parseInt(slotMinutes) || 30,
@@ -206,7 +206,7 @@ function SettingsContent() {
         toast("Failed to save settings", "error");
       }
     } else {
-      toast("Unable to save — no business account found. Please log out and sign up again.", "error");
+      toast("Unable to save - no business account found. Please log out and sign up again.", "error");
     }
     setSaving(false);
   };
@@ -493,10 +493,10 @@ function SettingsContent() {
               </div>
             </div>
             <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-xs text-gray-600 space-y-2">
-              <p className="font-medium text-gray-700">One-time manual step — register this template in Meta Business Manager:</p>
+              <p className="font-medium text-gray-700">One-time manual step - register this template in Meta Business Manager:</p>
               <p><span className="font-medium">Name:</span> fiq_booking_reminder &nbsp;·&nbsp; <span className="font-medium">Category:</span> Utility</p>
               <p><span className="font-medium">Body:</span> Hi {"{{1}}"}! This is a reminder from {"{{2}}"}: you have a booking scheduled for {"{{3}}"}. We look forward to seeing you.</p>
-              <p><span className="font-medium">Buttons (Quick Reply):</span> 1. Confirm &nbsp; 2. Cancel — both buttons are required; reminders fail without them.</p>
+              <p><span className="font-medium">Buttons (Quick Reply):</span> 1. Confirm &nbsp; 2. Cancel - both buttons are required; reminders fail without them.</p>
               <p>WhatsApp Manager → Account Tools → Message Templates → Create Template. Approval usually takes minutes to a few hours.</p>
             </div>
           </CardContent>
@@ -518,7 +518,7 @@ function SettingsContent() {
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-emerald-800">Connected & Active</p>
-                  <p className="text-xs text-emerald-600">Managed by First in Queue — your WhatsApp Business API is live</p>
+                  <p className="text-xs text-emerald-600">Managed by First in Queue - your WhatsApp Business API is live</p>
                 </div>
               </div>
             ) : (
@@ -703,7 +703,7 @@ function SettingsContent() {
                       {subscriptionStatus === "expired" 
                         ? "Your plan has expired. Renew to continue using all features."
                         : daysRemaining !== null && daysRemaining <= 7 
-                          ? `Expires in ${daysRemaining} days — renew soon to avoid interruption`
+                          ? `Expires in ${daysRemaining} days - renew soon to avoid interruption`
                           : "Billing cycle renews on this date"
                       }
                     </p>

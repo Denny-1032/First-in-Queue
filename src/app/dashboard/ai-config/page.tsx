@@ -345,7 +345,7 @@ export default function AIConfigPage() {
                 toast("Failed to save configuration", "error");
               }
             } else {
-              toast("Unable to save — no business account found. Please log out and sign up again.", "error");
+              toast("Unable to save - no business account found. Please log out and sign up again.", "error");
             }
             setSaving(false);
           }}
@@ -857,7 +857,7 @@ export default function AIConfigPage() {
                 }}
               />
               <textarea
-                placeholder="Content — what should the AI know about this topic?"
+                placeholder="Content - what should the AI know about this topic?"
                 value={entry.content}
                 onChange={(e) => {
                   const updated = [...knowledgeBase];
@@ -1092,7 +1092,7 @@ function BotTestChat({
     }
   }, [personality.name]);
 
-  // Auto-scroll to bottom — only when NEW messages are added, not on name edits
+  // Auto-scroll to bottom - only when NEW messages are added, not on name edits
   const prevMsgCountRef = useRef(messages.length);
   useEffect(() => {
     // Only scroll if message count increased (new message) or thinking state changed
@@ -1102,7 +1102,7 @@ function BotTestChat({
     prevMsgCountRef.current = messages.length;
   }, [messages.length, thinking]);
 
-  // Simulate AI response locally (no API call — uses current config state)
+  // Simulate AI response locally (no API call - uses current config state)
   const simulateResponse = useCallback(
     (userText: string): string => {
       const lower = userText.toLowerCase().trim();
@@ -1131,7 +1131,7 @@ function BotTestChat({
         return `I understand you'd like to speak with a human agent. Let me connect you right away. 🤝\n\nA team member will be with you shortly. Your conversation history will be shared so you won't need to repeat yourself.`;
       }
 
-      // ── 3. Intent detection — map common question patterns to search terms ──
+      // ── 3. Intent detection - map common question patterns to search terms ──
       const intentMap: { patterns: RegExp[]; searchTerms: string[] }[] = [
         { patterns: [/what (does|do) .*(business|company|you) do/, /what is .*(business|company)/, /about .*(business|company|you)/, /tell me about/, /who are you/, /what (are|is) (this|your|the) (business|company|service)/], searchTerms: ["overview", "about", "description", "company", "service", "what we do", "offer"] },
         { patterns: [/pric(e|ing|es)/, /how much/, /cost/, /rate/, /plan(s)?/, /package/, /afford/], searchTerms: ["pricing", "price", "cost", "plan", "rate", "package", "basic", "business", "enterprise", "month"] },
@@ -1193,11 +1193,11 @@ function BotTestChat({
         const contentLower = (kb.content || "").toLowerCase();
 
         for (const w of allSearchWords) {
-          // Topic — exact word or substring match
+          // Topic - exact word or substring match
           if (topicWords.some((tw) => tw === w || (tw.length > 3 && tw.includes(w)) || (w.length > 3 && w.includes(tw)))) score += 4;
           // Keyword match
           if (keywordList.some((kw) => kw === w || kw.includes(w) || w.includes(kw))) score += 3;
-          // Content match — word present in content text
+          // Content match - word present in content text
           if (contentLower.includes(w)) score += 1;
         }
 
@@ -1234,7 +1234,7 @@ function BotTestChat({
       // If FAQ had a weaker match, use it
       if (bestFaqAnswer) return `${tonePrefix}${bestFaqAnswer}${emojiSuffix}`;
 
-      // ── 8. Fallback — list available topics ──
+      // ── 8. Fallback - list available topics ──
       if (knowledgeBase.length > 0) {
         // Deduplicate topics and pick first 5 unique short titles
         const uniqueTopics = [...new Set(knowledgeBase.map((kb) => {
@@ -1257,7 +1257,7 @@ function BotTestChat({
       // Truly empty knowledge base
       const generic: Record<string, string> = {
         professional: "Thank you for reaching out. I don't have specific information on that yet, but our team can help. Would you like me to connect you with someone?",
-        friendly: "Hmm, I don't have info on that yet — my knowledge base is still being set up! Want me to connect you with a team member? 😊",
+        friendly: "Hmm, I don't have info on that yet - my knowledge base is still being set up! Want me to connect you with a team member? 😊",
         casual: "Oops, I don't know about that yet! My brain is still loading 😅 Want to talk to a human instead?",
         formal: "I regret that I do not yet have information pertaining to that matter. Shall I arrange for a team member to assist you?",
       };
@@ -1299,7 +1299,7 @@ function BotTestChat({
       const data = await res.json();
       reply = data.text || simulateResponse(text);
     } catch {
-      // API unavailable (no key / offline) — fall back to local keyword simulation
+      // API unavailable (no key / offline) - fall back to local keyword simulation
       reply = simulateResponse(text);
     }
 
@@ -1346,7 +1346,7 @@ function BotTestChat({
             </div>
             <div>
               <p className="text-sm font-medium">{personality.name}</p>
-              <p className="text-[10px] text-emerald-100">Online — Test Mode</p>
+              <p className="text-[10px] text-emerald-100">Online - Test Mode</p>
             </div>
           </div>
 
@@ -1423,7 +1423,7 @@ function BotTestChat({
 
         <p className="text-xs text-gray-400 mt-3 flex items-center gap-1.5">
           <AlertCircle className="h-3 w-3" />
-          Test messages use the real AI with your current settings — nothing is sent to WhatsApp. If AI is unavailable, a simplified local preview is used instead.
+          Test messages use the real AI with your current settings - nothing is sent to WhatsApp. If AI is unavailable, a simplified local preview is used instead.
         </p>
       </CardContent>
     </Card>

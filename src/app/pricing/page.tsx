@@ -44,7 +44,7 @@ const faqs = [
   },
   {
     question: "What are AI voice call minutes?",
-    answer: "Your AI assistant can make and receive phone calls — handling customer enquiries, scheduling callbacks, and more. Voice minutes are tracked separately from WhatsApp conversations.",
+    answer: "Your AI assistant can make and receive phone calls - handling customer enquiries, scheduling callbacks, and more. Voice minutes are tracked separately from WhatsApp conversations.",
   },
 ];
 
@@ -76,7 +76,7 @@ function PricingContent() {
           <div className="inline-flex items-center gap-2.5 mt-8 rounded-full bg-emerald-50 border border-emerald-200 px-6 py-3">
             <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0" />
             <span className="text-sm font-semibold text-emerald-800">
-              30-day money-back guarantee — no questions asked
+              30-day money-back guarantee - no questions asked
             </span>
           </div>
 
@@ -101,7 +101,7 @@ function PricingContent() {
         </div>
       </section>
 
-      {/* Plans — centered grid for 3 cards */}
+      {/* Plans - centered grid for 3 cards */}
       <section className="py-12 px-6">
         <div className="flex justify-center">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl">
@@ -204,7 +204,7 @@ function PricingContent() {
             <h3 className="text-xl font-bold text-gray-900 mb-2">30-Day Money-Back Guarantee</h3>
             <p className="text-sm text-gray-600 max-w-lg mx-auto">
               Try any plan risk-free. If you&apos;re not completely satisfied within 30 days
-              of your first payment, we&apos;ll refund every Kwacha — no questions asked.
+              of your first payment, we&apos;ll refund every Kwacha - no questions asked.
             </p>
           </div>
         </div>

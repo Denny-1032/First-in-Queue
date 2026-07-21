@@ -17,7 +17,7 @@ import {
  *   - call.hangup           → record voice usage, update DB, update scheduled_calls
  *
  * The retell_call_id is recovered from payload.client_state (base64 JSON)
- * set at call creation time — no DB round-trip needed for bridging.
+ * set at call creation time - no DB round-trip needed for bridging.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     if (event_type === "call.machine.detection.ended") {
       const isMachine = amdResult && amdResult !== "not_sure" && amdResult !== "human";
       if (isMachine) {
-        console.log(`[Telnyx Webhook] AMD: machine detected (${amdResult}) — hanging up ${call_leg_id}`);
+        console.log(`[Telnyx Webhook] AMD: machine detected (${amdResult}) - hanging up ${call_leg_id}`);
         try {
           await hangupTelnyxCall(call_control_id);
         } catch (err) {
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // All other events — acknowledge without processing
+    // All other events - acknowledge without processing
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error("[Telnyx Webhook] Error:", error);

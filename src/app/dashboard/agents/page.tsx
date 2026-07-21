@@ -55,25 +55,25 @@ export default function AgentsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900">{loading ? "—" : stats.aiHandled}</p>
+            <p className="text-2xl font-bold text-gray-900">{loading ? "-" : stats.aiHandled}</p>
             <p className="text-xs text-gray-500">Handled</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900">{loading ? "—" : stats.avgResponseTimeSeconds > 0 ? `${stats.avgResponseTimeSeconds}s` : "—"}</p>
+            <p className="text-2xl font-bold text-gray-900">{loading ? "-" : stats.avgResponseTimeSeconds > 0 ? `${stats.avgResponseTimeSeconds}s` : "-"}</p>
             <p className="text-xs text-gray-500">Avg Response</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900">{loading ? "—" : stats.totalResolved}</p>
+            <p className="text-2xl font-bold text-gray-900">{loading ? "-" : stats.totalResolved}</p>
             <p className="text-xs text-gray-500">Total Resolved</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900">{loading ? "—" : stats.humanEscalations}</p>
+            <p className="text-2xl font-bold text-gray-900">{loading ? "-" : stats.humanEscalations}</p>
             <p className="text-xs text-gray-500">Escalations</p>
           </CardContent>
         </Card>

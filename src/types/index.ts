@@ -424,7 +424,7 @@ export interface AIContext {
   current_flow?: ConversationFlow;
   flow_step?: string;
   collected_data?: Record<string, string>;
-  // Present only when the tenant has booking_settings.enabled — unlocks booking tools
+  // Present only when the tenant has booking_settings.enabled - unlocks booking tools
   booking_context?: {
     customer_phone: string;
     conversation_id: string;
@@ -443,7 +443,7 @@ export interface AIResponse {
   escalation_reason?: string;
   detected_intent?: string;
   confidence: number;
-  // Set by the engine when a create_booking tool call succeeded — never by the model
+  // Set by the engine when a create_booking tool call succeeded - never by the model
   created_booking_id?: string;
 }
 

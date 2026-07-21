@@ -90,7 +90,7 @@ export default function DashboardPage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Check if first-time user — verify server-side, not just localStorage
+  // Check if first-time user - verify server-side, not just localStorage
   useEffect(() => {
     const completed = localStorage.getItem("fiq-onboarding-complete");
     if (completed) return; // Already done locally
@@ -99,7 +99,7 @@ export default function DashboardPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.setup) {
-          // Tenant exists — mark onboarding complete so we don't ask again
+          // Tenant exists - mark onboarding complete so we don't ask again
           localStorage.setItem("fiq-onboarding-complete", "true");
         } else {
           setShowOnboarding(true);
@@ -128,7 +128,7 @@ export default function DashboardPage() {
         }
       }
     } catch {
-      // API unavailable — show empty state
+      // API unavailable - show empty state
     }
     setAnalytics((prev) => prev || emptyAnalytics);
     setLastUpdated(new Date());
@@ -179,7 +179,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats Grid — 4 key metrics */}
+      {/* Stats Grid - 4 key metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Messages Today"
@@ -212,7 +212,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Second Row — 2 columns */}
+      {/* Second Row - 2 columns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Customer Sentiment */}
         <Card>

@@ -165,7 +165,7 @@ export default function AdminClientsPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-white truncate">{client.config?.business_name || client.name}</p>
-                  <p className="text-xs text-slate-500">{client.config?.industry || "—"} &middot; {new Date(client.created_at).toLocaleDateString()}</p>
+                  <p className="text-xs text-slate-500">{client.config?.industry || "-"} &middot; {new Date(client.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
 

@@ -44,14 +44,14 @@ export function nowInTimezone(tz?: string): Date {
 /**
  * Open/close for a given date. Supports both schedule shapes in the wild:
  * record { Monday: {open,close}|null } and the settings-page array
- * [{ day, open, close, enabled }] — mirrors isOutsideOperatingHours in handler.ts.
+ * [{ day, open, close, enabled }] - mirrors isOutsideOperatingHours in handler.ts.
  */
 export function resolveDaySchedule(
   opHours: OperatingHours | undefined,
   date: Date
 ): { open: string; close: string } | null {
   if (!opHours?.schedule) {
-    // No configured hours — treat as always open 08:00-17:00 so booking still works
+    // No configured hours - treat as always open 08:00-17:00 so booking still works
     return { open: "08:00", close: "17:00" };
   }
   const dayName = DAY_NAMES[date.getDay()];

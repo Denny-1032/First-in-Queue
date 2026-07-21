@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Phone number and message are required" }, { status: 400 });
     }
 
-    // Normalise phone — strip spaces/dashes, ensure leading +
+    // Normalise phone - strip spaces/dashes, ensure leading +
     let normalisedPhone = phone.replace(/[\s\-()]/g, "");
     if (!normalisedPhone.startsWith("+")) {
       normalisedPhone = `+${normalisedPhone}`;

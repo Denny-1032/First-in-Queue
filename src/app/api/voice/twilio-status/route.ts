@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     // Handle Answering Machine Detection (AMD) callback
     // If voicemail/machine detected, hang up the call immediately to prevent charges
     if (answeredBy && answeredBy !== "human") {
-      console.log(`[Twilio Status] Machine detected (${answeredBy}) — hanging up call ${callSid}`);
+      console.log(`[Twilio Status] Machine detected (${answeredBy}) - hanging up call ${callSid}`);
       try {
         const twilio = (await import("twilio")).default;
         const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);

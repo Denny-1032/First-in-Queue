@@ -8,9 +8,9 @@ import { ScrollAnimate } from "@/components/ui/scroll-animate";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
 
 export const metadata: Metadata = {
-  title: "About Us — Built in Lusaka. Built for Business.",
+  title: "About Us - Built in Lusaka. Built for Business.",
   description:
-    "First in Queue is built by Codarti in Lusaka, Zambia. We help African businesses deliver instant WhatsApp & voice customer support — 24/7, in 40+ languages.",
+    "First in Queue is built by Codarti in Lusaka, Zambia. We help African businesses deliver instant WhatsApp & voice customer support - 24/7, in 40+ languages.",
   alternates: {
     canonical: `${BASE_URL}/about`,
   },
@@ -49,7 +49,7 @@ const principles = [
   {
     num: "01",
     title: "The business owner should not need a developer",
-    body: "Every feature in FiQ was designed for someone running a real business — not someone who writes code. The FiQ team handles technical setup. Full stop.",
+    body: "Every feature in FiQ was designed for someone running a real business - not someone who writes code. The FiQ team handles technical setup. Full stop.",
   },
   {
     num: "02",
@@ -59,7 +59,7 @@ const principles = [
   {
     num: "03",
     title: "The AI should never lie to a customer",
-    body: "If the answer is not in your knowledge base, FiQ tells the customer a human will follow up — it does not guess or invent. A wrong answer damages your reputation far more than a slight delay.",
+    body: "If the answer is not in your knowledge base, FiQ tells the customer a human will follow up - it does not guess or invent. A wrong answer damages your reputation far more than a slight delay.",
   },
   {
     num: "04",
@@ -68,12 +68,12 @@ const principles = [
   },
   {
     num: "05",
-    title: "Local context is not optional — it is the product",
-    body: "FiQ was built in Lusaka. We understand that a clinic in Chelston operates differently to a retail shop in Kitwe. That local understanding is not a feature — it is foundational.",
+    title: "Local context is not optional - it is the product",
+    body: "FiQ was built in Lusaka. We understand that a clinic in Chelston operates differently to a retail shop in Kitwe. That local understanding is not a feature - it is foundational.",
   },
   {
     num: "06",
-    title: "Human agents matter — FiQ works with them",
+    title: "Human agents matter - FiQ works with them",
     body: "FiQ handles the 80% of conversations that are routine. The moment something needs human judgment, the conversation is handed over immediately with full context. AI and humans work together.",
   },
 ];
@@ -83,7 +83,7 @@ export default function AboutPage() {
     <div className="min-h-screen bg-white">
       <Navbar />
 
-      {/* SECTION 1: Hero — Pain-Led Headline */}
+      {/* SECTION 1: Hero - Pain-Led Headline */}
       <section className="pt-32 pb-16 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <ScrollAnimate animation="fade-in">
@@ -101,7 +101,7 @@ export default function AboutPage() {
           </ScrollAnimate>
           <ScrollAnimate animation="fade-up" delay={250}>
             <p className="text-lg text-gray-500 mt-6 max-w-2xl mx-auto leading-relaxed">
-              We built FiQ because we watched good Zambian businesses lose customers every night — not because they had a bad product, but because no one answered the WhatsApp at 9pm.
+              We built FiQ because we watched good Zambian businesses lose customers every night - not because they had a bad product, but because no one answered the WhatsApp at 9pm.
             </p>
           </ScrollAnimate>
         </div>
@@ -120,13 +120,13 @@ export default function AboutPage() {
             </h2>
             <div className="space-y-4 text-gray-600 leading-relaxed">
               <p className="text-lg text-gray-700 font-light leading-relaxed">
-                In Zambia, WhatsApp is how customers contact businesses. It is not a secondary channel — it is the channel. And most businesses handle it manually, on a single phone, during business hours only.
+                In Zambia, WhatsApp is how customers contact businesses. It is not a secondary channel - it is the channel. And most businesses handle it manually, on a single phone, during business hours only.
               </p>
               <p>
                 That means every enquiry after 5pm goes unanswered until morning. By then, the customer has moved on. They did not wait. Customers in 2026 do not wait.
               </p>
               <p>
-                The irony is that most of these businesses are doing everything else right. The product is good. The price is fair. The service is solid. They are losing customers not to a bad offering — but to a gap that should not exist.
+                The irony is that most of these businesses are doing everything else right. The product is good. The price is fair. The service is solid. They are losing customers not to a bad offering - but to a gap that should not exist.
               </p>
               <p className="font-semibold text-gray-900">
                 That is the gap FiQ was built to close.
@@ -171,7 +171,7 @@ export default function AboutPage() {
                 &ldquo;The problem was never the product. It was always the response time.&rdquo;
               </p>
               <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mt-3">
-                — Codarti, Lusaka
+                - Codarti, Lusaka
               </p>
             </div>
           </div>
@@ -181,16 +181,16 @@ export default function AboutPage() {
           <ScrollAnimate animation="fade-right" delay={200} className="lg:col-span-8">
           <div className="space-y-5 text-gray-600 leading-relaxed">
             <p>
-              Codarti is a Zambian technology company. We build software for African businesses. We have been doing it long enough to have seen the same pattern repeat itself across industries — healthcare, real estate, retail, finance, education — over and over.
+              Codarti is a Zambian technology company. We build software for African businesses. We have been doing it long enough to have seen the same pattern repeat itself across industries - healthcare, real estate, retail, finance, education - over and over.
             </p>
             <p>
-              <strong className="text-gray-900">The pattern is this:</strong> a business invests years building something real. They develop a strong product, earn loyal customers, and build a reputation through hard work. Then they plateau — not because demand dried up, but because they cannot keep up with the enquiries. WhatsApp is overflowing. Messages are going unanswered. Bookings are lost to businesses that happened to reply first.
+              <strong className="text-gray-900">The pattern is this:</strong> a business invests years building something real. They develop a strong product, earn loyal customers, and build a reputation through hard work. Then they plateau - not because demand dried up, but because they cannot keep up with the enquiries. WhatsApp is overflowing. Messages are going unanswered. Bookings are lost to businesses that happened to reply first.
             </p>
             <p>
               The usual solution is to hire someone to manage messages. But a support agent in Zambia costs K3,000–5,000 per month, covers eight hours a day, takes leave, and needs management. You solve one problem and create four more.
             </p>
             <p>
-              <strong className="text-gray-900">We built FiQ because the better solution already existed — it just was not accessible to Zambian businesses.</strong> The technology to handle customer conversations automatically, intelligently, and affordably was available. We connected it to WhatsApp, configured it for the local market, priced it in kwacha, built mobile money payments in, and made it so that any business owner — not just developers — could use it.
+              <strong className="text-gray-900">We built FiQ because the better solution already existed - it just was not accessible to Zambian businesses.</strong> The technology to handle customer conversations automatically, intelligently, and affordably was available. We connected it to WhatsApp, configured it for the local market, priced it in kwacha, built mobile money payments in, and made it so that any business owner - not just developers - could use it.
             </p>
             <p>
               No foreign currency. No complicated setup. No IT department required. The FiQ team handles the entire technical configuration. You provide your business information. We do everything else.
@@ -232,7 +232,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* SECTION 5: How We Operate — Philosophy Cards */}
+      {/* SECTION 5: How We Operate - Philosophy Cards */}
       <section className="py-20 px-6">
         <div className="max-w-6xl mx-auto">
           <p className="text-sm font-semibold text-emerald-600 tracking-wide uppercase mb-3">
@@ -292,9 +292,9 @@ export default function AboutPage() {
             <div className="mt-6 space-y-3">
               {[
                 "Applies to Basic, Business, and Enterprise paid plans",
-                "No free trial required — start with the permanent free tier or go straight to paid",
-                "Claim within 30 days of first payment — single email, full refund issued",
-                "No justification required — if it did not work, we refund",
+                "No free trial required - start with the permanent free tier or go straight to paid",
+                "Claim within 30 days of first payment - single email, full refund issued",
+                "No justification required - if it did not work, we refund",
               ].map((term) => (
                 <div key={term} className="flex items-start gap-2.5">
                   <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
@@ -319,7 +319,7 @@ export default function AboutPage() {
               See it working on your actual business
             </h2>
             <p className="text-emerald-100 mt-4 max-w-lg mx-auto">
-              Book a free demo. The FiQ team builds the demo around your specific business type — not a generic slideshow.
+              Book a free demo. The FiQ team builds the demo around your specific business type - not a generic slideshow.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
               <Link

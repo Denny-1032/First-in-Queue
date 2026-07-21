@@ -117,7 +117,7 @@ export async function getOrCreateConversation(
     return { conversation: { ...existing, ...updates } as Conversation, isNew: false };
   }
 
-  // No active conversation — check if this is a returning customer
+  // No active conversation - check if this is a returning customer
   // (has ANY prior conversations, even resolved/archived)
   const { count: priorCount } = await db
     .from("conversations")
@@ -233,7 +233,7 @@ export async function getMessages(
   offset = 0
 ): Promise<Message[]> {
   // Fetch MOST RECENT messages first (descending), then reverse for chronological display.
-  // Using ascending + range(0,49) only returns the oldest 50 messages — once a conversation
+  // Using ascending + range(0,49) only returns the oldest 50 messages - once a conversation
   // exceeds 50 messages, new messages (including agent handoff messages) silently disappear.
   const { data } = await getSupabaseAdmin()
     .from("messages")

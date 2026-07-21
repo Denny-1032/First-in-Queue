@@ -136,7 +136,7 @@ export async function makeOutboundCallViaTelnyx(params: {
 
   const retellCallId = registered.call_id;
 
-  // Step 2: Build client_state — passed back in every Telnyx webhook.
+  // Step 2: Build client_state - passed back in every Telnyx webhook.
   // This allows the webhook handler to find retell_call_id without a DB lookup.
   const clientStateData: Record<string, string> = {
     retell_call_id: retellCallId,
