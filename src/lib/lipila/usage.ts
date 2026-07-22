@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { PLANS } from "./plans";
+import { ensureFreeSubscription } from "@/lib/trial-helpers";
 
 export interface UsageCheckResult {
   allowed: boolean;
@@ -15,11 +16,7 @@ export interface UsageCheckResult {
 export async function checkMessageUsage(tenantId: string): Promise<UsageCheckResult> {
   const supabase = getSupabaseAdmin();
 
-  // A tenant can accumulate more than one active/trialing subscription row
-  // (e.g. an expired paid plan lazily-marked plus a new free row). A bare
-  // .single() throws on >1 row -> data null -> we'd wrongly report limit 0
-  // and block every message. Pick the newest row instead, matching
-  // /api/subscriptions.
+  // Read the newest active/trialing row (maybeSingle so it never throws).
   const { data: sub } = await supabase
     .from("subscriptions")
     .select("id, plan_id, messages_used")
@@ -29,19 +26,23 @@ export async function checkMessageUsage(tenantId: string): Promise<UsageCheckRes
     .limit(1)
     .maybeSingle();
 
-  if (!sub) {
-    // No active/trialing subscription - block messages
+  // No active/trialing subscription (e.g. a paid plan expired or was cancelled
+  // and nothing provisioned a replacement). Drop the tenant to the Free tier
+  // instead of blocking every message with a bogus "0 messages" limit.
+  const active = sub ?? (await ensureFreeSubscription(tenantId));
+
+  if (!active) {
     return { allowed: false, messagesUsed: 0, messagesLimit: 0, planId: "none" };
   }
 
-  const plan = PLANS.find((p) => p.id === sub.plan_id);
+  const plan = PLANS.find((p) => p.id === active.plan_id);
   const limit = plan?.messagesPerMonth ?? 100;
 
   return {
-    allowed: sub.messages_used < limit,
-    messagesUsed: sub.messages_used,
+    allowed: active.messages_used < limit,
+    messagesUsed: active.messages_used,
     messagesLimit: limit,
-    planId: sub.plan_id,
+    planId: active.plan_id,
   };
 }
 

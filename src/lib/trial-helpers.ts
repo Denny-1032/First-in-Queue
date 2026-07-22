@@ -94,8 +94,65 @@ export async function activatePaidSubscription(
 }
 
 /**
+ * Ensure a tenant always has an active plan. If none is active/trialing (e.g. a
+ * paid plan just expired or was cancelled), provision a Free-tier subscription
+ * so the tenant drops to Free instead of being left with no plan at all — the
+ * latter left the bot reporting a bogus "0 messages" limit and refusing to
+ * reply. Idempotent: returns the existing active sub if there already is one.
+ */
+export async function ensureFreeSubscription(tenantId: string) {
+  const supabase = getSupabaseAdmin();
+
+  const activeCols = "id, plan_id, status, messages_used";
+  const readActive = () =>
+    supabase
+      .from("subscriptions")
+      .select(activeCols)
+      .eq("tenant_id", tenantId)
+      .in("status", ["active", "trialing"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+  const { data: existing } = await readActive();
+  if (existing) return existing;
+
+  const now = new Date();
+  const periodEnd = new Date(now);
+  periodEnd.setFullYear(periodEnd.getFullYear() + 10); // Free tier does not expire
+
+  const { data: created, error } = await supabase
+    .from("subscriptions")
+    .insert({
+      tenant_id: tenantId,
+      plan_id: "free",
+      status: "active",
+      current_period_start: now.toISOString(),
+      current_period_end: periodEnd.toISOString(),
+      messages_used: 0,
+    })
+    .select(activeCols)
+    .single();
+
+  if (error) {
+    // 23505 = unique-violation: a concurrent request already created the active
+    // sub (partial unique index on active/trialing). Re-read and use that.
+    if (error.code === "23505") {
+      const { data: raced } = await readActive();
+      return raced ?? null;
+    }
+    console.error("[Subscription] Failed to provision free subscription:", error);
+    return null;
+  }
+
+  console.log(`[Subscription] Provisioned Free tier for tenant ${tenantId}`);
+  return created;
+}
+
+/**
  * @deprecated Trials are no longer offered.
- * This cancels any legacy trialing subscriptions that may still exist.
+ * This cancels any legacy trialing subscriptions that may still exist, then
+ * drops each affected tenant to the Free tier.
  */
 export async function processExpiredTrials() {
   const supabase = getSupabaseAdmin();
@@ -121,6 +178,8 @@ export async function processExpiredTrials() {
       .from("subscriptions")
       .update({ status: "cancelled" })
       .eq("id", sub.id);
-    console.log(`[Trial] Cancelled legacy trial for tenant ${sub.tenant_id}`);
+    // Drop to Free so the tenant keeps a working (limited) plan.
+    await ensureFreeSubscription(sub.tenant_id);
+    console.log(`[Trial] Cancelled legacy trial for tenant ${sub.tenant_id}, dropped to Free`);
   }
 }

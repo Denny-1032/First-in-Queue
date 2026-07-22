@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireSession, AuthError } from "@/lib/auth/session";
+import { ensureFreeSubscription } from "@/lib/trial-helpers";
 
 /**
  * GET /api/subscriptions
@@ -13,38 +14,51 @@ export async function GET() {
     const tenantId = session.tenantId;
     const supabase = getSupabaseAdmin();
 
-    const { data: subscription } = await supabase
-      .from("subscriptions")
-      .select("*")
-      .eq("tenant_id", tenantId)
-      .in("status", ["active", "trialing"])
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
+    const fetchActive = async () =>
+      (
+        await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("tenant_id", tenantId)
+          .in("status", ["active", "trialing"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      ).data;
 
+    const daysLeft = (periodEnd: string) => {
+      const now = new Date();
+      return Math.max(
+        0,
+        Math.ceil((new Date(periodEnd).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      );
+    };
+
+    let subscription = await fetchActive();
+
+    // No active plan (paid plan expired/cancelled and none replaced it) ->
+    // provision Free so the tenant always has a working, limited plan instead
+    // of being left with nothing.
     if (!subscription) {
-      return NextResponse.json({ subscription: null, plan: null });
+      await ensureFreeSubscription(tenantId);
+      subscription = await fetchActive();
+      if (!subscription) {
+        return NextResponse.json({ subscription: null, plan: null });
+      }
+      return NextResponse.json({ subscription, daysRemaining: daysLeft(subscription.current_period_end) });
     }
 
-    // Check if subscription has expired
-    const now = new Date();
-    const periodEnd = new Date(subscription.current_period_end);
-    const daysRemaining = Math.ceil((periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (daysRemaining <= 0 && subscription.status === "active") {
-      // Mark as expired
-      await supabase
-        .from("subscriptions")
-        .update({ status: "expired" })
-        .eq("id", subscription.id);
-      
-      subscription.status = "expired";
+    // Paid plan lapsed -> mark expired and drop to Free.
+    if (new Date(subscription.current_period_end) <= new Date() && subscription.status === "active") {
+      await supabase.from("subscriptions").update({ status: "expired" }).eq("id", subscription.id);
       console.log(`[Subscriptions] Marked subscription ${subscription.id} as expired`);
+      await ensureFreeSubscription(tenantId);
+      subscription = (await fetchActive()) ?? subscription;
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       subscription,
-      daysRemaining: Math.max(0, daysRemaining)
+      daysRemaining: daysLeft(subscription.current_period_end),
     });
   } catch (error) {
     if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
