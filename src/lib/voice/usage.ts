@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { PLANS } from "@/lib/lipila/plans";
+import { ensureFreeSubscription } from "@/lib/trial-helpers";
 
 // =============================================
 // Voice Minutes Usage Tracking
@@ -24,15 +25,26 @@ export async function checkVoiceMinutes(tenantId: string): Promise<{
     .in("status", ["active", "trialing"])
     .order("created_at", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  if (!sub) {
-    return { allowed: false, used: 0, limit: 0, remaining: 0 };
+  // No active plan -> drop to Free tier (a fresh Free sub has 0 minutes used)
+  // instead of reporting a 0-minute limit. Over-limit is still enforced below.
+  let planId: string;
+  let used: number;
+  if (sub) {
+    planId = sub.plan_id;
+    used = sub.voice_minutes_used || 0;
+  } else {
+    const free = await ensureFreeSubscription(tenantId);
+    if (!free) {
+      return { allowed: false, used: 0, limit: 0, remaining: 0 };
+    }
+    planId = free.plan_id;
+    used = 0;
   }
 
-  const plan = PLANS.find((p) => p.id === sub.plan_id) || PLANS[0];
+  const plan = PLANS.find((p) => p.id === planId) || PLANS[0];
   const limit = plan.voiceMinutesPerMonth;
-  const used = sub.voice_minutes_used || 0;
   const remaining = Math.max(limit - used, 0);
 
   return {
