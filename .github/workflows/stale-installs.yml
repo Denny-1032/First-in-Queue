@@ -19,14 +19,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger stale install check
+        # Passed as env, never interpolated into the script text: a value
+        # carrying a stray CR or newline (easy to produce when copying from a
+        # Windows shell) would otherwise corrupt the generated shell source and
+        # kill the step under `bash -e` before any diagnostic could print.
+        env:
+          BASE: ${{ vars.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          BASE="${{ vars.APP_URL }}"
           if [ -z "$BASE" ]; then
             echo "APP_URL repo variable is not set"; exit 1
           fi
-          code=$(curl -s -o /tmp/body.txt -w "%{http_code}" \
-            -X GET "$BASE/api/cron/stale-installs" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET repo secret is not set"; exit 1
+          fi
+          base=$(printf '%s' "$BASE" | tr -d '\r\n')
+          secret=$(printf '%s' "$CRON_SECRET" | tr -d '\r\n')
+          if ! code=$(curl -sS -o /tmp/body.txt -w "%{http_code}" \
+            -X GET "$base/api/cron/stale-installs" \
+            -H "Authorization: Bearer $secret"); then
+            echo "curl failed (exit $?) hitting $base/api/cron/stale-installs"
+            exit 1
+          fi
           echo "HTTP $code"
           cat /tmp/body.txt
           if [ "$code" != "200" ]; then
