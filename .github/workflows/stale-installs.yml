@@ -1,0 +1,34 @@
+name: Stale Install Check
+
+# Flags properties whose widget has not sent a heartbeat in 14 days and emails
+# the owner (spec §5, step 6). Runs from GitHub Actions rather than vercel.json
+# because Vercel Hobby allows only daily crons and that file already holds two —
+# adding a third has previously broken the whole deployment.
+#
+# Required repo config (Settings -> Secrets and variables -> Actions):
+#   Secret   CRON_SECRET  -> same value as the CRON_SECRET env var on Vercel
+#   Variable APP_URL      -> production base URL, e.g. https://firstinqueue.com
+
+on:
+  schedule:
+    - cron: "30 3 * * *" # 03:30 UTC daily, off-peak for Zambian traffic
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger stale install check
+        run: |
+          BASE="${{ vars.APP_URL }}"
+          if [ -z "$BASE" ]; then
+            echo "APP_URL repo variable is not set"; exit 1
+          fi
+          code=$(curl -s -o /tmp/body.txt -w "%{http_code}" \
+            -X GET "$BASE/api/cron/stale-installs" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          echo "HTTP $code"
+          cat /tmp/body.txt
+          if [ "$code" != "200" ]; then
+            echo "Stale install check failed with HTTP $code"; exit 1
+          fi

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { getAuthSecret } from "@/lib/auth/secret";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,9 +13,22 @@ export async function POST(request: NextRequest) {
     // Support multiple admin emails via comma-separated env var or fallback to single
     const adminEmailsEnv = process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || "admin@firstinqueue.com";
     const adminEmails = adminEmailsEnv.split(",").map(e => e.trim().toLowerCase());
-    
-    // Default admin password
-    const adminPassword = process.env.ADMIN_PASSWORD || "FiQ@dmin2024!";
+
+    // The admin panel administers EVERY tenant, so it must never fall back to a
+    // credential that is published in this repo. Missing config is a hard stop in
+    // production; locally we keep the dev default but say so loudly.
+    const configuredPassword = process.env.ADMIN_PASSWORD;
+    if (!configuredPassword && process.env.NODE_ENV === "production") {
+      console.error("[Admin] ADMIN_PASSWORD is not set — refusing all admin logins.");
+      return NextResponse.json(
+        { error: "Admin access is not configured on this deployment" },
+        { status: 503 }
+      );
+    }
+    if (!configuredPassword) {
+      console.warn("[Admin] ADMIN_PASSWORD not set — using the development default.");
+    }
+    const adminPassword = configuredPassword || "FiQ@dmin2024!";
 
     // Check if email is in admin list and password matches
     if (!adminEmails.includes(email.toLowerCase()) || password !== adminPassword) {
@@ -22,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate a real signed admin token
-    const adminSecret = process.env.AUTH_TOKEN_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "fiq-fallback-secret-change-me";
+    const adminSecret = getAuthSecret();
     const payload = Buffer.from(JSON.stringify({ email, role: "superadmin", iat: Date.now() })).toString("base64url");
     const sig = crypto.createHmac("sha256", adminSecret).update(payload).digest("base64url");
     const adminToken = `${payload}.${sig}`;

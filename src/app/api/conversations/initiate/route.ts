@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
     // Get or create conversation
     const { conversation } = await getOrCreateConversation(
       tenant.id,
+      "whatsapp",
       normalisedPhone,
       name || undefined
     );

@@ -12,6 +12,13 @@ export interface PlanDefinition {
   yearlyMonthlyLabel: string;
   messagesPerMonth: number;
   messagesLabel: string;
+  /**
+   * Monthly web-chat AI reply ceiling — a SEPARATE meter from `messagesPerMonth`
+   * (which counts WhatsApp conversations). Web replies are the low-marginal-cost
+   * class (pricing-model-v2 §5–6), so they get their own, more generous cap.
+   * Enforced per-property by the widget path via `getWebReplyCeiling`.
+   */
+  webAiRepliesPerMonth: number;
   voiceMinutesPerMonth: number;
   voiceMinutesLabel: string;
   whatsappNumbers: number;
@@ -30,6 +37,13 @@ export const FREE_TIER = {
   messages: 5,
 };
 
+/**
+ * Free-tier web-chat AI reply ceiling (pricing-model-v2 §12). Used as the
+ * fail-safe fallback when a tenant has no active subscription or its plan can't
+ * be resolved — a hard bound that keeps the "no unbounded OpenAI bill" invariant.
+ */
+export const FREE_WEB_AI_REPLIES = 500;
+
 export const PLANS: PlanDefinition[] = [
   // Free tier - not shown on pricing page, only for new signups
   {
@@ -42,6 +56,7 @@ export const PLANS: PlanDefinition[] = [
     yearlyMonthlyLabel: "Free",
     messagesPerMonth: 5,
     messagesLabel: "5 WhatsApp conversations",
+    webAiRepliesPerMonth: 500,
     voiceMinutesPerMonth: 3,
     voiceMinutesLabel: "3 AI voice call minutes",
     whatsappNumbers: 1,
@@ -64,6 +79,7 @@ export const PLANS: PlanDefinition[] = [
     yearlyMonthlyLabel: "K399",
     messagesPerMonth: 1000,
     messagesLabel: "1,000 WhatsApp conversations/mo",
+    webAiRepliesPerMonth: 5000,
     voiceMinutesPerMonth: 30,
     voiceMinutesLabel: "30 AI voice call minutes/mo",
     whatsappNumbers: 1,
@@ -87,6 +103,7 @@ export const PLANS: PlanDefinition[] = [
     yearlyMonthlyLabel: "K1,359",
     messagesPerMonth: 5000,
     messagesLabel: "5,000 WhatsApp conversations/mo",
+    webAiRepliesPerMonth: 5000,
     voiceMinutesPerMonth: 120,
     voiceMinutesLabel: "120 AI voice call minutes/mo",
     whatsappNumbers: 2,
@@ -113,6 +130,9 @@ export const PLANS: PlanDefinition[] = [
     yearlyMonthlyLabel: "Custom",
     messagesPerMonth: 999999,
     messagesLabel: "Unlimited WhatsApp conversations*",
+    // Web is low-marginal-cost but "never unlimited" (pricing-model-v2 §143):
+    // a generous fair-use bound, negotiated per contract.
+    webAiRepliesPerMonth: 50000,
     voiceMinutesPerMonth: 999999,
     voiceMinutesLabel: "Unlimited voice usage*",
     whatsappNumbers: 99,

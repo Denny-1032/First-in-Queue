@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/api/rate-limit";
-
-function getAuthSecret(): string {
-  return process.env.AUTH_TOKEN_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "fiq-fallback-secret-change-me";
-}
+import { getAuthSecret } from "@/lib/auth/secret";
+import { frameAncestorsFor } from "@/lib/properties/allowlist";
 
 // Edge-compatible base64url helpers
 function base64urlEncode(buf: ArrayBuffer): string {
@@ -43,8 +41,66 @@ async function isValidSignedToken(token: string): Promise<boolean> {
   }
 }
 
+/**
+ * Look up a property's allowed_domains by widget key, for the frame-ancestors
+ * header. Uses a direct REST fetch rather than the supabase-js client so the
+ * Edge bundle stays small.
+ *
+ * The key is not shape-checked first: the query is parameterised and a bad key
+ * simply returns no rows. Duplicating `isWidgetKeyShaped`'s regex here (it
+ * lives in keys.ts, which pulls in node `crypto`) would be a third copy to keep
+ * in sync for no security gain.
+ *
+ * Fails CLOSED (returns []) so a lookup failure denies third-party framing
+ * rather than opening it, matching the "empty allowlist = deny all" invariant.
+ */
+async function lookupAllowedDomains(key: string): Promise<string[]> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) return [];
+
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/properties?select=allowed_domains&is_active=eq.true` +
+        `&widget_key=eq.${encodeURIComponent(key)}&limit=1`,
+      {
+        headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+        cache: "no-store",
+      }
+    );
+    if (!res.ok) return [];
+    const rows = (await res.json()) as Array<{ allowed_domains?: string[] }>;
+    return rows[0]?.allowed_domains ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // --- Widget documents: framable, but only by the property's own domains ---
+  //
+  // next.config.ts deliberately withholds X-Frame-Options: DENY from /widget/*
+  // (DENY blocks ALL framing, including same-origin, which made the widget
+  // impossible to embed anywhere). CSP frame-ancestors is the replacement.
+  if (pathname.startsWith("/widget/")) {
+    const response = NextResponse.next();
+    const key = request.nextUrl.searchParams.get("key");
+
+    // The legacy voice embed (/widget/iframe?tenantId=…&agentId=…) carries no
+    // widget key, so there is no property to resolve an allowlist from. Leave
+    // it unrestricted — that is its pre-existing behaviour, and tightening it
+    // here would break voice installs already live on customer sites.
+    if (!key) return response;
+
+    const domains = await lookupAllowedDomains(key);
+    response.headers.set(
+      "Content-Security-Policy",
+      `frame-ancestors ${frameAncestorsFor(domains)}`
+    );
+    return response;
+  }
 
   // Rate limit API routes (except webhooks - external services need unrestricted access)
   const isWebhook =
@@ -76,8 +132,13 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Protect tenant API routes with user auth (validate signature)
-    const isPublicApi = pathname.startsWith("/api/auth/") || pathname.startsWith("/api/webhook") || pathname.startsWith("/api/webhooks/") || pathname.startsWith("/api/voice/webhook") || pathname.startsWith("/api/voice/inbound") || pathname.startsWith("/api/voice/twilio-status") || pathname.startsWith("/api/voice/telnyx-status") || pathname.startsWith("/api/admin") || pathname.startsWith("/api/setup") || pathname.startsWith("/api/voice/web-call") || pathname.startsWith("/api/voice/fiq-support") || pathname.startsWith("/api/widget/") || pathname.startsWith("/api/debug/") || pathname.startsWith("/api/team/invite/accept");
+    // Protect tenant API routes with user auth (validate signature).
+    //
+    // /api/cron/* is exempt because cron callers (Vercel cron, GitHub Actions)
+    // have no session cookie — they authenticate with a CRON_SECRET bearer token
+    // that each cron route checks itself. Without this exemption every cron
+    // returned 401 and the jobs silently never ran.
+    const isPublicApi = pathname.startsWith("/api/auth/") || pathname.startsWith("/api/webhook") || pathname.startsWith("/api/webhooks/") || pathname.startsWith("/api/voice/webhook") || pathname.startsWith("/api/voice/inbound") || pathname.startsWith("/api/voice/twilio-status") || pathname.startsWith("/api/voice/telnyx-status") || pathname.startsWith("/api/admin") || pathname.startsWith("/api/cron/") || pathname.startsWith("/api/voice/web-call") || pathname.startsWith("/api/voice/fiq-support") || pathname.startsWith("/api/widget/") || pathname.startsWith("/api/debug/") || pathname.startsWith("/api/team/invite/accept");
     if (!isPublicApi) {
       const authToken = request.cookies.get("fiq-auth")?.value;
       if (!authToken || !(await isValidSignedToken(authToken))) {
@@ -110,9 +171,24 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Protect the onboarding wizard - it needs the signup session to call the
+  // authed onboarding/property/crawl APIs. Bounce a signed-out visitor to /signup.
+  if (pathname.startsWith("/onboarding")) {
+    const authToken = request.cookies.get("fiq-auth")?.value;
+    if (!authToken || !(await isValidSignedToken(authToken))) {
+      return NextResponse.redirect(new URL("/signup", request.url));
+    }
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*", "/api/:path*"],
+  matcher: [
+    "/dashboard/:path*",
+    "/admin/:path*",
+    "/onboarding/:path*",
+    "/api/:path*",
+    "/widget/:path*",
+  ],
 };

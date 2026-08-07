@@ -529,6 +529,21 @@ export default function ConversationsPage() {
                           <status.icon className="h-3 w-3" />
                           {status.label}
                         </span>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium",
+                            convo.channel === "web"
+                              ? "bg-indigo-100 text-indigo-700"
+                              : "bg-green-100 text-green-700"
+                          )}
+                        >
+                          {convo.channel === "web" ? (
+                            <MessageSquare className="h-3 w-3" />
+                          ) : (
+                            <Phone className="h-3 w-3" />
+                          )}
+                          {convo.channel === "web" ? "Web" : "WhatsApp"}
+                        </span>
                         {SentimentIcon && (
                           <SentimentIcon className={cn("h-3.5 w-3.5", sentimentColor[convo.sentiment!])} />
                         )}

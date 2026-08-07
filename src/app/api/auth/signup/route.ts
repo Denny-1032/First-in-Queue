@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { hashPassword, generateAuthToken } from "@/lib/auth/password";
 import { templates } from "@/lib/config/templates";
+import { trackEvent } from "@/lib/analytics/track";
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password } = await request.json();
+    const { name, email, password, started_at: startedAtRaw } = await request.json();
+    const startedAt = typeof startedAtRaw === "string" ? startedAtRaw.slice(0, 40) : null;
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
         whatsapp_access_token: "",
         whatsapp_business_account_id: "",
         openai_api_key: "",
-        config: { ...template, business_name: name + "'s Business" },
+        config: { ...template, business_name: name + "'s Business", onboarding: { step: 1 } },
         is_active: true,
       })
       .select()
@@ -123,6 +125,15 @@ export async function POST(request: NextRequest) {
       messages_used: 0,
       voice_minutes_used: 0,
     });
+
+    // Funnel (§10). `analytics_events.tenant_id` is NOT NULL, so signup_started
+    // cannot be written before the tenant exists — we record it here carrying the
+    // client's real page-load time, which keeps time-on-form accurate. True
+    // pre-account abandonment needs client-side analytics and is not covered.
+    if (startedAt) {
+      await trackEvent(tenant.id, "signup_started", { started_at: startedAt });
+    }
+    await trackEvent(tenant.id, "signup_completed", { user_id: user.id });
 
     const token = generateAuthToken(user.id, email.toLowerCase(), tenant.id);
     const response = NextResponse.json({

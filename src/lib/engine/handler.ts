@@ -1,4 +1,6 @@
 import { createWhatsAppClient } from "@/lib/whatsapp/client";
+import type { ChannelCapabilities, ChannelTransport, NormalizedInboundMessage } from "@/lib/channels/transport";
+import { normalizeWhatsAppMessage } from "@/lib/channels/whatsapp-adapter";
 import { createAIEngine } from "@/lib/ai/engine";
 import { makeOutboundCallViaTwilio } from "@/lib/voice/twilio-client";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
@@ -16,10 +18,10 @@ import {
   cancelBooking,
 } from "@/lib/db/operations";
 import { extractBookingFromCollectedData } from "@/lib/booking/extract";
+import { trackOnce } from "@/lib/analytics/track";
 import { checkMessageUsage, incrementMessageUsage } from "@/lib/lipila/usage";
 import type {
   WhatsAppWebhookPayload,
-  WhatsAppIncomingMessage,
   Tenant,
   Conversation,
   MessageContent,
@@ -53,6 +55,48 @@ function buildFlowMetadata(flowState: FlowState | null, existingMeta?: Record<st
   return rest;
 }
 
+/**
+ * Fit a set of interactive buttons into what the channel can actually render.
+ * Titles are truncated and any buttons beyond the channel's limit are spilled
+ * into the message body as a numbered list rather than silently dropped.
+ *
+ * On WhatsApp (3 buttons / 20 chars) this reproduces the limits that used to be
+ * hardcoded at each call site.
+ */
+function clampButtons(
+  buttons: Array<{ id: string; title: string }>,
+  capabilities: ChannelCapabilities
+): { buttons: Array<{ id: string; title: string }>; overflowText: string } {
+  const fitted = buttons
+    .slice(0, capabilities.maxButtons)
+    .map((b) => ({ id: b.id, title: b.title.slice(0, capabilities.maxButtonTitleLength) }));
+
+  const overflow = buttons.slice(capabilities.maxButtons);
+  const overflowText = overflow.length
+    ? "\n\n" + overflow.map((b, i) => `${i + 1}. ${b.title}`).join("\n")
+    : "";
+
+  return { buttons: fitted, overflowText };
+}
+
+/**
+ * Persist an OUTBOUND message, unless the transport already did it.
+ *
+ * WhatsApp sends over the network and returns an external id, so the row is
+ * written here. WebTransport writes the row as its send — that write IS the
+ * delivery (the browser is subscribed over Realtime). Saving again produced a
+ * duplicate bot message for every web reply, and because this save omits
+ * `channel` the copy defaulted to 'whatsapp' (migration 013), mislabeling web
+ * traffic. Inbound saves never go through here.
+ */
+async function persistOutbound(
+  transport: ChannelTransport,
+  params: Parameters<typeof saveMessage>[0]
+): Promise<void> {
+  if (transport.capabilities.persistsOutbound) return;
+  await saveMessage(params);
+}
+
 export async function handleWebhook(payload: WhatsAppWebhookPayload): Promise<void> {
   for (const entry of payload.entry) {
     for (const change of entry.changes) {
@@ -78,49 +122,74 @@ export async function handleWebhook(payload: WhatsAppWebhookPayload): Promise<vo
           continue;
         }
 
+        const transport = createWhatsAppClient(
+          tenant.whatsapp_access_token,
+          tenant.whatsapp_phone_number_id
+        );
+
         for (const message of messages) {
           const customerName = contacts?.[0]?.profile?.name;
-          await processIncomingMessage(tenant, message, customerName);
+          await processIncomingMessage(
+            tenant,
+            normalizeWhatsAppMessage(message, customerName),
+            transport
+          );
         }
       }
     }
   }
 }
 
-async function processIncomingMessage(
+export async function processIncomingMessage(
   tenant: Tenant,
-  message: WhatsAppIncomingMessage,
-  customerName?: string
+  msg: NormalizedInboundMessage,
+  transport: ChannelTransport
 ): Promise<void> {
-  const whatsapp = createWhatsAppClient(tenant.whatsapp_access_token, tenant.whatsapp_phone_number_id);
+  const customerName = msg.customerName;
 
   try {
-    console.log(`[Handler] Processing message from ${message.from} (type=${message.type}) for tenant ${tenant.id} (${tenant.name})`);
+    console.log(`[Handler] Processing message from ${msg.customerRef} (channel=${transport.channel}, type=${msg.type}) for tenant ${tenant.id} (${tenant.name})`);
 
     // Mark as read immediately
-    await whatsapp.markAsRead(message.id);
+    await transport.markAsRead(msg.externalId);
 
     // Get or create conversation - isNew only true for brand-new customers
     const { conversation, isNew } = await getOrCreateConversation(
       tenant.id,
-      message.from,
+      transport.channel,
+      msg.customerRef,
       customerName
     );
 
     console.log(`[Handler] Conversation ${conversation.id}: isNew=${isNew}, status=${conversation.status}, ai_enabled=${conversation.ai_enabled}`);
 
-    // Extract message content
-    const content = extractMessageContent(message);
+    // Funnel (§10): the tenant's first real conversation. Deliberately NOT gated
+    // on `isNew` — the widget's /session endpoint creates the conversation row
+    // when the bubble opens, so by the time a visitor actually types, isNew is
+    // already false and the event would never fire on web. An inbound message is
+    // also the more meaningful signal: an opened-but-unused widget isn't a
+    // conversation. trackOnce() keeps it to one row per tenant.
+    await trackOnce(tenant.id, "first_conversation", {
+      conversation_id: conversation.id,
+      channel: transport.channel,
+    });
 
-    // Save inbound message
+    // Content was extracted by the channel's normalizer
+    const content = msg.content;
+
+    // Save inbound message. Always persisted here — transports only own the
+    // OUTBOUND side, so this never goes through persistOutbound(). `channel` is
+    // explicit: without it the column defaults to 'whatsapp' (migration 013) and
+    // web conversations end up with inbound rows labelled as WhatsApp.
     await saveMessage({
       conversation_id: conversation.id,
       tenant_id: tenant.id,
       direction: "inbound",
       sender_type: "customer",
-      message_type: message.type,
+      message_type: msg.type,
       content,
-      whatsapp_message_id: message.id,
+      channel: transport.channel,
+      whatsapp_message_id: msg.externalId,
       status: "delivered",
     });
 
@@ -128,9 +197,9 @@ async function processIncomingMessage(
     // the usage check on purpose: template-reminder replies often arrive while
     // the conversation sits in handoff/waiting, and a cancellation should never
     // be blocked by a plan limit.
-    const bookingButton = matchBookingButton(conversation, message, content);
+    const bookingButton = matchBookingButton(conversation, msg, content);
     if (bookingButton) {
-      await handleBookingButton(tenant, conversation, message, bookingButton, whatsapp);
+      await handleBookingButton(tenant, conversation, msg, bookingButton, transport);
       return;
     }
 
@@ -146,8 +215,8 @@ async function processIncomingMessage(
       const limitMsg =
         `We've reached our monthly message limit (${usage.messagesLimit.toLocaleString()} messages). ` +
         `Please contact the business directly or try again next month. We apologise for the inconvenience!`;
-      const waLimitId = await whatsapp.sendText(message.from, limitMsg);
-      await saveMessage({
+      const waLimitId = await transport.sendText(msg.customerRef, limitMsg);
+      await persistOutbound(transport, {
         conversation_id: conversation.id,
         tenant_id: tenant.id,
         direction: "outbound",
@@ -168,8 +237,8 @@ async function processIncomingMessage(
     if (isOutsideOperatingHours(tenant)) {
       const outsideMsg = tenant.config.operating_hours?.outside_hours_message
         || "Thanks for reaching out! We're currently outside business hours. We'll get back to you as soon as possible.";
-      const waMessageId = await whatsapp.sendText(message.from, outsideMsg);
-      await saveMessage({
+      const waMessageId = await transport.sendText(msg.customerRef, outsideMsg);
+      await persistOutbound(transport, {
         conversation_id: conversation.id,
         tenant_id: tenant.id,
         direction: "outbound",
@@ -186,20 +255,24 @@ async function processIncomingMessage(
     // --- Pre-AI urgent escalation check ---
     const urgentEscalation = checkUrgentEscalation(tenant, content.text || "");
     if (urgentEscalation) {
-      await handleEscalation(tenant, conversation, message, {
+      await handleEscalation(tenant, conversation, msg, {
         text: urgentEscalation.safetyMessage,
         should_escalate: true,
         escalation_reason: urgentEscalation.reason,
         confidence: 1.0,
-      }, whatsapp);
+      }, transport);
       return;
     }
 
     // --- Voice Callback Request Check ---
-    const voiceCallbackRequest = checkVoiceCallbackRequest(tenant, content.text || "");
+    // Phone callbacks need a number to dial back. WhatsApp gives us one; a web
+    // visitor has none, so the branch is gated to WhatsApp for now
+    // (docs/phase1-spec-widget-and-onboarding.md §11.1).
+    const voiceCallbackRequest =
+      transport.channel === "whatsapp" && checkVoiceCallbackRequest(tenant, content.text || "");
     if (voiceCallbackRequest) {
       console.log(`[Handler] Response path: VOICE_CALLBACK`);
-      await handleVoiceCallbackRequest(tenant, conversation, message, whatsapp);
+      await handleVoiceCallbackRequest(tenant, conversation, msg, transport);
       return;
     }
 
@@ -208,7 +281,7 @@ async function processIncomingMessage(
     if (flowState) {
       const flow = tenant.config.flows.find((f) => f.id === flowState.flow_id);
       if (flow) {
-        await processFlowStep(tenant, conversation, message, content, flow, flowState, whatsapp);
+        await processFlowStep(tenant, conversation, msg, content, flow, flowState, transport);
         return;
       }
       // Flow no longer exists - clear stale state
@@ -218,7 +291,7 @@ async function processIncomingMessage(
     }
 
     // --- Check if this triggers a new flow (button reply or text match) ---
-    const flowMatch = matchFlowTrigger(tenant, message, content);
+    const flowMatch = matchFlowTrigger(tenant, msg, content);
     if (flowMatch) {
       // Initialize flow state and send first step
       const newFlowState: FlowState = {
@@ -230,7 +303,7 @@ async function processIncomingMessage(
       await updateConversation(conversation.id, {
         metadata: buildFlowMetadata(newFlowState, conversation.metadata as Record<string, unknown>),
       });
-      await sendFlowStep(tenant, conversation, message.from, flowMatch.flow, 0, newFlowState, whatsapp);
+      await sendFlowStep(tenant, conversation, msg.customerRef, flowMatch.flow, 0, newFlowState, transport);
       return;
     }
 
@@ -247,8 +320,8 @@ async function processIncomingMessage(
         console.log(`[Handler] Skipping greeting quick reply for existing conversation - falling through to AI`);
       } else {
         console.log(`[Handler] Response path: QUICK_REPLY for input="${normalizedInput}"`);
-        const waMessageId = await whatsapp.sendText(message.from, quickReply);
-        await saveMessage({
+        const waMessageId = await transport.sendText(msg.customerRef, quickReply);
+        await persistOutbound(transport, {
           conversation_id: conversation.id,
           tenant_id: tenant.id,
           direction: "outbound",
@@ -279,8 +352,8 @@ async function processIncomingMessage(
         .replace("{customer_name}", customerName || "there")
         .replace("{business_name}", tenant.config.business_name);
 
-      const waMessageId = await whatsapp.sendText(message.from, welcomeMsg);
-      await saveMessage({
+      const waMessageId = await transport.sendText(msg.customerRef, welcomeMsg);
+      await persistOutbound(transport, {
         conversation_id: conversation.id,
         tenant_id: tenant.id,
         direction: "outbound",
@@ -293,17 +366,17 @@ async function processIncomingMessage(
 
       // If welcome message has quick reply buttons, send them
       if (tenant.config.flows.length > 0) {
-        const mainMenuButtons = tenant.config.flows.slice(0, 3).map((f) => ({
-          id: `flow_${f.id}`,
-          title: f.name,
-        }));
+        const { buttons: mainMenuButtons } = clampButtons(
+          tenant.config.flows.map((f) => ({ id: `flow_${f.id}`, title: f.name })),
+          transport.capabilities
+        );
         if (mainMenuButtons.length > 0) {
-          const btnMsgId = await whatsapp.sendButtons(
-            message.from,
+          const btnMsgId = await transport.sendButtons(
+            msg.customerRef,
             "How can I help you today?",
             mainMenuButtons
           );
-          await saveMessage({
+          await persistOutbound(transport, {
             conversation_id: conversation.id,
             tenant_id: tenant.id,
             direction: "outbound",
@@ -345,8 +418,8 @@ async function processIncomingMessage(
 
     if (conversation.ai_enabled) {
       console.log(`[Handler] Response path: AI - generating AI response (history=${history.length} msgs)`);
-      whatsapp.sendTypingIndicator(message.from).catch(() => {});
-      await handleAIResponse(tenant, conversation, message, content, history, whatsapp);
+      transport.sendTypingIndicator(msg.customerRef).catch(() => {});
+      await handleAIResponse(tenant, conversation, msg, content, history, transport);
     } else {
       console.log(`[Handler] Response path: AI_DISABLED - ai_enabled=${conversation.ai_enabled} for conversation ${conversation.id}`);
     }
@@ -356,7 +429,7 @@ async function processIncomingMessage(
     try {
       const fallback = tenant.config.fallback_message || "Sorry, something went wrong. Please try again.";
       console.log(`[Handler] Sending fallback: "${fallback.substring(0, 80)}..."`);
-      await whatsapp.sendText(message.from, fallback);
+      await transport.sendText(msg.customerRef, fallback);
     } catch {
       console.error("[Handler] Failed to send fallback message");
     }
@@ -366,10 +439,10 @@ async function processIncomingMessage(
 async function handleAIResponse(
   tenant: Tenant,
   conversation: Conversation,
-  message: WhatsAppIncomingMessage,
+  msg: NormalizedInboundMessage,
   content: MessageContent,
   history: Array<{ role: "user" | "assistant"; content: string }>,
-  whatsapp: ReturnType<typeof createWhatsAppClient>
+  transport: ChannelTransport
 ): Promise<void> {
   const supabase = getSupabaseAdmin();
   const keySource = tenant.openai_api_key ? "tenant" : "env";
@@ -389,7 +462,7 @@ async function handleAIResponse(
     flow_step: activeFlow && flowState ? activeFlow.steps[flowState.step_index]?.id : undefined,
     collected_data: flowState?.collected_data,
     booking_context: tenant.config.booking_settings?.enabled
-      ? { customer_phone: message.from, conversation_id: conversation.id }
+      ? { customer_phone: msg.customerRef, conversation_id: conversation.id }
       : undefined,
   };
 
@@ -409,9 +482,17 @@ async function handleAIResponse(
         metadata: buildFlowMetadata(null, conversation.metadata as Record<string, unknown>),
       });
     }
-    await handleEscalation(tenant, conversation, message, aiResponse, whatsapp);
+    await handleEscalation(tenant, conversation, msg, aiResponse, transport);
     return;
   }
+
+  // Funnel (§10): first time the AI answered without handing off to a human —
+  // the moment the product demonstrably worked for this tenant.
+  await trackOnce(tenant.id, "first_ai_resolution", {
+    conversation_id: conversation.id,
+    channel: transport.channel,
+    intent: aiResponse.detected_intent ?? null,
+  });
 
   // Handle web_call suggestion from AI
   const webCallSuggestion = aiResponse.suggested_actions?.find((a) => a.type === "web_call");
@@ -434,8 +515,10 @@ async function handleAIResponse(
     // Construct web call URL with tenant and specific voice agent
     const webCallUrl = `${appUrl}/widget/iframe?tenantId=${tenant.id}&agentId=${agentId}`;
     const linkBody = "🎙️ Tap the button below to start a voice call with us.";
-    const linkMsgId = await whatsapp.sendCtaUrlButton(message.from, linkBody, "Start Voice Call", webCallUrl);
-    await saveMessage({
+    const linkMsgId = transport.sendCtaUrlButton
+      ? await transport.sendCtaUrlButton(msg.customerRef, linkBody, "Start Voice Call", webCallUrl)
+      : await transport.sendText(msg.customerRef, `${linkBody}\n${webCallUrl}`);
+    await persistOutbound(transport, {
       conversation_id: conversation.id,
       tenant_id: tenant.id,
       direction: "outbound",
@@ -457,8 +540,8 @@ async function handleAIResponse(
     if (suggestedFlow) {
       // Send AI text first, then start the flow
       if (aiResponse.text) {
-        const textMsgId = await whatsapp.sendText(message.from, aiResponse.text);
-        await saveMessage({
+        const textMsgId = await transport.sendText(msg.customerRef, aiResponse.text);
+        await persistOutbound(transport, {
           conversation_id: conversation.id,
           tenant_id: tenant.id,
           direction: "outbound",
@@ -478,7 +561,7 @@ async function handleAIResponse(
       await updateConversation(conversation.id, {
         metadata: buildFlowMetadata(newFlowState, conversation.metadata as Record<string, unknown>),
       });
-      await sendFlowStep(tenant, conversation, message.from, suggestedFlow, 0, newFlowState, whatsapp);
+      await sendFlowStep(tenant, conversation, msg.customerRef, suggestedFlow, 0, newFlowState, transport);
       return;
     }
   }
@@ -488,8 +571,8 @@ async function handleAIResponse(
     const booking = await getBooking(aiResponse.created_booking_id);
     if (booking && booking.tenant_id === tenant.id) {
       if (aiResponse.text) {
-        const textMsgId = await whatsapp.sendText(message.from, aiResponse.text);
-        await saveMessage({
+        const textMsgId = await transport.sendText(msg.customerRef, aiResponse.text);
+        await persistOutbound(transport, {
           conversation_id: conversation.id,
           tenant_id: tenant.id,
           direction: "outbound",
@@ -500,21 +583,23 @@ async function handleAIResponse(
           status: "sent",
         });
       }
-      await sendBookingConfirmButtons(tenant, conversation, message.from, booking, whatsapp);
+      await sendBookingConfirmButtons(tenant, conversation, msg.customerRef, booking, transport);
       return;
     }
   }
 
   // Send AI response with optional action buttons
   if (aiResponse.suggested_actions && aiResponse.suggested_actions.length > 0) {
-    const buttons = aiResponse.suggested_actions
-      .filter((a) => a.type === "quick_reply" || a.type === "escalate")
-      .slice(0, 3)
-      .map((a) => ({ id: a.value, title: a.label.slice(0, 20) }));
+    const { buttons } = clampButtons(
+      aiResponse.suggested_actions
+        .filter((a) => a.type === "quick_reply" || a.type === "escalate")
+        .map((a) => ({ id: a.value, title: a.label })),
+      transport.capabilities
+    );
 
     if (buttons.length > 0) {
-      const waMessageId = await whatsapp.sendButtons(message.from, aiResponse.text, buttons);
-      await saveMessage({
+      const waMessageId = await transport.sendButtons(msg.customerRef, aiResponse.text, buttons);
+      await persistOutbound(transport, {
         conversation_id: conversation.id,
         tenant_id: tenant.id,
         direction: "outbound",
@@ -532,8 +617,8 @@ async function handleAIResponse(
   }
 
   // Plain text response
-  const waMessageId = await whatsapp.sendText(message.from, aiResponse.text);
-  await saveMessage({
+  const waMessageId = await transport.sendText(msg.customerRef, aiResponse.text);
+  await persistOutbound(transport, {
     conversation_id: conversation.id,
     tenant_id: tenant.id,
     direction: "outbound",
@@ -548,14 +633,14 @@ async function handleAIResponse(
 async function handleEscalation(
   tenant: Tenant,
   conversation: Conversation,
-  message: WhatsAppIncomingMessage,
+  msg: NormalizedInboundMessage,
   aiResponse: AIResponse,
-  whatsapp: ReturnType<typeof createWhatsAppClient>
+  transport: ChannelTransport
 ): Promise<void> {
   // Send AI's safety/context message first (e.g. "Lock your card NOW" for fraud)
   if (aiResponse.text) {
-    const safetyMsgId = await whatsapp.sendText(message.from, aiResponse.text);
-    await saveMessage({
+    const safetyMsgId = await transport.sendText(msg.customerRef, aiResponse.text);
+    await persistOutbound(transport, {
       conversation_id: conversation.id,
       tenant_id: tenant.id,
       direction: "outbound",
@@ -585,8 +670,8 @@ async function handleEscalation(
       .update({ active_chats: agent.active_chats + 1 })
       .eq("id", agent.id);
     const handoffMsg = `I'm connecting you with ${agent.name} from our team right now. They'll be with you shortly!`;
-    const waMessageId = await whatsapp.sendText(message.from, handoffMsg);
-    await saveMessage({
+    const waMessageId = await transport.sendText(msg.customerRef, handoffMsg);
+    await persistOutbound(transport, {
       conversation_id: conversation.id,
       tenant_id: tenant.id,
       direction: "outbound",
@@ -607,8 +692,8 @@ async function handleEscalation(
     });
     const waitMsg =
       "I'm connecting you with a team member for the best assistance. Our team will reach out to you very soon. Thank you for your patience!";
-    const waMessageId = await whatsapp.sendText(message.from, waitMsg);
-    await saveMessage({
+    const waMessageId = await transport.sendText(msg.customerRef, waitMsg);
+    await persistOutbound(transport, {
       conversation_id: conversation.id,
       tenant_id: tenant.id,
       direction: "outbound",
@@ -621,32 +706,8 @@ async function handleEscalation(
   }
 }
 
-function extractMessageContent(message: WhatsAppIncomingMessage): MessageContent {
-  switch (message.type) {
-    case "text":
-      return { text: message.text?.body || "" };
-    case "image":
-      return { media_id: message.image?.id, mime_type: message.image?.mime_type, caption: message.image?.caption };
-    case "audio":
-      return { media_id: message.audio?.id, mime_type: message.audio?.mime_type };
-    case "video":
-      return { media_id: message.video?.id, mime_type: message.video?.mime_type, caption: message.video?.caption };
-    case "document":
-      return { media_id: message.document?.id, mime_type: message.document?.mime_type, caption: message.document?.caption };
-    case "location":
-      return { latitude: message.location?.latitude, longitude: message.location?.longitude };
-    case "interactive":
-      if (message.interactive?.type === "button_reply") {
-        return { text: message.interactive.button_reply?.title || "" };
-      }
-      if (message.interactive?.type === "list_reply") {
-        return { text: message.interactive.list_reply?.title || "" };
-      }
-      return { text: "" };
-    default:
-      return { text: "" };
-  }
-}
+// extractMessageContent moved to @/lib/channels/whatsapp-adapter — content now
+// arrives pre-normalized on NormalizedInboundMessage.content.
 
 function matchQuickReply(tenant: Tenant, text: string, customerName?: string): string | null {
   if (!text) return null;
@@ -695,7 +756,7 @@ function replaceTemplateVars(text: string, tenant: Tenant, customerName?: string
     .replace(/\{business_name\}/g, tenant.config.business_name || tenant.name);
 }
 
-function isOutsideOperatingHours(tenant: Tenant): boolean {
+export function isOutsideOperatingHours(tenant: Tenant): boolean {
   const opHours = tenant.config.operating_hours;
   if (!opHours?.schedule) return false;
 
@@ -745,19 +806,19 @@ function formatBookingDateTime(booking: Booking): string {
 
 function matchBookingButton(
   conversation: Conversation,
-  message: WhatsAppIncomingMessage,
+  msg: NormalizedInboundMessage,
   content: MessageContent
 ): { bookingId: string; action: "confirm" | "cancel" } | null {
   // Interactive reply buttons (sendBookingConfirmButtons)
-  if (message.type === "interactive" && message.interactive?.type === "button_reply") {
-    const match = message.interactive.button_reply?.id.match(BOOKING_BUTTON_REGEX);
+  if (msg.type === "interactive" && msg.interactiveReplyKind === "button") {
+    const match = (msg.interactiveReplyId || "").match(BOOKING_BUTTON_REGEX);
     if (match) return { action: match[1] as "confirm" | "cancel", bookingId: match[2] };
     return null;
   }
 
   // Template quick-reply buttons arrive as type "button" with our payload
-  if (message.type === "button") {
-    const match = (message.button?.payload || "").match(BOOKING_BUTTON_REGEX);
+  if (msg.type === "button") {
+    const match = (msg.templateButton?.payload || "").match(BOOKING_BUTTON_REGEX);
     if (match) return { action: match[1] as "confirm" | "cancel", bookingId: match[2] };
     // Payload-less template button - fall through to text matching below
   }
@@ -766,7 +827,7 @@ function matchBookingButton(
   const meta = conversation.metadata as Record<string, unknown> | null;
   const pendingId = meta?.pending_booking_id;
   if (typeof pendingId === "string" && pendingId) {
-    const text = (message.button?.text || content.text || "").trim().toLowerCase();
+    const text = (msg.templateButton?.text || content.text || "").trim().toLowerCase();
     if (text === "confirm" || text === "✅ confirm" || text === "yes") {
       return { action: "confirm", bookingId: pendingId };
     }
@@ -780,15 +841,15 @@ function matchBookingButton(
 async function handleBookingButton(
   tenant: Tenant,
   conversation: Conversation,
-  message: WhatsAppIncomingMessage,
+  msg: NormalizedInboundMessage,
   button: { bookingId: string; action: "confirm" | "cancel" },
-  whatsapp: ReturnType<typeof createWhatsAppClient>
+  transport: ChannelTransport
 ): Promise<void> {
   console.log(`[Handler] Response path: BOOKING_${button.action.toUpperCase()} - booking ${button.bookingId}`);
   const booking = await getBooking(button.bookingId);
 
   let reply: string;
-  if (!booking || booking.tenant_id !== tenant.id || booking.customer_phone !== message.from) {
+  if (!booking || booking.tenant_id !== tenant.id || booking.customer_phone !== msg.customerRef) {
     reply = "Sorry, I couldn't find that booking. Please contact us if you need help.";
   } else if (button.action === "confirm") {
     if (booking.status === "pending") {
@@ -808,8 +869,8 @@ async function handleBookingButton(
     }
   }
 
-  const waMessageId = await whatsapp.sendText(message.from, reply);
-  await saveMessage({
+  const waMessageId = await transport.sendText(msg.customerRef, reply);
+  await persistOutbound(transport, {
     conversation_id: conversation.id,
     tenant_id: tenant.id,
     direction: "outbound",
@@ -833,15 +894,15 @@ async function sendBookingConfirmButtons(
   conversation: Conversation,
   to: string,
   booking: Booking,
-  whatsapp: ReturnType<typeof createWhatsAppClient>
+  transport: ChannelTransport
 ): Promise<void> {
   const body = `📅 Booking request: ${formatBookingDateTime(booking)}${booking.customer_name ? ` for ${booking.customer_name}` : ""}.\nPlease confirm:`;
   const buttons = [
     { id: `booking_confirm_${booking.id}`, title: "✅ Confirm" },
     { id: `booking_cancel_${booking.id}`, title: "❌ Cancel" },
   ];
-  const waMessageId = await whatsapp.sendButtons(to, body, buttons);
-  await saveMessage({
+  const waMessageId = await transport.sendButtons(to, body, buttons);
+  await persistOutbound(transport, {
     conversation_id: conversation.id,
     tenant_id: tenant.id,
     direction: "outbound",
@@ -912,12 +973,12 @@ async function createBookingFromFlow(
 
 function matchFlowTrigger(
   tenant: Tenant,
-  message: WhatsAppIncomingMessage,
+  msg: NormalizedInboundMessage,
   content: MessageContent
 ): { flow: ConversationFlow } | null {
   // Check for button reply with flow_ prefix
-  if (message.type === "interactive" && message.interactive?.type === "button_reply") {
-    const buttonId = message.interactive.button_reply?.id || "";
+  if (msg.type === "interactive" && msg.interactiveReplyKind === "button") {
+    const buttonId = msg.interactiveReplyId || "";
     if (buttonId.startsWith("flow_")) {
       const flowId = buttonId.replace("flow_", "");
       const flow = tenant.config.flows.find((f) => f.id === flowId);
@@ -1039,7 +1100,7 @@ async function sendFlowStep(
   flow: ConversationFlow,
   stepIndex: number,
   flowState: FlowState,
-  whatsapp: ReturnType<typeof createWhatsAppClient>
+  transport: ChannelTransport
 ): Promise<void> {
   // Process consecutive non-question steps (messages, actions) then stop at next question or end
   let currentIndex = stepIndex;
@@ -1051,8 +1112,8 @@ async function sendFlowStep(
       // Send the message and continue to next step
       const msgText = step.content || "";
       if (msgText) {
-        const waMessageId = await whatsapp.sendText(to, msgText);
-        await saveMessage({
+        const waMessageId = await transport.sendText(to, msgText);
+        await persistOutbound(transport, {
           conversation_id: conversation.id,
           tenant_id: tenant.id,
           direction: "outbound",
@@ -1073,13 +1134,16 @@ async function sendFlowStep(
 
       // If step has options, send as buttons (max 3) or list (more than 3)
       if (step.options && step.options.length > 0) {
-        if (step.options.length <= 3) {
-          const buttons = step.options.map((opt) => ({
-            id: `step_${step.id}_${opt.value}`,
-            title: opt.label.slice(0, 20),
-          }));
-          const waMessageId = await whatsapp.sendButtons(to, questionText, buttons);
-          await saveMessage({
+        if (step.options.length <= transport.capabilities.maxButtons) {
+          const { buttons } = clampButtons(
+            step.options.map((opt) => ({
+              id: `step_${step.id}_${opt.value}`,
+              title: opt.label,
+            })),
+            transport.capabilities
+          );
+          const waMessageId = await transport.sendButtons(to, questionText, buttons);
+          await persistOutbound(transport, {
             conversation_id: conversation.id,
             tenant_id: tenant.id,
             direction: "outbound",
@@ -1098,13 +1162,13 @@ async function sendFlowStep(
             id: `step_${step.id}_${opt.value}`,
             title: opt.label.slice(0, 24),
           }));
-          const waMessageId = await whatsapp.sendList(
+          const waMessageId = await transport.sendList(
             to,
             questionText,
             "Select an option",
             [{ title: "Options", rows }]
           );
-          await saveMessage({
+          await persistOutbound(transport, {
             conversation_id: conversation.id,
             tenant_id: tenant.id,
             direction: "outbound",
@@ -1120,8 +1184,8 @@ async function sendFlowStep(
         }
       } else {
         // Free-text question
-        const waMessageId = await whatsapp.sendText(to, questionText);
-        await saveMessage({
+        const waMessageId = await transport.sendText(to, questionText);
+        await persistOutbound(transport, {
           conversation_id: conversation.id,
           tenant_id: tenant.id,
           direction: "outbound",
@@ -1149,12 +1213,12 @@ async function sendFlowStep(
       await updateConversation(conversation.id, {
         metadata: buildFlowMetadata(null, conversation.metadata as Record<string, unknown>),
       });
-      await handleEscalation(tenant, conversation, { from: to } as WhatsAppIncomingMessage, {
+      await handleEscalation(tenant, conversation, { customerRef: to } as NormalizedInboundMessage, {
         text: "",
         should_escalate: true,
         escalation_reason: `Flow "${flow.name}" handoff` + (Object.keys(flowState.collected_data).length > 0 ? ` - ${Object.entries(flowState.collected_data).map(([k, v]) => `${k}: ${v}`).join(", ")}` : ""),
         confidence: 1.0,
-      }, whatsapp);
+      }, transport);
       return;
     }
 
@@ -1162,7 +1226,7 @@ async function sendFlowStep(
       if (step.action === "book_appointment") {
         const booking = await createBookingFromFlow(tenant, conversation, flowState);
         if (booking) {
-          await sendBookingConfirmButtons(tenant, conversation, to, booking, whatsapp);
+          await sendBookingConfirmButtons(tenant, conversation, to, booking, transport);
           currentIndex++;
           continue;
         }
@@ -1178,8 +1242,8 @@ async function sendFlowStep(
       };
       const actionLabel = actionLabels[step.action || ""] || step.action || "processing";
       const actionMsg = `Got it! I'm ${actionLabel} now...`;
-      const waActionId = await whatsapp.sendText(to, actionMsg);
-      await saveMessage({
+      const waActionId = await transport.sendText(to, actionMsg);
+      await persistOutbound(transport, {
         conversation_id: conversation.id,
         tenant_id: tenant.id,
         direction: "outbound",
@@ -1202,8 +1266,8 @@ async function sendFlowStep(
     metadata: buildFlowMetadata(null, conversation.metadata as Record<string, unknown>),
   });
   const completionMsg = "That's everything! Is there anything else I can help you with?";
-  const waCompletionId = await whatsapp.sendText(to, completionMsg);
-  await saveMessage({
+  const waCompletionId = await transport.sendText(to, completionMsg);
+  await persistOutbound(transport, {
     conversation_id: conversation.id,
     tenant_id: tenant.id,
     direction: "outbound",
@@ -1218,11 +1282,11 @@ async function sendFlowStep(
 async function processFlowStep(
   tenant: Tenant,
   conversation: Conversation,
-  message: WhatsAppIncomingMessage,
+  msg: NormalizedInboundMessage,
   content: MessageContent,
   flow: ConversationFlow,
   flowState: FlowState,
-  whatsapp: ReturnType<typeof createWhatsAppClient>
+  transport: ChannelTransport
 ): Promise<void> {
   const currentStep = flow.steps[flowState.step_index];
   if (!currentStep) {
@@ -1242,8 +1306,8 @@ async function processFlowStep(
       metadata: buildFlowMetadata(null, conversation.metadata as Record<string, unknown>),
     });
     const cancelMsg = "No problem! I've cancelled the current process. How else can I help you?";
-    const waMessageId = await whatsapp.sendText(message.from, cancelMsg);
-    await saveMessage({
+    const waMessageId = await transport.sendText(msg.customerRef, cancelMsg);
+    await persistOutbound(transport, {
       conversation_id: conversation.id,
       tenant_id: tenant.id,
       direction: "outbound",
@@ -1267,7 +1331,7 @@ async function processFlowStep(
   if (currentStep.options && currentStep.options.length > 0) {
     // Check if user selected a specific option (button reply)
     const selectedOption = currentStep.options.find((opt) => {
-      const buttonId = message.interactive?.button_reply?.id || message.interactive?.list_reply?.id || "";
+      const buttonId = msg.interactiveReplyId || "";
       return buttonId === `step_${currentStep.id}_${opt.value}` || userResponse.toLowerCase() === opt.label.toLowerCase();
     });
     if (selectedOption?.next_step) {
@@ -1312,8 +1376,8 @@ async function processFlowStep(
       metadata: buildFlowMetadata(null, conversation.metadata as Record<string, unknown>),
     });
     const doneMsg = "That's everything! Is there anything else I can help you with?";
-    const waDoneId = await whatsapp.sendText(message.from, doneMsg);
-    await saveMessage({
+    const waDoneId = await transport.sendText(msg.customerRef, doneMsg);
+    await persistOutbound(transport, {
       conversation_id: conversation.id,
       tenant_id: tenant.id,
       direction: "outbound",
@@ -1330,7 +1394,7 @@ async function processFlowStep(
   await updateConversation(conversation.id, {
     metadata: buildFlowMetadata(updatedFlowState, conversation.metadata as Record<string, unknown>),
   });
-  await sendFlowStep(tenant, conversation, message.from, flow, nextIndex, updatedFlowState, whatsapp);
+  await sendFlowStep(tenant, conversation, msg.customerRef, flow, nextIndex, updatedFlowState, transport);
 }
 
 // --- Voice Callback Functions ---
@@ -1374,10 +1438,10 @@ function checkVoiceCallbackRequest(tenant: Tenant, text: string): boolean {
 async function handleVoiceCallbackRequest(
   tenant: Tenant,
   conversation: Conversation,
-  message: WhatsAppIncomingMessage,
-  whatsapp: ReturnType<typeof createWhatsAppClient>
+  msg: NormalizedInboundMessage,
+  transport: ChannelTransport
 ): Promise<void> {
-  const customerPhone = message.from;
+  const customerPhone = msg.customerRef;
   const supabase = getSupabaseAdmin();
 
   try {
@@ -1387,8 +1451,8 @@ async function handleVoiceCallbackRequest(
     if (!usage.allowed) {
       console.log(`[VoiceCallback] Voice minutes exhausted for tenant ${tenant.id}: ${usage.used}/${usage.limit}`);
       const limitMsg = "Sorry, we've used all our voice call minutes for this month. Please continue chatting here and we'll help you right away! 💬";
-      const limitId = await whatsapp.sendText(customerPhone, limitMsg);
-      await saveMessage({
+      const limitId = await transport.sendText(customerPhone, limitMsg);
+      await persistOutbound(transport, {
         conversation_id: conversation.id,
         tenant_id: tenant.id,
         direction: "outbound",
@@ -1437,8 +1501,8 @@ async function handleVoiceCallbackRequest(
 
     if (!retellAgentId) {
       const noAgentMsg = "Sorry, our voice call service isn't set up yet. Please contact us here on WhatsApp and we'll help you shortly.";
-      const noAgentId = await whatsapp.sendText(customerPhone, noAgentMsg);
-      await saveMessage({
+      const noAgentId = await transport.sendText(customerPhone, noAgentMsg);
+      await persistOutbound(transport, {
         conversation_id: conversation.id,
         tenant_id: tenant.id,
         direction: "outbound",
@@ -1458,8 +1522,10 @@ async function handleVoiceCallbackRequest(
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.firstinqueue.com";
       const webCallUrl = `${appUrl}/widget/iframe?tenantId=${tenant.id}&agentId=${voiceAgentId}`;
       const webCallBody = "🎙️ Tap the button below to start a voice call with us.";
-      const webCallId = await whatsapp.sendCtaUrlButton(customerPhone, webCallBody, "Start Voice Call", webCallUrl);
-      await saveMessage({
+      const webCallId = transport.sendCtaUrlButton
+        ? await transport.sendCtaUrlButton(customerPhone, webCallBody, "Start Voice Call", webCallUrl)
+        : await transport.sendText(customerPhone, `${webCallBody}\n${webCallUrl}`);
+      await persistOutbound(transport, {
         conversation_id: conversation.id,
         tenant_id: tenant.id,
         direction: "outbound",
@@ -1482,8 +1548,8 @@ async function handleVoiceCallbackRequest(
       const providerLabel = isTelnyx ? "Telnyx (TELNYX_VOICE_NUMBER)" : "Twilio (TWILIO_VOICE_NUMBER)";
       console.error(`[VoiceCallback] ${providerLabel} not configured - cannot place call`);
       const noNumberMsg = "Sorry, our voice call service isn't fully configured yet. Please continue chatting here and we'll help you.";
-      const noNumberId = await whatsapp.sendText(customerPhone, noNumberMsg);
-      await saveMessage({
+      const noNumberId = await transport.sendText(customerPhone, noNumberMsg);
+      await persistOutbound(transport, {
         conversation_id: conversation.id,
         tenant_id: tenant.id,
         direction: "outbound",
@@ -1504,8 +1570,8 @@ async function handleVoiceCallbackRequest(
     if (!phoneRegex.test(fromNumber)) {
       console.error(`[VoiceCallback] Invalid fromNumber format: ${fromNumber}`);
       const invalidNumMsg = "Sorry, our voice call number isn't configured correctly. Please continue chatting here.";
-      const invalidNumId = await whatsapp.sendText(customerPhone, invalidNumMsg);
-      await saveMessage({
+      const invalidNumId = await transport.sendText(customerPhone, invalidNumMsg);
+      await persistOutbound(transport, {
         conversation_id: conversation.id,
         tenant_id: tenant.id,
         direction: "outbound",
@@ -1522,8 +1588,8 @@ async function handleVoiceCallbackRequest(
 
     // Send confirmation BEFORE placing the call
     const confirmMsg = "Sure! I'll call you right now - please keep your phone ready. 📞";
-    const waMessageId = await whatsapp.sendText(customerPhone, confirmMsg);
-    await saveMessage({
+    const waMessageId = await transport.sendText(customerPhone, confirmMsg);
+    await persistOutbound(transport, {
       conversation_id: conversation.id,
       tenant_id: tenant.id,
       direction: "outbound",
@@ -1598,8 +1664,8 @@ async function handleVoiceCallbackRequest(
 
     // Follow-up message
     const followUpMsg = `Calling you now from ${fromNumber}! Please answer - you'll be connected to our AI assistant. 🤖📞`;
-    const followUpId = await whatsapp.sendText(customerPhone, followUpMsg);
-    await saveMessage({
+    const followUpId = await transport.sendText(customerPhone, followUpMsg);
+    await persistOutbound(transport, {
       conversation_id: conversation.id,
       tenant_id: tenant.id,
       direction: "outbound",
@@ -1614,8 +1680,8 @@ async function handleVoiceCallbackRequest(
     console.error("[VoiceCallback] Error handling request:", error);
     
     const errorMsg = "Sorry, there was an issue placing the call. Please try again later or continue chatting here.";
-    const errorWaId = await whatsapp.sendText(customerPhone, errorMsg);
-    await saveMessage({
+    const errorWaId = await transport.sendText(customerPhone, errorMsg);
+    await persistOutbound(transport, {
       conversation_id: conversation.id,
       tenant_id: tenant.id,
       direction: "outbound",

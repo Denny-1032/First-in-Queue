@@ -1,10 +1,18 @@
 import axios, { AxiosInstance } from "axios";
 import type { InteractiveMessage, TemplateMessage } from "@/types";
+import {
+  type Channel,
+  type ChannelCapabilities,
+  type ChannelTransport,
+  WHATSAPP_CAPABILITIES,
+} from "@/lib/channels/transport";
 
 const API_VERSION = process.env.WHATSAPP_API_VERSION || "v21.0";
 const BASE_URL = `https://graph.facebook.com/${API_VERSION}`;
 
-export class WhatsAppClient {
+export class WhatsAppClient implements ChannelTransport {
+  readonly channel: Channel = "whatsapp";
+  readonly capabilities: ChannelCapabilities = WHATSAPP_CAPABILITIES;
   private api: AxiosInstance;
   private phoneNumberId: string;
 

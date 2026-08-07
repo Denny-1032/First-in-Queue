@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { PLANS } from "./plans";
+import { PLANS, FREE_WEB_AI_REPLIES } from "./plans";
 import { ensureFreeSubscription } from "@/lib/trial-helpers";
 
 export interface UsageCheckResult {
@@ -44,6 +44,40 @@ export async function checkMessageUsage(tenantId: string): Promise<UsageCheckRes
     messagesLimit: limit,
     planId: active.plan_id,
   };
+}
+
+/**
+ * Resolve the monthly web-chat AI reply ceiling for a tenant from its plan.
+ *
+ * SEPARATE meter from `checkMessageUsage` (which counts WhatsApp conversations
+ * against `messagesPerMonth`). This reads `webAiRepliesPerMonth`; the per-property
+ * counter itself lives in the `widget_consume_ai_reply` RPC — this only supplies
+ * the limit value.
+ *
+ * Fails SAFE to the free ceiling: no active subscription, an unknown plan, or any
+ * read error all yield `FREE_WEB_AI_REPLIES`. 500 is still a hard bound, so a
+ * transient DB failure can never produce an unbounded OpenAI bill, and never
+ * throws into the widget request path.
+ */
+export async function getWebReplyCeiling(tenantId: string): Promise<number> {
+  try {
+    const { data: sub } = await getSupabaseAdmin()
+      .from("subscriptions")
+      .select("plan_id")
+      .eq("tenant_id", tenantId)
+      .in("status", ["active", "trialing"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!sub) return FREE_WEB_AI_REPLIES;
+
+    const plan = PLANS.find((p) => p.id === sub.plan_id);
+    return plan?.webAiRepliesPerMonth ?? FREE_WEB_AI_REPLIES;
+  } catch (e) {
+    console.error("[Usage] getWebReplyCeiling failed, defaulting to free:", e);
+    return FREE_WEB_AI_REPLIES;
+  }
 }
 
 /**

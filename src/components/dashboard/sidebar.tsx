@@ -20,6 +20,7 @@ import {
   X,
   Phone,
   CalendarDays,
+  Globe,
   Building2,
   Check,
   Plus,
@@ -33,6 +34,7 @@ const navItems = [
   { href: "/dashboard/bookings", label: "Bookings", icon: CalendarDays },
   { href: "/dashboard/voice", label: "Voice Agent", icon: Phone },
   { href: "/dashboard/ai-config", label: "Chat Agent", icon: Bot },
+  { href: "/dashboard/properties", label: "Websites", icon: Globe },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];

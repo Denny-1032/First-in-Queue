@@ -27,11 +27,20 @@ const nextConfig: NextConfig = {
       source: "/(.*)",
       headers: [
         { key: "X-Content-Type-Options", value: "nosniff" },
-        { key: "X-Frame-Options", value: "DENY" },
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         { key: "X-DNS-Prefetch-Control", value: "on" },
         { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
       ],
+    },
+    {
+      // Everything EXCEPT /widget/* is never framed. The widget documents
+      // (/widget/chat, and the legacy voice /widget/iframe) are meant to be
+      // framed by customer sites, so DENY here would make the product
+      // unusable — see docs/phase1-spec-widget-and-onboarding.md §6.
+      // Their framing is controlled per-property by the
+      // `Content-Security-Policy: frame-ancestors` header set in middleware.ts.
+      source: "/((?!widget/).*)",
+      headers: [{ key: "X-Frame-Options", value: "DENY" }],
     },
     {
       source: "/fiq-logo.png",

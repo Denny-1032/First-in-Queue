@@ -38,6 +38,38 @@ export interface BusinessConfig {
   voice_callback_agent_id?: string;
   booking_settings?: BookingSettings;
   reminder_template?: ReminderTemplateConfig;
+  // Self-serve onboarding wizard progress (§7). Absent for tenants created
+  // before the wizard or via /api/setup. Lives on the tenant config JSON so a
+  // closed tab resumes where it left off.
+  onboarding?: OnboardingState;
+}
+
+// Wizard steps 0-7 (§7). `step` is the NEXT screen to show on resume; `done`
+// marks the whole flow complete so the dashboard stops redirecting into it.
+export interface OnboardingState {
+  step: number;
+  done?: boolean;
+  // Set once the property is created (step 2) so later steps edit rather than
+  // re-create it, and step 6 can build the embed snippet.
+  property_id?: string;
+  // Step 1: raw site URL the owner typed, and the crawl lifecycle. Entries are
+  // stashed here for the block-11 review screen (step 5).
+  site_url?: string;
+  crawl?: OnboardingCrawlState;
+}
+
+export interface OnboardingCrawlState {
+  status: "idle" | "running" | "done" | "failed";
+  source?: string;
+  entries?: KnowledgeEntry[];
+  // AI-generated FAQs from the crawled content (§7 step 5). Staged here for the
+  // review screen; only committed to config.faqs when the user finishes review.
+  faqs?: FAQ[];
+  pages_crawled?: number;
+  // Industry the crawl guessed, used to pre-select step 3. Optional.
+  industry_guess?: Industry;
+  error?: string;
+  updated_at?: string;
 }
 
 export type Industry =
@@ -145,6 +177,12 @@ export interface Conversation {
   tenant_id: string;
   customer_phone: string;
   customer_name?: string;
+  // Channel-aware since migration 013. Legacy rows default to 'whatsapp'.
+  channel?: "whatsapp" | "web";
+  // Web conversations link to the property they came from (migration 014) and
+  // key the visitor by a signed ref instead of a phone number.
+  property_id?: string | null;
+  customer_ref?: string | null;
   status: ConversationStatus;
   assigned_agent_id?: string;
   ai_enabled: boolean;
@@ -173,6 +211,10 @@ export interface Message {
   message_type: WhatsAppMessageType;
   content: MessageContent;
   whatsapp_message_id?: string;
+  /** Migration 013: which channel this message belongs to. */
+  channel?: "whatsapp" | "web";
+  /** Migration 013: channel-agnostic id (wamid on WhatsApp, row uuid on web). */
+  external_message_id?: string | null;
   status: "sent" | "delivered" | "read" | "failed";
   metadata?: Record<string, unknown>;
   created_at: string;
@@ -198,6 +240,8 @@ export interface MessageContent {
   media_id?: string;
   caption?: string;
   mime_type?: string;
+  /** Original filename for document attachments (web widget renders it as the download name). */
+  filename?: string;
   latitude?: number;
   longitude?: number;
   interactive?: InteractiveMessage;

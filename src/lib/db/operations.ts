@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import type { Channel } from "@/lib/channels/transport";
 import type {
   Conversation,
   Message,
@@ -75,7 +76,8 @@ export async function upsertTenant(tenant: Partial<Tenant> & { id?: string }): P
 // --- Conversation Operations ---
 export async function getOrCreateConversation(
   tenantId: string,
-  customerPhone: string,
+  channel: Channel,
+  customerRef: string,
   customerName?: string
 ): Promise<{ conversation: Conversation; isNew: boolean }> {
   const db = getSupabaseAdmin();
@@ -85,7 +87,8 @@ export async function getOrCreateConversation(
     .from("conversations")
     .select("*")
     .eq("tenant_id", tenantId)
-    .eq("customer_phone", customerPhone)
+    .eq("channel", channel)
+    .eq("customer_ref", customerRef)
     .in("status", ["active", "waiting", "handoff"])
     .order("created_at", { ascending: false })
     .limit(1)
@@ -98,7 +101,8 @@ export async function getOrCreateConversation(
       .from("conversations")
       .select("*")
       .eq("tenant_id", tenantId)
-      .eq("customer_phone", customerPhone)
+      .eq("channel", channel)
+      .eq("customer_ref", customerRef)
       .in("status", ["active", "waiting", "handoff"])
       .order("created_at", { ascending: false })
       .limit(1);
@@ -123,7 +127,8 @@ export async function getOrCreateConversation(
     .from("conversations")
     .select("id", { count: "exact", head: true })
     .eq("tenant_id", tenantId)
-    .eq("customer_phone", customerPhone);
+    .eq("channel", channel)
+    .eq("customer_ref", customerRef);
 
   const isReturningCustomer = (priorCount || 0) > 0;
 
@@ -132,7 +137,11 @@ export async function getOrCreateConversation(
     .from("conversations")
     .insert({
       tenant_id: tenantId,
-      customer_phone: customerPhone,
+      channel,
+      customer_ref: customerRef,
+      // customer_phone stays populated on WhatsApp for dashboard/export/analytics
+      // queries that still read it; web visitors have no phone number.
+      customer_phone: channel === "whatsapp" ? customerRef : null,
       customer_name: customerName || null,
       status: "active",
       ai_enabled: true,
@@ -152,7 +161,8 @@ export async function getOrCreateConversation(
     .from("conversations")
     .select("*")
     .eq("tenant_id", tenantId)
-    .eq("customer_phone", customerPhone)
+    .eq("channel", channel)
+    .eq("customer_ref", customerRef)
     .in("status", ["active", "waiting", "handoff"])
     .order("created_at", { ascending: true });
 
@@ -218,9 +228,18 @@ export async function updateConversation(
 
 // --- Message Operations ---
 export async function saveMessage(message: Omit<Message, "id" | "created_at">): Promise<Message> {
+  // Populate the channel-agnostic columns added in migration 013 here rather
+  // than at every call site. Callers that don't set them are on WhatsApp, where
+  // the external id is the wamid.
+  const row = {
+    ...message,
+    channel: message.channel ?? "whatsapp",
+    external_message_id: message.external_message_id ?? message.whatsapp_message_id ?? null,
+  };
+
   const { data, error } = await getSupabaseAdmin()
     .from("messages")
-    .insert(message)
+    .insert(row)
     .select()
     .single();
   if (error) throw new Error(`Failed to save message: ${error.message}`);
