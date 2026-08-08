@@ -166,7 +166,7 @@ export function Sidebar() {
     )}>
       <div className="flex h-full flex-col">
         {/* Logo + workspace indicator */}
-        <div className="flex h-16 items-center gap-3 border-b border-gray-200 px-6">
+        <div className="flex h-16 flex-shrink-0 items-center gap-3 border-b border-gray-200 px-6">
           <Image src="/fiq-logo.png?v=2" alt="First in Queue" width={200} height={200} className="h-8 w-8 object-contain" />
           <div className="flex-1 min-w-0">
             <h1 className="font-bold text-gray-900">First in Queue</h1>
@@ -179,7 +179,9 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        {/* min-h-0 lets this shrink instead of pushing the footer (workspace
+            switcher, sign out) off-screen on short viewports / 100% zoom. */}
+        <nav className="flex-1 min-h-0 overflow-y-auto space-y-1 px-3 py-4">
           {navItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
             return (
@@ -225,7 +227,9 @@ export function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 p-4 space-y-3">
+        {/* Capped so an open switcher with many workspaces scrolls itself
+            instead of pushing Sign Out below the fold again. */}
+        <div className="flex-shrink-0 max-h-[60vh] overflow-y-auto border-t border-gray-200 p-4 space-y-3">
           <button
             onClick={() => { setShowSwitcher(!showSwitcher); if (showSwitcher) { setShowNewBizInput(false); setNewBizName(""); } }}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
@@ -235,7 +239,7 @@ export function Sidebar() {
             <ChevronDown className={cn("h-3.5 w-3.5 text-gray-400 transition-transform", showSwitcher && "rotate-180")} />
           </button>
           {showSwitcher && (
-            <div className="space-y-1 rounded-lg border border-gray-200 bg-gray-50 p-2">
+            <div className="max-h-48 overflow-y-auto space-y-1 rounded-lg border border-gray-200 bg-gray-50 p-2">
               {tenants.map((t) => (
                 <button
                   key={t.id}
