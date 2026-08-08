@@ -60,6 +60,8 @@ function ChatContent() {
   const tokenRef = useRef<string | null>(null);
   const seenIds = useRef<Set<string>>(new Set());
   const isOpenRef = useRef(true);
+  // Read by the poll timer, which closes over its own render's state.
+  const sendingRef = useRef(false);
 
   const post = useCallback((type: string, payload?: unknown) => {
     window.parent?.postMessage({ source: "fiq-widget", type, payload }, "*");
@@ -160,7 +162,15 @@ function ChatContent() {
   useEffect(() => {
     if (!token) return;
     fetchHistory();
-    const id = setInterval(() => fetchHistory(), POLL_MS);
+    // Skip polls while a send is in flight. The server saves the visitor's
+    // message immediately but /api/widget/message does not respond until the
+    // engine has produced a reply, so a poll landing in that window would fetch
+    // the real row while the optimistic one is still on screen — the message
+    // appearing twice for the whole generation delay. Nothing is missed: the
+    // settled send fetches history itself.
+    const id = setInterval(() => {
+      if (!sendingRef.current) fetchHistory();
+    }, POLL_MS);
     return () => clearInterval(id);
   }, [token, fetchHistory]);
 
@@ -196,6 +206,7 @@ function ChatContent() {
       if (!t || (!body && !replyId) || sending) return;
 
       setSending(true);
+      sendingRef.current = true;
       setShowSuggestions(false);
       setInput("");
       setError(null);
@@ -231,13 +242,17 @@ function ChatContent() {
         }
         // Only a delivered message is on the server, so only then is it safe to
         // drop the optimistic row. On failure it stays put, so the visitor can
-        // still see what they typed.
-        fetchHistory(res.ok);
+        // still see what they typed. Awaited so the `finally` below cannot
+        // resume polling mid-flight.
+        await fetchHistory(res.ok);
       } catch {
         setError("That message didn't send. Please try again.");
         setTyping(false);
       } finally {
         setSending(false);
+        // Cleared last: polling must stay paused until history has been
+        // refetched above, or the poll can race the optimistic row back in.
+        sendingRef.current = false;
       }
     },
     [sending, fetchHistory]
