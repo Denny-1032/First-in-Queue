@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { sendEmail, emailShell } from "@/lib/email/send";
+import { rejectUnauthorizedCron } from "@/lib/api/cron-auth";
 
 // =============================================
 // Cron: stale install detector (spec §5, step 6).
@@ -21,21 +22,8 @@ import { sendEmail, emailShell } from "@/lib/email/send";
 const STALE_AFTER_DAYS = 14;
 
 async function runStaleCheck(request: NextRequest) {
-  // Middleware exempts /api/cron/*, so this bearer check IS the authorization.
-  // Unset secret is tolerated locally but fails closed in production rather than
-  // leaving a public endpoint that emails customers.
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    if (process.env.NODE_ENV === "production") {
-      console.error("[Cron/stale-installs] CRON_SECRET is not set — refusing to run.");
-      return NextResponse.json({ error: "Cron secret not configured" }, { status: 503 });
-    }
-  } else {
-    const auth = request.headers.get("authorization");
-    if (auth !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
+  const rejected = rejectUnauthorizedCron(request, "stale-installs");
+  if (rejected) return rejected;
 
   const db = getSupabaseAdmin();
   const cutoff = new Date(Date.now() - STALE_AFTER_DAYS * 24 * 60 * 60 * 1000).toISOString();

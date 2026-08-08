@@ -6,6 +6,7 @@ import {
   saveMessage,
 } from "@/lib/db/operations";
 import { WhatsAppClient } from "@/lib/whatsapp/client";
+import { rejectUnauthorizedCron } from "@/lib/api/cron-auth";
 import type { Booking, ReminderTemplateConfig, TemplateMessage, Tenant } from "@/types";
 
 // Cron Job: Booking Reminders
@@ -192,18 +193,10 @@ async function runReminders() {
   return { checked: bookings.length, sent, failed };
 }
 
-function isAuthorized(request: NextRequest): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return true;
-  const auth = request.headers.get("authorization");
-  return !!auth && auth.includes(cronSecret);
-}
-
 // Vercel cron entrypoint (crons always call GET)
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const rejected = rejectUnauthorizedCron(request, "booking-reminders");
+  if (rejected) return rejected;
   try {
     const result = await runReminders();
     return NextResponse.json({ success: true, ...result, timestamp: new Date().toISOString() });
