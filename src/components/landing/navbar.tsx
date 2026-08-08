@@ -12,6 +12,7 @@ export function Navbar() {
           <span className="text-xl font-bold text-gray-900">First in Queue</span>
         </Link>
         <div className="hidden md:flex items-center gap-8">
+          <Link href="/why-fiq" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Why FiQ?</Link>
           <Link href="/how-it-works" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">How It Works</Link>
           <Link href="/industries" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Industries</Link>
           <Link href="/pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Pricing</Link>

@@ -23,6 +23,13 @@ export function MobileNav() {
           <div className="absolute top-16 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-lg">
             <div className="flex flex-col p-4 space-y-1">
               <Link
+                href="/why-fiq"
+                onClick={() => setOpen(false)}
+                className="px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Why FiQ?
+              </Link>
+              <Link
                 href="/how-it-works"
                 onClick={() => setOpen(false)}
                 className="px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
