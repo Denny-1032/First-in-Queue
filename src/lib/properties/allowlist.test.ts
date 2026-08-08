@@ -47,6 +47,40 @@ describe("frameAncestorsFor", () => {
     expect(value).not.toContain("https://*.*");
   });
 
+  it("localhost gets an http form with a port wildcard, so dev pages can frame", () => {
+    expect(frameAncestorsFor(["localhost"])).toBe(
+      "'self' http://localhost:* https://localhost:*"
+    );
+  });
+
+  it("127.0.0.1 is treated as loopback too", () => {
+    expect(frameAncestorsFor(["127.0.0.1"])).toBe(
+      "'self' http://127.0.0.1:* https://127.0.0.1:*"
+    );
+  });
+
+  it("loopback allowance does NOT leak http to real domains", () => {
+    const value = frameAncestorsFor(["localhost", "example.com"]);
+    expect(value).toContain("http://localhost:*");
+    expect(value).toContain("https://example.com");
+    // The real domain must stay https-only.
+    expect(value).not.toContain("http://example.com");
+  });
+
+  it("is opt-in: no loopback source unless localhost is allowlisted", () => {
+    const value = frameAncestorsFor(["example.com"]);
+    expect(value).not.toContain("localhost");
+    expect(value).not.toContain("http://");
+  });
+
+  it("closes the CORS/framing asymmetry that left dev panels blank", () => {
+    const domains = ["localhost"];
+    // isOriginAllowed ignores scheme and port, so CORS accepted this origin...
+    expect(isOriginAllowed("http://localhost:8080", domains)).toBe(true);
+    // ...and frame-ancestors must now cover it too, or the panel renders empty.
+    expect(frameAncestorsFor(domains)).toContain("http://localhost:*");
+  });
+
   it("agrees with isOriginAllowed on the subdomain rule", () => {
     const domains = ["example.com"];
     // allowed by isOriginAllowed → covered by a frame-ancestors source

@@ -79,14 +79,31 @@ export function corsOriginFor(origin: string | null, allowedDomains: string[]): 
  * panel, dashboard previews) can frame the widget on our own origin. An empty
  * allowlist therefore yields `'self'` alone — every third party denied, which
  * is the "empty = deny all" invariant applied to framing.
+ *
+ * Loopback hosts additionally get an `http://` form with a port wildcard. Dev
+ * and staging pages are served over plain http on an arbitrary port, and a
+ * https-only source can never match them — which left `isOriginAllowed` (which
+ * ignores scheme and port, so CORS passed) disagreeing with this function, so a
+ * developer who allowlisted localhost got a permanently empty widget panel.
+ * This stays opt-in: it applies only when localhost is explicitly allowlisted,
+ * and browsers already treat loopback as a secure context.
  */
+function isLoopback(host: string): boolean {
+  // normalizeDomain returns URL.hostname, so IPv6 arrives bracketed.
+  return host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+}
+
 export function frameAncestorsFor(allowedDomains: string[]): string {
   const hosts = (allowedDomains || [])
     .map((d) => normalizeDomain(d))
     .filter((h): h is string => h !== null);
 
   const unique = Array.from(new Set(hosts));
-  const sources = unique.flatMap((h) => [`https://${h}`, `https://*.${h}`]);
+  const sources = unique.flatMap((h) =>
+    isLoopback(h)
+      ? [`http://${h}:*`, `https://${h}:*`]
+      : [`https://${h}`, `https://*.${h}`]
+  );
 
   return ["'self'", ...sources].join(" ");
 }
