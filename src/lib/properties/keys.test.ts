@@ -17,6 +17,19 @@ describe("widget keys", () => {
     expect(a).not.toBe(b);
   });
 
+  it("draws from the whole base62 alphabet without truncating", () => {
+    // Rejection sampling loops until it has enough accepted bytes; this would
+    // catch a short key or a generator that stalls.
+    const seen = new Set<string>();
+    for (let i = 0; i < 200; i++) {
+      const key = generateWidgetKey().slice("fiq_live_".length);
+      expect(key).toHaveLength(32);
+      for (const ch of key) seen.add(ch);
+    }
+    // 6,400 draws over 62 symbols: every symbol should appear.
+    expect(seen.size).toBe(62);
+  });
+
   it("rejects malformed keys", () => {
     expect(isWidgetKeyShaped("fiq_live_short")).toBe(false);
     expect(isWidgetKeyShaped("nope_" + "a".repeat(32))).toBe(false);

@@ -10,23 +10,37 @@ import crypto from "crypto";
 // =============================================
 
 const KEY_PREFIX = "fiq_live_";
-const KEY_BYTES = 32;
+/** Characters after the prefix. Changing this invalidates every key already
+ *  issued and the WordPress plugin's regex — see wordpress-plugin.test.ts. */
+const KEY_LENGTH = 32;
 const BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 /**
- * Generate a public widget key: `fiq_live_` + 32 bytes of CSPRNG entropy in
- * base62. The prefix makes keys greppable by secret scanners and instantly
+ * Generate a public widget key: `fiq_live_` + 32 base62 characters of CSPRNG
+ * entropy. The prefix makes keys greppable by secret scanners and instantly
  * identifiable in a support ticket.
+ *
+ * Drawn by rejection sampling rather than `byte % 62`: 256 is not a multiple of
+ * 62, so the naive form makes the first eight characters of the alphabet
+ * measurably more likely. The bias is small against 32 characters of base62,
+ * but rejecting the tail costs nothing.
  */
 export function generateWidgetKey(): string {
-  const bytes = crypto.randomBytes(KEY_BYTES);
-  let out = "";
-  for (const b of bytes) out += BASE62[b % 62];
-  return KEY_PREFIX + out;
+  // 62 * 4 = 248, so bytes at or above the cutoff would skew the distribution.
+  const CUTOFF = 248;
+  const out: string[] = [];
+  while (out.length < KEY_LENGTH) {
+    // Over-generate; some bytes get rejected.
+    const bytes = crypto.randomBytes(KEY_LENGTH);
+    for (let i = 0; i < bytes.length && out.length < KEY_LENGTH; i++) {
+      if (bytes[i] < CUTOFF) out.push(BASE62[bytes[i] % 62]);
+    }
+  }
+  return KEY_PREFIX + out.join("");
 }
 
 export function isWidgetKeyShaped(key: string): boolean {
-  return typeof key === "string" && new RegExp(`^${KEY_PREFIX}[0-9A-Za-z]{${KEY_BYTES}}$`).test(key);
+  return typeof key === "string" && new RegExp(`^${KEY_PREFIX}[0-9A-Za-z]{${KEY_LENGTH}}$`).test(key);
 }
 
 // --- Domain allowlisting -------------------------------------------------
