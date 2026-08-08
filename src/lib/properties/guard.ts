@@ -68,6 +68,61 @@ export function widgetJson(
   });
 }
 
+/**
+ * Is this request coming from our OWN widget document, rather than a customer's
+ * page?
+ *
+ * The widget iframe is served from our origin, so its calls to /api/widget/* are
+ * first-party: a same-origin GET omits the Origin header entirely, and a
+ * same-origin POST sends OUR host — neither of which can ever appear in a
+ * customer's allowed_domains. Without this branch the iframe can never authorize
+ * itself, so the panel renders and then immediately fails to boot.
+ *
+ * Compare against the host actually serving the request, not a configured
+ * constant: the app answers on both the apex and the app subdomain, and the
+ * snippet may point at either.
+ *
+ * Safe because framing is the real control here — `frame-ancestors` (set in
+ * middleware.ts from allowed_domains) means only an allowlisted parent can embed
+ * the widget document at all. Note the Origin check was never a defence against
+ * non-browser clients, which can set any Origin they like; per §6 the cost
+ * boundary is the per-property AI ceiling plus the rate limits.
+ */
+export function isFirstPartyWidgetRequest(
+  request: NextRequest,
+  origin: string | null
+): boolean {
+  if (origin) {
+    const hosts = [request.headers.get("host"), process.env.NEXT_PUBLIC_APP_URL]
+      .filter((h): h is string => !!h)
+      .map((h) => {
+        try {
+          return new URL(h.includes("://") ? h : `https://${h}`).host;
+        } catch {
+          return null;
+        }
+      });
+    try {
+      return hosts.includes(new URL(origin).host);
+    } catch {
+      return false;
+    }
+  }
+
+  // A same-origin fetch sends no Origin at all. Sec-Fetch-Site is set by the
+  // browser and cannot be overridden by page JavaScript.
+  return request.headers.get("sec-fetch-site") === "same-origin";
+}
+
+/** Origin check for widget routes: the customer's allowlist, or our own iframe. */
+function originPermitted(
+  request: NextRequest,
+  origin: string | null,
+  allowedDomains: string[]
+): boolean {
+  return isOriginAllowed(origin, allowedDomains) || isFirstPartyWidgetRequest(request, origin);
+}
+
 async function loadPropertyByKey(widgetKey: string): Promise<PropertyRecord | null> {
   const { data } = await getSupabaseAdmin()
     .from("properties")
@@ -99,7 +154,7 @@ export async function resolveByKey(
     return { ok: false, response: widgetError(404, "Unknown widget key") };
   }
 
-  if (!isOriginAllowed(origin, property.allowed_domains)) {
+  if (!originPermitted(request, origin, property.allowed_domains)) {
     return {
       ok: false,
       response: NextResponse.json(
@@ -154,7 +209,7 @@ export async function resolveByToken(
     return { ok: false, response: widgetError(401, "Session no longer valid", origin) };
   }
 
-  if (!isOriginAllowed(origin, property.allowed_domains)) {
+  if (!originPermitted(request, origin, property.allowed_domains)) {
     return { ok: false, response: widgetError(403, "Origin not allowed for this property") };
   }
 
