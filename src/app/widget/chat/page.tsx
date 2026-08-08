@@ -115,7 +115,17 @@ function ChatContent() {
 
   // ---------------------------------------------------------------- polling
 
-  const fetchHistory = useCallback(async () => {
+  /**
+   * @param settled true when called right after a successful send. /api/widget/message
+   *        only returns once the engine has run and the inbound row is saved, so the
+   *        history we just fetched already contains the visitor's message and every
+   *        optimistic row can go.
+   *
+   *        Optimistic rows carry a client-generated `local-<ts>` id, which can never
+   *        equal a server UUID — so matching them against the server's ids kept them
+   *        forever and every sent message left a faded duplicate behind.
+   */
+  const fetchHistory = useCallback(async (settled = false) => {
     const t = tokenRef.current;
     if (!t) return;
     try {
@@ -127,9 +137,9 @@ function ChatContent() {
       const incoming: ChatMessage[] = data.messages || [];
 
       setMessages((prev) => {
-        // Drop optimistic rows once the server has the real ones.
-        const confirmed = incoming.map((m) => m.id);
-        const keptPending = prev.filter((m) => m.pending && !confirmed.includes(m.id));
+        // While a send is still in flight the optimistic row is all the visitor
+        // has, so keep it; once the send has settled the server list is complete.
+        const keptPending = settled ? [] : prev.filter((m) => m.pending);
         const merged = [...incoming, ...keptPending];
 
         const fresh = incoming.filter(
@@ -150,7 +160,7 @@ function ChatContent() {
   useEffect(() => {
     if (!token) return;
     fetchHistory();
-    const id = setInterval(fetchHistory, POLL_MS);
+    const id = setInterval(() => fetchHistory(), POLL_MS);
     return () => clearInterval(id);
   }, [token, fetchHistory]);
 
@@ -219,7 +229,10 @@ function ChatContent() {
           if (data.status === "limit_reached") setTyping(false);
           if (typeof data.online === "boolean") setOnline(data.online);
         }
-        fetchHistory();
+        // Only a delivered message is on the server, so only then is it safe to
+        // drop the optimistic row. On failure it stays put, so the visitor can
+        // still see what they typed.
+        fetchHistory(res.ok);
       } catch {
         setError("That message didn't send. Please try again.");
         setTyping(false);
