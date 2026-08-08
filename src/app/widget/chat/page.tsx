@@ -137,7 +137,7 @@ function ChatContent() {
    *        optimistic row can go.
    *
    *        Optimistic rows carry a client-generated `local-<ts>` id, which can never
-   *        equal a server UUID — so matching them against the server's ids kept them
+   *        equal a server UUID - so matching them against the server's ids kept them
    *        forever and every sent message left a faded duplicate behind.
    */
   const fetchHistory = useCallback(async (settled = false) => {
@@ -168,7 +168,7 @@ function ChatContent() {
         return merged;
       });
     } catch {
-      /* transient network error — next tick retries */
+      /* transient network error - next tick retries */
     }
   }, [post]);
 
@@ -178,7 +178,7 @@ function ChatContent() {
     // Skip polls while a send is in flight. The server saves the visitor's
     // message immediately but /api/widget/message does not respond until the
     // engine has produced a reply, so a poll landing in that window would fetch
-    // the real row while the optimistic one is still on screen — the message
+    // the real row while the optimistic one is still on screen - the message
     // appearing twice for the whole generation delay. Nothing is missed: the
     // settled send fetches history itself.
     const id = setInterval(() => {
@@ -297,14 +297,14 @@ function ChatContent() {
           <h1>{b.title}</h1>
           <p>
             <span className={`fiq-dot ${online ? "on" : "off"}`} aria-hidden="true" />
-            {online ? "We're online" : "Away — leave a message"}
+            {online ? "We're online" : "Away - leave a message"}
           </p>
         </div>
         {voiceEnabled && !onCall && (
           <button
             type="button"
             className="fiq-call"
-            aria-label="Talk to us — start a voice call"
+            aria-label="Talk to us - start a voice call"
             title="Talk to us"
             onClick={voice.start}
           >
@@ -468,7 +468,7 @@ function ChatContent() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            {/* 48px mark, not the 7MB full-res logo — this loads on every visit. */}
+            {/* 48px mark, not the 7MB full-res logo - this loads on every visit. */}
             <img src="/fiq-mark.png" alt="" className="fiq-brand-logo" />
             <span>
               Powered by <strong>First in Queue</strong>
@@ -526,7 +526,7 @@ function ChatContent() {
         .fiq-callbtns button:disabled { opacity: .5; cursor: not-allowed; }
         .fiq-callbtns button.danger { background: #dc2626; border-color: #dc2626; color: #fff; }
         .fiq-callbtns button:focus-visible { outline: 3px solid #111; outline-offset: 2px; }
-        /* WebView embeds have no browser chrome — keep the composer off the
+        /* WebView embeds have no browser chrome - keep the composer off the
            home indicator / gesture bar. */
         .fiq-chat.native .fiq-composer { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
         .fiq-close:focus-visible, .fiq-composer button:focus-visible,

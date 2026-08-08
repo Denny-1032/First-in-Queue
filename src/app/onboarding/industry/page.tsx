@@ -9,7 +9,7 @@ import { getTemplate } from "@/lib/config/templates";
 import type { BusinessConfig, Industry } from "@/types";
 
 // Step 3 (§7). Seeds behaviour from an industry template, pre-selecting the
-// crawl's guess. Skippable — the tenant already has the ecommerce default.
+// crawl's guess. Skippable - the tenant already has the ecommerce default.
 const INDUSTRIES: Array<{ id: Industry; label: string; emoji: string }> = [
   { id: "ecommerce", label: "Online store", emoji: "🛍️" },
   { id: "healthcare", label: "Healthcare", emoji: "🩺" },

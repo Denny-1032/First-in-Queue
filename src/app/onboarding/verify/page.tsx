@@ -61,7 +61,7 @@ export default function VerifyStep() {
             return;
           }
         } catch {
-          /* transient — keep polling */
+          /* transient - keep polling */
         }
         if (Date.now() - startedAt.current > TIMEOUT_MS) {
           setTimedOut(true);
@@ -85,7 +85,7 @@ export default function VerifyStep() {
       const property = await getProperty(propertyId);
       const next = Array.from(new Set([...(property.allowed_domains ?? []), status.origin!]));
       await updateProperty(propertyId, { allowed_domains: next });
-      toast("Domain added — checking again…");
+      toast("Domain added - checking again…");
       setTimedOut(false);
       setStatus({ status: "waiting" });
       startedAt.current = Date.now();
@@ -125,11 +125,11 @@ export default function VerifyStep() {
     <WizardShell
       step={7}
       title="Verify chat widget connection"
-      subtitle="Open your website in another tab — we'll detect the widget automatically."
+      subtitle="Open your website in another tab - we'll detect the widget automatically."
       onContinue={skip}
       continueLabel="Skip for now"
     >
-      {/* Rejected origin — one-click fix takes priority over the generic states */}
+      {/* Rejected origin - one-click fix takes priority over the generic states */}
       {rejected ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
           <p className="flex items-start gap-2 text-sm text-amber-800">

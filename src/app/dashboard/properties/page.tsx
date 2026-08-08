@@ -97,7 +97,7 @@ export default function PropertiesPage() {
   // Per-property branding panel. null = closed.
   const [brandId, setBrandId] = useState<string | null>(null);
   const [brandDraft, setBrandDraft] = useState<BrandingValue | null>(null);
-  // Voice lives outside BrandingValue — it is an entitlement, not appearance,
+  // Voice lives outside BrandingValue - it is an entitlement, not appearance,
   // and the onboarding wizard (which shares BrandingEditor) has no agents yet.
   const [voiceDraft, setVoiceDraft] = useState<VoiceDraft>({ enabled: false, agentId: "" });
   const [voiceAgents, setVoiceAgents] = useState<Array<{ id: string; name: string }>>([]);
@@ -298,7 +298,7 @@ export default function PropertiesPage() {
           <CardHeader>
             <CardTitle>Add a website</CardTitle>
             <CardDescription>
-              We use the address to allow your domain automatically — the widget refuses to run
+              We use the address to allow your domain automatically - the widget refuses to run
               anywhere else.
             </CardDescription>
           </CardHeader>
@@ -412,7 +412,7 @@ export default function PropertiesPage() {
                           p.allowed_domains.join(", ")
                         ) : (
                           <span className="text-amber-600">
-                            none — the widget will refuse every domain until one is added
+                            none - the widget will refuse every domain until one is added
                           </span>
                         )}
                       </p>
@@ -441,7 +441,7 @@ export default function PropertiesPage() {
                             </span>
                             <span className="block text-xs text-gray-500">
                               Adds a call button to the chat header. Uses your plan&apos;s voice
-                              minutes — the button hides automatically when they run out, and on
+                              minutes - the button hides automatically when they run out, and on
                               the free plan.
                             </span>
                           </span>
@@ -469,7 +469,7 @@ export default function PropertiesPage() {
                             </select>
                             {voiceAgents.length === 0 && (
                               <p className="text-xs text-amber-600">
-                                No voice agent yet — create one under Voice Agent first, or the
+                                No voice agent yet - create one under Voice Agent first, or the
                                 call button stays hidden.
                               </p>
                             )}

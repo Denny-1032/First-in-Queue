@@ -15,7 +15,7 @@ import {
   trackClientEvent,
 } from "@/lib/onboarding/client";
 
-// Step 6 (§7). "Your widget is ready!" — the one-line snippet, copy-to-clipboard
+// Step 6 (§7). "Your widget is ready!" - the one-line snippet, copy-to-clipboard
 // with confirmation, platform tiles, and the send-instructions escape hatch
 // (§5) for buyers who can't publish HTML themselves.
 const PLATFORMS = [
@@ -66,7 +66,7 @@ export default function InstallStep() {
       toast("Snippet copied.");
       setTimeout(() => setCopied(false), 2500);
     } catch {
-      toast("Couldn't copy — select and copy manually.", "warning");
+      toast("Couldn't copy - select and copy manually.", "warning");
     }
   };
 

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast";
 import { Mail, Lock, User, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 
-// Wizard step 0 (§7). Email + password only — OAuth deferred. Email
+// Wizard step 0 (§7). Email + password only - OAuth deferred. Email
 // verification happens AFTER setup, not here (a wall would kill the
 // five-minute promise). On success we land on step 1, /onboarding/site.
 export default function SignupPage() {

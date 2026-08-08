@@ -41,7 +41,7 @@ export function DogfoodPanel() {
           Your AI assistant will be answering customers in a few minutes.
         </h2>
 
-        {/* Static chat preview — the fallback that keeps the panel alive. */}
+        {/* Static chat preview - the fallback that keeps the panel alive. */}
         <div className="space-y-3 rounded-2xl bg-white/10 p-4 backdrop-blur">
           <div className="flex items-center gap-2 text-sm font-medium text-white/90">
             <MessageSquare className="h-4 w-4" /> Chat with us

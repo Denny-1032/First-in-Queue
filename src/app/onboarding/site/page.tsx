@@ -60,7 +60,7 @@ export default function SiteStep() {
     <WizardShell
       step={1}
       title="What's your website address?"
-      subtitle="We'll read it in the background and teach your assistant about your business — while you finish setup."
+      subtitle="We'll read it in the background and teach your assistant about your business - while you finish setup."
       onContinue={handleContinue}
       busy={busy}
       continueDisabled={!valid}
@@ -82,7 +82,7 @@ export default function SiteStep() {
       </div>
       <p className="mt-3 flex items-center gap-1.5 text-xs text-gray-500">
         <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
-        No website? Skip this — you can paste your FAQs later.
+        No website? Skip this - you can paste your FAQs later.
       </p>
     </WizardShell>
   );

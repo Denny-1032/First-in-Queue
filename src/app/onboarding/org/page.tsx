@@ -14,7 +14,7 @@ import {
 } from "@/lib/onboarding/client";
 import type { OnboardingState } from "@/types";
 
-// Step 2 (§7). Creates the property — the installable website that owns the
+// Step 2 (§7). Creates the property - the installable website that owns the
 // widget key. We reuse an existing property_id on Back/resume rather than
 // minting a second one.
 export default function OrgStep() {
@@ -74,7 +74,7 @@ export default function OrgStep() {
       title="What's the name of your organization?"
       subtitle={
         <>
-          We&apos;ll create a <span className="font-medium text-gray-800">property</span> for it — that&apos;s
+          We&apos;ll create a <span className="font-medium text-gray-800">property</span> for it - that&apos;s
           simply one website where your chat widget lives.
         </>
       }

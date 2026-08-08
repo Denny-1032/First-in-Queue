@@ -2,7 +2,7 @@ import { DogfoodPanel } from "@/components/onboarding/dogfood-panel";
 
 // Two-column wizard chrome (§7). Left: brand + dogfood panel (desktop only).
 // Right: the current step. The panel lives in the layout so it stays mounted
-// across step navigations — no flicker, and any loaded FIQ widget persists.
+// across step navigations - no flicker, and any loaded FIQ widget persists.
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-gray-50">

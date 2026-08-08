@@ -82,7 +82,7 @@ export function BrandingEditor({ value, onChange }: Props) {
           </div>
           {lowContrast && (
             <p className="text-xs text-amber-600">
-              This colour is light — text may be hard to read. We&apos;ll use dark text.
+              This colour is light - text may be hard to read. We&apos;ll use dark text.
             </p>
           )}
         </div>

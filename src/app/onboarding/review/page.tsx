@@ -9,11 +9,11 @@ import { WizardShell } from "@/components/onboarding/wizard-shell";
 import { loadOnboarding, saveOnboarding, commitKnowledge } from "@/lib/onboarding/client";
 import type { FAQ, KnowledgeEntry, OnboardingCrawlState } from "@/types";
 
-// Step 5 (§7) — the trust moment. Shows the crawl-generated FAQs + KB, fully
+// Step 5 (§7) - the trust moment. Shows the crawl-generated FAQs + KB, fully
 // editable (edit / delete / add). Only what the user keeps is committed to
 // config.faqs / config.knowledge_base, which is what the AI engine reads.
 // If the crawl is still running we poll; if it failed we fall back cleanly to
-// manual entry — never a dead end.
+// manual entry - never a dead end.
 
 let uid = 0;
 const nextId = (p: string) => `${p}_new_${Date.now()}_${uid++}`;
@@ -101,14 +101,14 @@ export default function ReviewStep() {
       {/* Status banner */}
       {running ? (
         <div className="mb-4 flex items-center gap-2 rounded-xl bg-gray-50 p-3 text-sm text-gray-600">
-          <Loader2 className="h-4 w-4 animate-spin" /> Still reading your website — items will appear
+          <Loader2 className="h-4 w-4 animate-spin" /> Still reading your website - items will appear
           here as they&apos;re ready. You can start adding your own below.
         </div>
       ) : failed ? (
         <div className="mb-4 flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-700">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            {crawl?.error || "We couldn't read your site."} No problem — add your own questions and
+            {crawl?.error || "We couldn't read your site."} No problem - add your own questions and
             facts below.
           </span>
         </div>
