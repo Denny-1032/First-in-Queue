@@ -78,6 +78,39 @@ describe("isFirstPartyWidgetRequest", () => {
     expect(isFirstPartyWidgetRequest(req({ host: "firstinqueue.com" }), "not-a-url")).toBe(false);
   });
 
+  // WKWebView before iOS 16.4 sends neither Origin nor Sec-Fetch-Site, so the
+  // mobile-app embed falls back to Referer.
+  it("old WKWebView (no Origin, no Sec-Fetch-Site) is first-party via Referer", () => {
+    expect(
+      isFirstPartyWidgetRequest(
+        req({ host: "firstinqueue.com", referer: "https://firstinqueue.com/widget/chat?key=x" }),
+        null
+      )
+    ).toBe(true);
+  });
+
+  it("a Referer on someone else's site is not first-party", () => {
+    expect(
+      isFirstPartyWidgetRequest(
+        req({ host: "firstinqueue.com", referer: "https://evil.example/page" }),
+        null
+      )
+    ).toBe(false);
+  });
+
+  it("Sec-Fetch-Site still wins over Referer when present", () => {
+    expect(
+      isFirstPartyWidgetRequest(
+        req({
+          host: "firstinqueue.com",
+          "sec-fetch-site": "cross-site",
+          referer: "https://firstinqueue.com/widget/chat",
+        }),
+        null
+      )
+    ).toBe(false);
+  });
+
   it("suffix collision on the host does not pass", () => {
     expect(
       isFirstPartyWidgetRequest(req({ host: "firstinqueue.com" }), "https://notfirstinqueue.com")

@@ -32,6 +32,12 @@ export const BRANDING_DEFAULTS = {
   response_delay_ms: 600,
   launcher: "bubble",
   offline_message: null as string | null,
+  /** Voice calling from the widget. Off by default — it has real per-minute
+   *  COGS and is gated again server-side by plan, minutes and agent
+   *  (see lib/voice/widget-voice.ts). */
+  voice_enabled: false,
+  /** Pin one voice agent to this property. Null = the tenant's first active. */
+  voice_agent_id: null as string | null,
 };
 
 /**
@@ -51,6 +57,7 @@ export function isPlausibleHost(host: string): boolean {
 const POSITIONS = ["bottom-right", "bottom-left", "top-right", "top-left"];
 const LAUNCHERS = ["bubble", "tab", "custom"];
 const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface CreatePropertyInput {
   name: string;
@@ -148,6 +155,12 @@ export function sanitizeBranding(
   }
 
   if (typeof input.show_branding === "boolean") out.show_branding = input.show_branding;
+  if (typeof input.voice_enabled === "boolean") out.voice_enabled = input.voice_enabled;
+
+  // Turning voice on here only makes the offer; plan, remaining minutes and an
+  // active agent are still checked on every call.
+  if (input.voice_agent_id === null) out.voice_agent_id = null;
+  else if (UUID_RE.test(String(input.voice_agent_id))) out.voice_agent_id = input.voice_agent_id;
 
   if (typeof input.response_delay_ms === "number" && Number.isFinite(input.response_delay_ms)) {
     out.response_delay_ms = Math.min(5000, Math.max(0, Math.round(input.response_delay_ms)));

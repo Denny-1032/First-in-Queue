@@ -70,6 +70,21 @@ describe("sanitizeBranding", () => {
     expect(out).toEqual({ title: "Hi" });
   });
 
+  it("accepts the voice toggle and a uuid agent id, rejects a bogus one", () => {
+    const on = sanitizeBranding({ voice_enabled: true }, {});
+    expect(on.voice_enabled).toBe(true);
+
+    const uuid = "3f1b2c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d";
+    expect(sanitizeBranding({ voice_agent_id: uuid }, {}).voice_agent_id).toBe(uuid);
+    // A non-uuid would be fed straight into an `.eq()` filter — keep the old value.
+    expect(
+      sanitizeBranding({ voice_agent_id: "' or 1=1--" }, { voice_agent_id: uuid }).voice_agent_id
+    ).toBe(uuid);
+    expect(sanitizeBranding({ voice_agent_id: null }, { voice_agent_id: uuid }).voice_agent_id).toBe(
+      null
+    );
+  });
+
   it("rejects non-hex colours — these land in inline styles on the customer's page", () => {
     const out = sanitizeBranding(
       { primary_color: "red; background: url(//evil)", text_color: "#fff" },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveByKey, widgetJson, corsHeaders, checkBurst } from "@/lib/properties/guard";
 import { getTenantById } from "@/lib/db/operations";
 import { isOutsideOperatingHours } from "@/lib/engine/handler";
+import { resolveWidgetVoice } from "@/lib/voice/widget-voice";
 
 // Boot configuration for the widget loader.
 // Branding lives server-side so a customer can restyle from the dashboard
@@ -20,7 +21,12 @@ const DEFAULT_BRANDING = {
   launcher: "bubble",
   logo_url: null as string | null,
   offline_message: null as string | null,
+  voice_enabled: false,
+  voice_agent_id: null as string | null,
 };
+
+/** Keys resolved into the separate `voice` block — not echoed to visitors. */
+const PRIVATE_BRANDING_KEYS = ["voice_agent_id"];
 
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(request.headers.get("origin")) });
@@ -39,7 +45,16 @@ export async function GET(request: NextRequest) {
     }
 
     const tenant = await getTenantById(property.tenant_id);
-    const branding = { ...DEFAULT_BRANDING, ...(property.branding || {}) };
+    const branding: Record<string, unknown> = {
+      ...DEFAULT_BRANDING,
+      ...(property.branding || {}),
+    };
+
+    // Plan, minutes, toggle and agent are all resolved server-side; the browser
+    // only learns whether the call button should render. See widget-voice.ts.
+    const voice = await resolveWidgetVoice(property.tenant_id, property.branding);
+    branding.voice_enabled = voice.enabled;
+    for (const k of PRIVATE_BRANDING_KEYS) delete branding[k];
 
     // Explicit allowlist. Never spread the tenant or property row — both carry
     // secrets (openai_api_key, whatsapp_access_token).
@@ -48,6 +63,7 @@ export async function GET(request: NextRequest) {
         property_id: property.id,
         name: property.name,
         branding,
+        voice: { enabled: voice.enabled },
         online: tenant ? !isOutsideOperatingHours(tenant) : true,
         locale: "en",
       },

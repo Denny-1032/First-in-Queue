@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Copy, Globe, KeyRound, Loader2, Palette, Pencil, Plus, Trash2 } from "lucide-react";
+import { Copy, Globe, KeyRound, Loader2, Palette, Pencil, Phone, Plus, Trash2 } from "lucide-react";
 import {
   BrandingEditor,
   textColorFor,
@@ -39,6 +39,21 @@ function brandingDraft(p: Property): BrandingValue {
     suggested_messages: Array.isArray(b.suggested_messages)
       ? (b.suggested_messages as string[])
       : ["I have a question", "Tell me more"],
+  };
+}
+
+interface VoiceDraft {
+  enabled: boolean;
+  /** "" = let the server pick the tenant's first active agent. */
+  agentId: string;
+}
+
+/** Read the property's voice settings out of branding. */
+function voiceDraftOf(p: Property): VoiceDraft {
+  const b = p.branding || {};
+  return {
+    enabled: b.voice_enabled === true,
+    agentId: typeof b.voice_agent_id === "string" ? b.voice_agent_id : "",
   };
 }
 
@@ -82,6 +97,10 @@ export default function PropertiesPage() {
   // Per-property branding panel. null = closed.
   const [brandId, setBrandId] = useState<string | null>(null);
   const [brandDraft, setBrandDraft] = useState<BrandingValue | null>(null);
+  // Voice lives outside BrandingValue — it is an entitlement, not appearance,
+  // and the onboarding wizard (which shares BrandingEditor) has no agents yet.
+  const [voiceDraft, setVoiceDraft] = useState<VoiceDraft>({ enabled: false, agentId: "" });
+  const [voiceAgents, setVoiceAgents] = useState<Array<{ id: string; name: string }>>([]);
 
   const load = useCallback(async () => {
     try {
@@ -99,6 +118,12 @@ export default function PropertiesPage() {
 
   useEffect(() => {
     load();
+    // Voice agents are only needed to label the picker; a failure just leaves
+    // the property on "first active agent".
+    fetch("/api/voice/agents")
+      .then((r) => (r.ok ? r.json() : { agents: [] }))
+      .then((d) => setVoiceAgents(d.agents || []))
+      .catch(() => {});
   }, [load]);
 
   const create = async () => {
@@ -156,6 +181,7 @@ export default function PropertiesPage() {
   const openBranding = (p: Property) => {
     setBrandId(p.id);
     setBrandDraft(brandingDraft(p));
+    setVoiceDraft(voiceDraftOf(p));
     setError("");
   };
 
@@ -178,6 +204,8 @@ export default function PropertiesPage() {
             title: brandDraft.title,
             welcome_message: brandDraft.welcome_message,
             suggested_messages: brandDraft.suggested_messages,
+            voice_enabled: voiceDraft.enabled,
+            voice_agent_id: voiceDraft.agentId || null,
           },
         }),
       });
@@ -395,6 +423,60 @@ export default function PropertiesPage() {
                     <div className="space-y-4 rounded-lg border border-gray-100 bg-gray-50/60 p-4">
                       <Label>Widget appearance</Label>
                       <BrandingEditor value={brandDraft} onChange={setBrandDraft} />
+
+                      <div className="space-y-2 border-t border-gray-200 pt-4">
+                        <label className="flex items-start gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            className="mt-0.5 h-4 w-4 accent-emerald-600"
+                            checked={voiceDraft.enabled}
+                            onChange={(e) =>
+                              setVoiceDraft({ ...voiceDraft, enabled: e.target.checked })
+                            }
+                          />
+                          <span>
+                            <span className="flex items-center gap-1.5 font-medium text-gray-900">
+                              <Phone className="h-3.5 w-3.5 text-gray-400" />
+                              Let visitors talk to the AI from the widget
+                            </span>
+                            <span className="block text-xs text-gray-500">
+                              Adds a call button to the chat header. Uses your plan&apos;s voice
+                              minutes — the button hides automatically when they run out, and on
+                              the free plan.
+                            </span>
+                          </span>
+                        </label>
+
+                        {voiceDraft.enabled && (
+                          <div className="pl-6 space-y-1.5">
+                            <Label htmlFor={`voice-agent-${p.id}`} className="text-xs">
+                              Voice agent
+                            </Label>
+                            <select
+                              id={`voice-agent-${p.id}`}
+                              value={voiceDraft.agentId}
+                              onChange={(e) =>
+                                setVoiceDraft({ ...voiceDraft, agentId: e.target.value })
+                              }
+                              className="h-9 w-full rounded-md border border-gray-200 bg-white px-2 text-sm"
+                            >
+                              <option value="">First active agent</option>
+                              {voiceAgents.map((a) => (
+                                <option key={a.id} value={a.id}>
+                                  {a.name}
+                                </option>
+                              ))}
+                            </select>
+                            {voiceAgents.length === 0 && (
+                              <p className="text-xs text-amber-600">
+                                No voice agent yet — create one under Voice Agent first, or the
+                                call button stays hidden.
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
                       <div className="flex gap-2">
                         <Button size="sm" onClick={() => saveBranding(p.id)} disabled={busy}>
                           {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}

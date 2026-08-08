@@ -251,10 +251,19 @@ function WidgetIframeContent() {
 
         {/* Footer branding */}
         {config.showBranding && (
-          <div className="px-4 py-2 border-t border-gray-200">
-            <p className="text-xs text-center opacity-60" style={{ color: config.textColor }}>
-              Powered by First in Queue
-            </p>
+          <div className="px-4 py-2 border-t border-gray-200 flex justify-center">
+            <a
+              href="https://firstinqueue.com?utm_source=widget&utm_medium=branding"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-[11px] leading-none text-gray-500 shadow-sm hover:shadow transition-shadow"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/fiq-mark.png" alt="" className="h-3.5 w-3.5 object-contain" />
+              <span>
+                Powered by <strong className="font-bold text-[#03A84E]">First in Queue</strong>
+              </span>
+            </a>
           </div>
         )}
       </div>

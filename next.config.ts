@@ -48,6 +48,13 @@ const nextConfig: NextConfig = {
         { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
       ],
     },
+    {
+      // The branding pill's mark — fetched by every widget on every site.
+      source: "/fiq-mark.png",
+      headers: [
+        { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+      ],
+    },
   ],
 };
 

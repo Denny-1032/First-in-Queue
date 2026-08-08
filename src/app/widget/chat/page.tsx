@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { renderMarkdown } from "@/lib/widget/markdown";
+import { useVoiceCall, formatCallTime } from "@/lib/widget/use-voice-call";
 
 // Text web-chat widget (Phase 1, Block 7).
 //
@@ -43,6 +44,12 @@ const POLL_MS = 3000;
 function ChatContent() {
   const searchParams = useSearchParams();
   const widgetKey = searchParams.get("key") || "";
+  // On desktop the loader draws its own detached branding pill outside the
+  // panel, so suppress the in-panel one and avoid showing it twice.
+  const brandInHost = searchParams.get("brandhost") === "1";
+  // Loaded directly in an Android WebView / WKWebView: there is no parent frame
+  // to post "close" to, so the host app supplies its own dismiss chrome.
+  const nativeEmbed = searchParams.get("embed") === "native";
 
   const [branding, setBranding] = useState<Branding | null>(null);
   const [online, setOnline] = useState(true);
@@ -54,6 +61,7 @@ function ChatContent() {
   const [error, setError] = useState<string | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [booted, setBooted] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
 
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -66,6 +74,10 @@ function ChatContent() {
   const post = useCallback((type: string, payload?: unknown) => {
     window.parent?.postMessage({ source: "fiq-widget", type, payload }, "*");
   }, []);
+
+  const getToken = useCallback(() => tokenRef.current, []);
+  const voice = useVoiceCall({ getToken, onEvent: post });
+  const onCall = voice.state === "connecting" || voice.state === "active";
 
   // ---------------------------------------------------------------- boot
 
@@ -85,6 +97,7 @@ function ChatContent() {
         if (cancelled) return;
         setBranding(cfg.branding);
         setOnline(cfg.online !== false);
+        setVoiceEnabled(cfg.voice?.enabled === true);
 
         const storeKey = `fiq_visitor_${cfg.property_id}`;
         const stored = localStorage.getItem(storeKey);
@@ -274,7 +287,10 @@ function ChatContent() {
   const chips = lastChips(messages);
 
   return (
-    <div className="fiq-chat" style={{ ["--fiq-primary" as string]: b.primary_color }}>
+    <div
+      className={`fiq-chat${nativeEmbed ? " native" : ""}`}
+      style={{ ["--fiq-primary" as string]: b.primary_color }}
+    >
       <header className="fiq-header">
         {b.logo_url && <img src={b.logo_url} alt="" className="fiq-logo" />}
         <div className="fiq-head-text">
@@ -284,15 +300,68 @@ function ChatContent() {
             {online ? "We're online" : "Away — leave a message"}
           </p>
         </div>
-        <button
-          type="button"
-          className="fiq-close"
-          aria-label="Close chat"
-          onClick={() => post("close")}
-        >
-          ×
-        </button>
+        {voiceEnabled && !onCall && (
+          <button
+            type="button"
+            className="fiq-call"
+            aria-label="Talk to us — start a voice call"
+            title="Talk to us"
+            onClick={voice.start}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.2 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+          </button>
+        )}
+        {!nativeEmbed && (
+          <button
+            type="button"
+            className="fiq-close"
+            aria-label="Close chat"
+            onClick={() => post("close")}
+          >
+            ×
+          </button>
+        )}
       </header>
+
+      {(onCall || voice.state === "error") && (
+        <div className={`fiq-callbar ${voice.state}`} role="status" aria-live="polite">
+          <span className="fiq-callstate">
+            {voice.state === "connecting" && "Connecting…"}
+            {voice.state === "active" && (
+              <>
+                <span className={`fiq-dot ${voice.agentTalking ? "on" : "off"}`} aria-hidden="true" />
+                {voice.agentTalking ? "Assistant speaking" : "On call"} ·{" "}
+                <time>{formatCallTime(voice.seconds)}</time>
+              </>
+            )}
+            {voice.state === "error" && (voice.error || "Call failed")}
+          </span>
+
+          {onCall ? (
+            <span className="fiq-callbtns">
+              <button
+                type="button"
+                onClick={voice.toggleMute}
+                aria-pressed={voice.muted}
+                disabled={voice.state !== "active"}
+              >
+                {voice.muted ? "Unmute" : "Mute"}
+              </button>
+              <button type="button" className="danger" onClick={voice.stop}>
+                End
+              </button>
+            </span>
+          ) : (
+            <span className="fiq-callbtns">
+              <button type="button" onClick={voice.reset}>
+                Dismiss
+              </button>
+            </span>
+          )}
+        </div>
+      )}
 
       <div
         className="fiq-list"
@@ -391,10 +460,21 @@ function ChatContent() {
         </button>
       </form>
 
-      {b.show_branding && (
-        <p className="fiq-brand">
-          Powered by <strong>First in Queue</strong>
-        </p>
+      {b.show_branding && !brandInHost && (
+        <div className="fiq-brandbar">
+          <a
+            className="fiq-brand"
+            href="https://firstinqueue.com?utm_source=widget&utm_medium=branding"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {/* 48px mark, not the 7MB full-res logo — this loads on every visit. */}
+            <img src="/fiq-mark.png" alt="" className="fiq-brand-logo" />
+            <span>
+              Powered by <strong>First in Queue</strong>
+            </span>
+          </a>
+        </div>
       )}
 
       <style jsx global>{`
@@ -424,6 +504,31 @@ function ChatContent() {
           background: transparent; border: none; color: #fff; font-size: 26px;
           line-height: 1; cursor: pointer; padding: 0 4px;
         }
+        .fiq-call {
+          background: rgba(255, 255, 255, .18); border: none; color: #fff;
+          width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+        }
+        .fiq-call:hover { background: rgba(255, 255, 255, .3); }
+        .fiq-call:focus-visible { outline: 3px solid #111; outline-offset: 2px; }
+        .fiq-callbar {
+          display: flex; align-items: center; justify-content: space-between; gap: 8px;
+          padding: 8px 12px; font-size: 12px; flex: 0 0 auto;
+          background: #f0fdf4; border-bottom: 1px solid #dcfce7; color: #14532d;
+        }
+        .fiq-callbar.error { background: #fef2f2; border-bottom-color: #fee2e2; color: #991b1b; }
+        .fiq-callstate { display: flex; align-items: center; gap: 6px; min-width: 0; }
+        .fiq-callbtns { display: flex; gap: 6px; flex: 0 0 auto; }
+        .fiq-callbtns button {
+          border: 1px solid currentColor; background: transparent; color: inherit;
+          border-radius: 14px; padding: 3px 10px; font-size: 12px; cursor: pointer;
+        }
+        .fiq-callbtns button:disabled { opacity: .5; cursor: not-allowed; }
+        .fiq-callbtns button.danger { background: #dc2626; border-color: #dc2626; color: #fff; }
+        .fiq-callbtns button:focus-visible { outline: 3px solid #111; outline-offset: 2px; }
+        /* WebView embeds have no browser chrome — keep the composer off the
+           home indicator / gesture bar. */
+        .fiq-chat.native .fiq-composer { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
         .fiq-close:focus-visible, .fiq-composer button:focus-visible,
         .fiq-chips button:focus-visible, textarea:focus-visible {
           outline: 3px solid #111; outline-offset: 2px;
@@ -473,7 +578,22 @@ function ChatContent() {
           align-items: center; justify-content: center; flex: 0 0 auto;
         }
         .fiq-composer button:disabled { opacity: .45; cursor: not-allowed; }
-        .fiq-brand { margin: 0; padding: 0 0 8px; text-align: center; font-size: 11px; color: #9ca3af; }
+        .fiq-brandbar {
+          display: flex; justify-content: center; flex: 0 0 auto;
+          background: #f7f8f9; padding: 8px 0 10px;
+        }
+        .fiq-brand {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 5px 12px 5px 8px; border-radius: 999px;
+          background: #fff; border: 1px solid #e5e7eb;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, .1);
+          font-size: 11px; color: #6b7280; text-decoration: none; line-height: 1;
+          transition: box-shadow .15s, transform .15s;
+        }
+        .fiq-brand:hover { box-shadow: 0 3px 10px rgba(0, 0, 0, .14); transform: translateY(-1px); }
+        .fiq-brand:focus-visible { outline: 3px solid #111; outline-offset: 2px; }
+        .fiq-brand strong { color: #03A84E; font-weight: 700; }
+        .fiq-brand-logo { width: 14px; height: 14px; object-fit: contain; display: block; }
         @media (prefers-reduced-motion: reduce) {
           .fiq-typing span { animation: none; }
           .fiq-list { scroll-behavior: auto; }

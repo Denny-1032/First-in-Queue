@@ -92,8 +92,8 @@ export function isFirstPartyWidgetRequest(
   request: NextRequest,
   origin: string | null
 ): boolean {
-  if (origin) {
-    const hosts = [request.headers.get("host"), process.env.NEXT_PUBLIC_APP_URL]
+  const ourHosts = () =>
+    [request.headers.get("host"), process.env.NEXT_PUBLIC_APP_URL]
       .filter((h): h is string => !!h)
       .map((h) => {
         try {
@@ -102,8 +102,10 @@ export function isFirstPartyWidgetRequest(
           return null;
         }
       });
+
+  if (origin) {
     try {
-      return hosts.includes(new URL(origin).host);
+      return ourHosts().includes(new URL(origin).host);
     } catch {
       return false;
     }
@@ -111,7 +113,23 @@ export function isFirstPartyWidgetRequest(
 
   // A same-origin fetch sends no Origin at all. Sec-Fetch-Site is set by the
   // browser and cannot be overridden by page JavaScript.
-  return request.headers.get("sec-fetch-site") === "same-origin";
+  const site = request.headers.get("sec-fetch-site");
+  if (site) return site === "same-origin";
+
+  // No Origin AND no Sec-Fetch-Site: an older WebKit (WKWebView before iOS
+  // 16.4) loading the widget document directly — the mobile-app embed path.
+  // Fall back to Referer, which the browser also sets and page JS cannot
+  // override for its own requests. Only a Referer on OUR origin counts, so a
+  // customer's page still has to pass the allowlist. Per §6 this was never a
+  // defence against non-browser clients anyway; rate limits and the AI ceiling
+  // are the cost boundary.
+  const referer = request.headers.get("referer");
+  if (!referer) return false;
+  try {
+    return ourHosts().includes(new URL(referer).host);
+  } catch {
+    return false;
+  }
 }
 
 /** Origin check for widget routes: the customer's allowlist, or our own iframe. */
