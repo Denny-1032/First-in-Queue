@@ -402,8 +402,13 @@ needs somewhere to live.
 6. ~~Phases 4-6 - plan structure, capability gating, pricing surfaces~~ -
    **done 2026-08-09**, migration 020. Free / Pro / Institution live; Basic and
    Business kept as hidden legacy entries so the one paid period is honoured.
-7. Reconcile the remaining `payments` drift: `payment_method`,
-   `lenco_reference`, `completed_at` exist in code but in no migration (§5).
+7. ~~Reconcile the remaining `payments` drift~~ - **done 2026-08-09**,
+   `supabase/migrations/021_reconcile_payments_columns.sql`. Adds
+   `payment_method`, `lenco_reference` and `completed_at`, and widens the
+   `payment_type` CHECK, which rejected every value the Lenco card path writes
+   (`card` / `mobile-money` / `bank-account` against a Lipila-only
+   vocabulary) - so card confirmations threw and the customer was charged
+   without the subscription activating.
 8. **1 September 2026: re-run pricing-model-v2 §1** with Meta's published Rest of
    Africa rates, then set the WhatsApp credit price in
    `src/lib/credit/rates.ts` (`CREDIT_RATES.WHATSAPP_REPLY_NGWEE`) and the

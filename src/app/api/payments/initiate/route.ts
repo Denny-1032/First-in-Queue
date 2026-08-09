@@ -70,7 +70,10 @@ export async function POST(request: NextRequest) {
 
     // Create pending payment record
     const supabase = getSupabaseAdmin();
-    const basePaymentInsert = {
+
+    // Columns present since 003. Everything below this is added by a later
+    // migration, so the fallback drops back to exactly this set.
+    const legacyPaymentInsert = {
       tenant_id: tenantId,
       lipila_reference_id: referenceId,
       amount,
@@ -78,32 +81,43 @@ export async function POST(request: NextRequest) {
       status: "pending",
       narration,
       account_number: phoneNumber ? formatZambianPhone(phoneNumber) : email,
+    };
+
+    const paymentInsert = {
+      ...legacyPaymentInsert,
       // Carry the plan explicitly (migration 020). Activation reads this rather
       // than inferring the plan from the amount, which broke the moment a price
       // changed or a payment arrived short.
       plan_id: planId,
       billing_interval: isYearly ? "yearly" : "monthly",
+      // Distinguishes this from a credit top-up (migration 019).
       purpose: "subscription",
+      // Picks Lipila vs Lenco on confirmation (migration 021).
+      payment_method: paymentMethod,
     };
 
     let payment = null;
     let paymentError = null;
 
-    // Primary insert: include payment_method when schema supports it.
     ({ data: payment, error: paymentError } = await supabase
       .from("payments")
-      .insert({
-        ...basePaymentInsert,
-        payment_method: paymentMethod,
-      })
+      .insert(paymentInsert)
       .select()
       .single());
 
-    // Backward-compatible fallback for environments where payment_method column does not exist.
+    // PGRST204 = the schema cache has no such column, i.e. migrations 019-021
+    // have not been applied to this environment yet. Retry with the pre-019
+    // column set rather than failing the payment outright. The subscription
+    // still activates: resolvePlanFromPayment falls back to matching the amount
+    // exactly when plan_id is absent.
     if (paymentError && paymentError.code === "PGRST204") {
+      console.warn(
+        "[Payments] payments table is missing v2 columns (run migrations 019-021) - inserting legacy row:",
+        paymentError.message
+      );
       ({ data: payment, error: paymentError } = await supabase
         .from("payments")
-        .insert(basePaymentInsert)
+        .insert(legacyPaymentInsert)
         .select()
         .single());
     }
