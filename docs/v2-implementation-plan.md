@@ -308,10 +308,24 @@ needs somewhere to live.
 
 ## 10. Immediate next actions
 
-1. Fix the `subscription_plans` migration drift (§1.1) - small, independent, and
-   currently a latent failure for any schema rebuild
-2. Phase 1 - strip "unlimited" and cap Enterprise
+1. ~~Fix the `subscription_plans` migration drift (§1.1)~~ - **done 2026-08-09**,
+   `supabase/migrations/017_reconcile_subscription_plans.sql`. Idempotent on both
+   a fresh rebuild and the live database, and it asserts that no subscription
+   references a missing plan so future drift fails the migration instead of the
+   next rebuild. `scripts/sync-plans-to-frontend.sql` is marked superseded.
+   **Still to apply in the Supabase SQL editor** - a no-op on production apart
+   from the assertion and the Enterprise cap.
+2. ~~Phase 1 - strip "unlimited" and cap Enterprise~~ - **done 2026-08-09**.
+   Enterprise is 5,000 WhatsApp conversations / 500 voice minutes / up to 10
+   numbers, with overage stated as contracted rather than published (no WhatsApp
+   rate can be set before §1.4). Voice overage on Basic/Business raised from
+   K3.80/min to K7.00/min - the old rate sat 8% above the K3.51 COGS.
 3. Instrument replies-per-conversation against real traffic, excluding internal
    tenants (§1.5)
 4. **1 September 2026: re-run pricing-model-v2 §1** with Meta's published Rest of
    Africa rates, then set the WhatsApp credit price
+
+Carried forward, not fixed: the FiQ knowledge base quotes WhatsApp overage at
+**K0.50/conversation** while `/pricing` says **K1.70/message**. Both sit above
+COGS so neither is a margin risk, but the agent and the page disagree. Phase 3
+resolves it when credit rates are set.
