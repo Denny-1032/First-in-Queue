@@ -167,9 +167,10 @@ FiQ integrates with the WhatsApp Business API to enable automated messaging at s
         price: "Custom (Starting from K5,000/month)",
         description: "Tailored solutions for large organizations with custom requirements.",
         includes: [
-          "Unlimited WhatsApp conversations",
-          "Unlimited voice usage",
-          "Unlimited WhatsApp numbers",
+          "5,000 WhatsApp conversations per month",
+          "500 AI voice call minutes per month",
+          "Up to 10 WhatsApp phone numbers",
+          "Higher allowances and overage rates agreed in your contract",
           "Custom AI trained on business data",
           "99.9% uptime SLA",
           "Dedicated account manager",
@@ -177,14 +178,19 @@ FiQ integrates with the WhatsApp Business API to enable automated messaging at s
           "On-site onboarding & training",
           "Everything in Business",
         ],
-        limits: [],
+        limits: [
+          "Up to 5,000 conversations/month",
+          "Up to 500 voice minutes/month",
+          "Up to 10 WhatsApp numbers",
+          "Allowances above these are contracted, not automatic",
+        ],
         bestFor: "Large enterprises, franchises, high-volume businesses",
       },
     ],
     
     overagePolicy: `If you exceed your monthly conversation or voice minute limits:
 - Conversations: Additional messages charged at K0.50 per conversation
-- Voice minutes: Additional minutes charged at K15/minute
+- Voice minutes: Additional minutes charged at K7.00/minute
 - You'll receive usage alerts at 80% and 100% of your limit
 - Option to upgrade plan at any time to avoid overages`,
     
@@ -750,7 +756,7 @@ SELF-HELP:
     },
     {
       question: "What's the difference between plans?",
-      answer: "Basic (K499): 1,000 conversations, 30 voice mins, 1 number, basic features. Business (K1,699): 5,000 conversations, 120 voice mins, 2 numbers, advanced features + human handoff. Enterprise (Custom): Unlimited everything + custom AI + SLA.",
+      answer: "Basic (K499): 1,000 conversations, 30 voice mins, 1 number, basic features. Business (K1,699): 5,000 conversations, 120 voice mins, 2 numbers, advanced features + human handoff. Enterprise (Custom, from K5,000): 5,000 conversations, 500 voice mins, up to 10 numbers, plus custom AI, SLA and a dedicated account manager - higher allowances are agreed in your contract.",
     },
     {
       question: "Do I need Meta/Facebook Business verification?",
@@ -895,7 +901,7 @@ Rate limits:
 - You handle different product lines
 - You serve different geographic regions`,
       setup: `Business Plan: Supports up to 2 numbers
-Enterprise Plan: Unlimited numbers
+Enterprise Plan: Supports up to 10 numbers
 
 Configuration:
 1. Add each number in Dashboard → Settings → WhatsApp Numbers
@@ -917,7 +923,7 @@ Example with Business Plan (5,000 conversations):
 - Number 2: 2,000 conversations
 Total cannot exceed plan limit.
 
-Or upgrade to Enterprise for unlimited per-number usage.`,
+Or upgrade to Enterprise for a larger shared allowance across up to 10 numbers.`,
     },
     
     operatingHours: {

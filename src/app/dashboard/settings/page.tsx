@@ -675,11 +675,13 @@ function SettingsContent() {
                     <p className="text-xs text-gray-500">AI phone call minutes used</p>
                   </div>
                   <span className="text-sm font-semibold text-gray-900">
-                    {voiceMinutesUsed.toLocaleString()} / {currentPlan.voiceMinutesPerMonth >= 999999 ? "Unlimited" : currentPlan.voiceMinutesPerMonth.toLocaleString()}
+                    {voiceMinutesUsed.toLocaleString()} / {currentPlan.voiceMinutesPerMonth.toLocaleString()}
                   </span>
                 </div>
-                {currentPlan.voiceMinutesPerMonth < 999999 && (() => {
-                  const voicePercent = Math.min(100, Math.round((voiceMinutesUsed / currentPlan.voiceMinutesPerMonth) * 100));
+                {(() => {
+                  const voicePercent = currentPlan.voiceMinutesPerMonth > 0
+                    ? Math.min(100, Math.round((voiceMinutesUsed / currentPlan.voiceMinutesPerMonth) * 100))
+                    : 0;
                   return (
                     <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
                       <div

@@ -110,7 +110,7 @@ export function PricingPlans() {
                 {plan.id !== "enterprise" && (
                   <>
                     <p className="text-xs text-gray-500 text-center mt-3">
-                      Additional usage charged at K1.70/message and K3.80/minute
+                      Additional usage charged at K1.70/message and K7.00/minute
                     </p>
                     <p className="text-xs text-emerald-600 text-center mt-1 font-medium">
                       30-day money-back guarantee

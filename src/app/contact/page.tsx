@@ -86,7 +86,7 @@ export default function ContactPage() {
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Enterprise or custom needs?</h2>
           <p className="text-gray-500 mb-8">
-            Unlimited messages, custom integrations, or SLA guarantees? Let&apos;s talk.
+            Higher allowances, custom integrations, or SLA guarantees? Let&apos;s talk.
           </p>
           <a
             href="mailto:support@codarti.com"

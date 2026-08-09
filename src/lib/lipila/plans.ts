@@ -128,18 +128,24 @@ export const PLANS: PlanDefinition[] = [
     yearlyPriceZMW: 5000,
     yearlyPriceLabel: "Custom",
     yearlyMonthlyLabel: "Custom",
-    messagesPerMonth: 999999,
-    messagesLabel: "Unlimited WhatsApp conversations*",
+    // WhatsApp and voice are real third-party pass-throughs, so they are
+    // metered and never unlimited (pricing-model-v2 §3). These are the exact
+    // allowances Enterprise was costed on in §2 - K2,727 COGS at 5,000 messages
+    // and 500 voice minutes, a 45% margin. Break-even is 1,425 voice minutes,
+    // so 500 keeps a 2.8x safety band. Overage is contracted, not published.
+    messagesPerMonth: 5000,
+    messagesLabel: "5,000 WhatsApp conversations/mo",
     // Web is low-marginal-cost but "never unlimited" (pricing-model-v2 §143):
     // a generous fair-use bound, negotiated per contract.
     webAiRepliesPerMonth: 50000,
-    voiceMinutesPerMonth: 999999,
-    voiceMinutesLabel: "Unlimited voice usage*",
-    whatsappNumbers: 99,
+    voiceMinutesPerMonth: 500,
+    voiceMinutesLabel: "500 AI voice call minutes/mo",
+    whatsappNumbers: 10,
     features: [
-      "Unlimited WhatsApp conversations*",
-      "Unlimited voice usage*",
-      "Unlimited WhatsApp numbers",
+      "5,000 WhatsApp conversations/month",
+      "500 AI voice call minutes/month",
+      "Up to 10 WhatsApp numbers",
+      "Higher allowances and overage agreed in your contract",
       "Custom AI trained on business data",
       "99.9% uptime SLA",
       "Dedicated account manager",

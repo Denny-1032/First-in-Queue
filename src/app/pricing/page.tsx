@@ -40,7 +40,7 @@ const faqs = [
   },
   {
     question: "What if I exceed my plan limits?",
-    answer: "Service continues automatically. Additional usage is billed at K1.70 per WhatsApp message and K3.80 per voice minute. No service interruption.",
+    answer: "Service continues automatically. Additional usage is billed at K1.70 per WhatsApp message and K7.00 per voice minute. No service interruption.",
   },
   {
     question: "What are AI voice call minutes?",
@@ -178,7 +178,7 @@ function PricingContent() {
                 {plan.id !== "enterprise" && (
                   <>
                     <p className="text-xs text-gray-500 text-center mt-3">
-                      Additional usage charged at K1.70/message and K3.80/minute
+                      Additional usage charged at K1.70/message and K7.00/minute
                     </p>
                     <p className="text-xs text-emerald-600 text-center mt-1 font-medium">
                       30-day money-back guarantee
@@ -187,7 +187,7 @@ function PricingContent() {
                 )}
                 {plan.id === "enterprise" && (
                   <p className="text-xs text-gray-500 text-center mt-3 italic">
-                    *Subject to fair usage policy
+                    Higher allowances and overage rates agreed in your contract
                   </p>
                 )}
               </div>
