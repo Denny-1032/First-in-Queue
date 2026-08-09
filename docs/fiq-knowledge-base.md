@@ -244,7 +244,7 @@ All paid plans include a 30-day money-back guarantee. If you're not satisfied, c
 ### Billing & Payments
 
 - **Currency:** ZMW (Zambian Kwacha)
-- **Payment Methods:** Airtel Money, MTN Mobile Money, Zamtel Kwacha, Visa/Mastercard (via Lenco)
+- **Payment Methods:** Airtel Money, MTN Mobile Money, Zamtel Kwacha, Visa/Mastercard/Amex (all via Lipila)
 - **Billing Cycle:** Monthly or Yearly
 - **Proration:** Yes - charged proportionally when upgrading mid-cycle
 
@@ -433,7 +433,7 @@ Dashboard → Settings → Plan & Billing
 - Zamtel Kwacha
 
 **Card Payments:**
-- Visa and Mastercard (via Lenco payment gateway)
+- Visa, Mastercard and American Express (via Lipila)
 
 **Mobile Money Process:**
 1. Select mobile money provider
@@ -443,7 +443,7 @@ Dashboard → Settings → Plan & Billing
 
 **Card Payment Process:**
 1. Select card payment
-2. Enter card details in the secure Lenco widget
+2. Enter card details on Lipila's secure checkout page
 3. Complete 3D Secure verification if prompted
 4. Payment processed instantly
 
@@ -951,7 +951,7 @@ A: Yes. FiQ supports multi-tenant workspaces. Switch between businesses via the 
 A: An embeddable widget for your website that lets customers talk to your AI assistant via their browser. No phone number needed — uses WebRTC. Much cheaper than phone calls.
 
 **Q: Can I accept card payments?**
-A: Yes. FiQ supports Visa/Mastercard payments via Lenco in addition to Airtel Money, MTN, and Zamtel mobile money.
+A: Yes. FiQ supports Visa, Mastercard and American Express payments via Lipila in addition to Airtel Money, MTN, and Zamtel mobile money.
 
 **Q: Can I see a demo before signing up?**
 A: Yes. Book a free demo at https://firstinqueue.com/#book-demo. The FiQ team will give you a personalised walkthrough within 12 hours. You can also sign up for free and test with 5 conversations.

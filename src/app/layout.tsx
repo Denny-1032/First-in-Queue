@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ToastProvider } from "@/components/ui/toast";
+import { DialogProvider } from "@/components/ui/dialogs";
 import { OrganizationJsonLd, WebSiteJsonLd } from "@/components/seo/json-ld";
 import { FiqSupportWidgetWrapper } from "@/components/voice/fiq-support-widget-wrapper";
 import "./globals.css";
@@ -101,8 +102,10 @@ export default function RootLayout({
         <OrganizationJsonLd />
         <WebSiteJsonLd />
         <ToastProvider>
-          {children}
-          <FiqSupportWidgetWrapper />
+          <DialogProvider>
+            {children}
+            <FiqSupportWidgetWrapper />
+          </DialogProvider>
         </ToastProvider>
       </body>
     </html>

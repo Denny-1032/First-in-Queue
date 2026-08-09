@@ -40,8 +40,15 @@ export interface CardCollectionRequest {
     narration: string;
     accountNumber: string;
     currency: "ZMW" | "USD";
+    /** Where the customer lands when the card payment does not go through. */
     backUrl: string;
-    redirectUrl: string;
+    /**
+     * Free-text transaction reference. Echoed back on the callback payload.
+     * This replaced `redirectUrl` when Lipila shipped card collections - the
+     * old field is silently ignored, which is how a card charge could succeed
+     * with the customer never being sent anywhere.
+     */
+    referenceData: string;
   };
 }
 
@@ -71,6 +78,8 @@ export interface LipilaCallbackPayload {
   identifier: string;
   message: string;
   externalId?: string;
+  referenceData?: string;
+  narration?: string;
 }
 
 export interface LipilaStatusResponse {

@@ -18,6 +18,7 @@ import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 import { DemoBooking } from "@/components/landing/demo-booking";
 import { SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
+import { ScrollAnimate } from "@/components/ui/scroll-animate";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
 
@@ -55,35 +56,35 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 tracking-tight leading-[1.1]">
+              <h1 className="animate-enter animate-enter-1 text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 tracking-tight leading-[1.1]">
                 Never lose a customer to{" "}
                 <span className="bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
                   slow responses
                 </span>{" "}
                 again
               </h1>
-              <p className="text-lg text-gray-500 mt-6 max-w-lg">
+              <p className="animate-enter animate-enter-2 text-lg text-gray-500 mt-6 max-w-lg">
                 An automated assistant answers your WhatsApp messages and phone calls instantly - 24/7, in 40+ languages. Your customers get help in seconds, not hours.
               </p>
-              <div className="flex flex-col sm:flex-row items-start gap-4 mt-8">
+              <div className="animate-enter animate-enter-3 flex flex-col sm:flex-row items-start gap-4 mt-8">
                 <Link
-                  href="#book-demo"
+                  href="/signup"
                   className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-8 py-4 text-base font-semibold text-white hover:from-emerald-600 hover:to-teal-700 transition-all shadow-xl shadow-emerald-500/25"
                 >
-                  Book a Demo
+                  Get Started
                   <ArrowRight className="h-5 w-5" />
                 </Link>
                 <Link
-                  href="#how-it-works"
+                  href="#book-demo"
                   className="inline-flex items-center gap-2 rounded-xl border-2 border-gray-200 px-8 py-4 text-base font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-all"
                 >
-                  See How It Works
+                  Book a Demo
                 </Link>
               </div>
-              <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-8 text-sm text-gray-500">
+              <div className="animate-enter animate-enter-4 flex flex-wrap items-center gap-4 sm:gap-6 mt-8 text-sm text-gray-500">
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                  5-minute setup
+                  Free to start
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
@@ -91,7 +92,7 @@ export default function Home() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                  Free demo
+                  No card required
                 </div>
               </div>
               <p className="text-xs text-gray-400 mt-3">
@@ -99,7 +100,7 @@ export default function Home() {
               </p>
             </div>
             {/* Demo Booking Form - right side of hero */}
-            <div className="lg:pl-8">
+            <div className="animate-enter animate-enter-4 lg:pl-8">
               <DemoBooking id="book-demo" />
             </div>
           </div>
@@ -109,9 +110,12 @@ export default function Home() {
       {/* PROBLEM SECTION - Pain points */}
       <section className="py-16 px-6 bg-gray-50 border-y border-gray-100">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Sound familiar?</h2>
-          </div>
+          <ScrollAnimate animation="fade-up">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Sound familiar?</h2>
+            </div>
+          </ScrollAnimate>
+          <ScrollAnimate animation="fade-up" delay={100}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { icon: Clock, text: "Customers wait hours for a reply - and leave", color: "text-red-500 bg-red-50" },
@@ -126,21 +130,26 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <p className="text-center text-gray-500 mt-8 text-sm">
-            Every missed message is a lost sale. FiQ makes sure that never happens.
-          </p>
+          </ScrollAnimate>
+          <ScrollAnimate animation="fade-in" delay={200}>
+            <p className="text-center text-gray-500 mt-8 text-sm">
+              Every missed message is a lost sale. FiQ makes sure that never happens.
+            </p>
+          </ScrollAnimate>
         </div>
       </section>
 
       {/* SOLUTION SECTION - What FiQ does */}
       <section className="py-20 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">How FiQ solves it</h2>
-            <p className="text-gray-500 mt-3 max-w-2xl mx-auto">
-              One platform handles all your customer conversations - WhatsApp and phone - so your team can focus on growing the business.
-            </p>
-          </div>
+          <ScrollAnimate animation="fade-up">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">How FiQ solves it</h2>
+              <p className="text-gray-500 mt-3 max-w-2xl mx-auto">
+                One platform handles all your customer conversations - WhatsApp and phone - so your team can focus on growing the business.
+              </p>
+            </div>
+          </ScrollAnimate>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
@@ -177,6 +186,7 @@ export default function Home() {
       {/* LIVE DEMO - Chat simulation */}
       <section className="pb-20 px-6">
         <div className="max-w-4xl mx-auto">
+          <ScrollAnimate animation="fade-up">
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">See it in action</h2>
             <p className="text-gray-500 mt-3">A real customer conversation, resolved automatically in 8 seconds.</p>
@@ -218,12 +228,14 @@ export default function Home() {
               </div>
             </div>
           </div>
+          </ScrollAnimate>
         </div>
       </section>
 
       {/* SOCIAL PROOF - Stats + Testimonials */}
       <section className="py-16 px-6 bg-gray-50 border-y border-gray-100">
         <div className="max-w-7xl mx-auto">
+          <ScrollAnimate animation="scale-in">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center mb-16">
             {[
               { value: "78%", label: "Issues resolved without staff" },
@@ -239,7 +251,9 @@ export default function Home() {
               </div>
             ))}
           </div>
+          </ScrollAnimate>
           {/* ROI COMPARISON - Price anchoring (moved from above) */}
+          <ScrollAnimate animation="fade-up" delay={100}>
           <div className="text-center mb-10">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900">The old way vs FiQ</h2>
             <p className="text-gray-500 mt-2 text-sm">Why businesses are switching to automated support</p>
@@ -359,20 +373,24 @@ export default function Home() {
               ))}
             </div>
           </div> */}
+          </ScrollAnimate>
         </div>
       </section>
 
       {/* HOW IT WORKS - Brief */}
       <section id="how-it-works" className="py-20 px-6 bg-gray-50">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Up and running in 3 steps</h2>
-          </div>
+          <ScrollAnimate animation="fade-up">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Up and running in 3 steps</h2>
+            </div>
+          </ScrollAnimate>
+          <ScrollAnimate animation="fade-up" delay={100}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { step: "01", title: "Tell us about your business", desc: "Share your name, industry, and common customer questions.", color: "from-emerald-500 to-teal-600" },
-              { step: "02", title: "We set everything up", desc: "We configure WhatsApp, voice, and automated response flows.", color: "from-blue-500 to-indigo-600" },
-              { step: "03", title: "Go live", desc: "Customer support runs 24/7. You focus on growing.", color: "from-purple-500 to-violet-600" },
+              { step: "01", title: "Sign up free", desc: "Email and business name. You are in the dashboard in a minute, no card needed.", color: "from-emerald-500 to-teal-600" },
+              { step: "02", title: "Point it at your website", desc: "FiQ reads your pages and builds the knowledge it answers from. Add anything it missed.", color: "from-blue-500 to-indigo-600" },
+              { step: "03", title: "Paste one script tag", desc: "The chat widget goes live on your site. Add WhatsApp and voice whenever you are ready.", color: "from-purple-500 to-violet-600" },
             ].map((item) => (
               <div key={item.step} className="rounded-2xl bg-white border border-gray-200 p-8 shadow-sm">
                 <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${item.color} text-white font-bold text-lg mb-6`}>
@@ -383,12 +401,14 @@ export default function Home() {
               </div>
             ))}
           </div>
+          </ScrollAnimate>
         </div>
       </section>
 
       {/* TRUST SIGNALS */}
       <section className="py-12 px-6">
         <div className="max-w-5xl mx-auto">
+          <ScrollAnimate animation="fade-up">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { icon: Shield, title: "Secure & Private", desc: "Your data is encrypted and never shared. Fully compliant." },
@@ -406,36 +426,39 @@ export default function Home() {
               </div>
             ))}
           </div>
+          </ScrollAnimate>
         </div>
       </section>
 
       {/* FINAL CTA */}
       <section className="py-20 px-6">
         <div className="max-w-4xl mx-auto text-center">
+          <ScrollAnimate animation="scale-in">
           <div className="rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 p-12 md:p-16 text-white">
             <h2 className="text-3xl md:text-4xl font-bold">Stop losing customers to slow responses</h2>
             <p className="text-emerald-100 mt-4 max-w-lg mx-auto">
-              Book a free demo and see how FiQ can handle your customer support - instantly.
+              Put the chat widget on your website free, in minutes. Add WhatsApp and voice when you are ready.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
               <Link
-                href="#book-demo"
+                href="/signup"
                 className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-semibold text-emerald-700 hover:bg-emerald-50 transition-all shadow-lg"
               >
-                Book a Demo
+                Get Started
                 <ArrowRight className="h-5 w-5" />
               </Link>
               <Link
-                href="/contact"
+                href="#book-demo"
                 className="inline-flex items-center gap-2 rounded-xl border-2 border-white/30 px-8 py-4 text-base font-semibold text-white hover:bg-white/10 transition-all"
               >
-                Contact Sales
+                Book a Demo
               </Link>
             </div>
             <p className="text-sm text-emerald-200 mt-4">
               30-day money-back guarantee - if it doesn&apos;t work, every kwacha back.
             </p>
           </div>
+          </ScrollAnimate>
         </div>
       </section>
 

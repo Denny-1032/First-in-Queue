@@ -62,8 +62,10 @@ describe("ngwee arithmetic", () => {
   });
 
   it("prices match the published overage rates", () => {
-    // /pricing and the FiQ knowledge base both advertise K1.70/message and
-    // K7.00/minute. If these drift apart, a customer catches us charging
+    // The dashboard Usage Credit panel renders these two rates straight from
+    // CREDIT_RATES. They are no longer quoted on /pricing or in the knowledge
+    // base, so this is the only place they are promised - if they drift apart
+    // from what is actually charged, a customer catches us charging
     // something other than what we published.
     expect(formatNgwee(CREDIT_RATES.WHATSAPP_REPLY_NGWEE)).toBe("K1.70");
     expect(formatNgwee(CREDIT_RATES.VOICE_MINUTE_NGWEE)).toBe("K7.00");

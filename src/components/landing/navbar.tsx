@@ -14,7 +14,6 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-8">
           <Link href="/why-fiq" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Why FiQ?</Link>
           <Link href="/how-it-works" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">How It Works</Link>
-          <Link href="/industries" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Industries</Link>
           <Link href="/pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Pricing</Link>
           <Link href="/contact" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Contact</Link>
         </div>
@@ -23,10 +22,10 @@ export function Navbar() {
             Login
           </Link>
           <Link
-            href="/#book-demo"
+            href="/signup"
             className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-sm font-medium text-white hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/25"
           >
-            Book a Demo
+            Get Started
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

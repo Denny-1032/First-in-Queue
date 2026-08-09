@@ -11,7 +11,7 @@ import {
   BarChart3,
   Settings,
   Users,
-  Zap,
+  Code,
   Home,
   Bot,
   Workflow,
@@ -42,7 +42,7 @@ const navItems = [
 const advancedNavItems = [
   { href: "/dashboard/flows", label: "Flows", icon: Workflow },
   { href: "/dashboard/team", label: "Team", icon: Users },
-  { href: "/dashboard/integrations", label: "Integrations", icon: Zap },
+  { href: "/dashboard/integrations/widget", label: "Website Widget", icon: Code },
 ];
 
 export function Sidebar() {

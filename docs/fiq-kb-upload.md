@@ -240,14 +240,14 @@ Mobile Money:
 - Zamtel Kwacha
 
 Card Payments:
-- Visa and Mastercard (via Lenco payment gateway)
+- Visa, Mastercard and American Express (via Lipila)
 
 How to pay:
 1. Go to Dashboard → Settings → Plan & Billing
 2. Select your plan or click "Upgrade"
 3. Choose mobile money or card payment
 4. For mobile money: enter your number and approve on your phone
-5. For card: enter card details in the secure Lenco widget
+5. For card: enter card details on Lipila's secure checkout page
 6. Payment is processed instantly
 
 ### Billing cycle and invoices
@@ -736,7 +736,7 @@ An embeddable widget for your website that lets customers talk to your AI assist
 
 ### Can I accept card payments?
 
-Yes. FiQ supports Visa and Mastercard payments via the Lenco payment gateway, in addition to Airtel Money, MTN Mobile Money, and Zamtel Kwacha.
+Yes. FiQ supports Visa, Mastercard and American Express payments via Lipila, in addition to Airtel Money, MTN Mobile Money, and Zamtel Kwacha.
 
 ### Can I see a demo before signing up?
 

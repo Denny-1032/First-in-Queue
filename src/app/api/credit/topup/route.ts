@@ -44,8 +44,7 @@ export async function POST(request: NextRequest) {
         status: "pending",
         narration,
         purpose: "credit_topup",
-        // Explicit so /api/payments/confirm checks status with Lipila rather
-        // than Lenco. Top-ups are mobile money only.
+        // Top-ups are mobile money only.
         payment_method: "mobile_money",
         account_number: formatZambianPhone(phoneNumber),
       })

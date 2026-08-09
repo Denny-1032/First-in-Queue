@@ -11,19 +11,17 @@ import {
   Phone,
   Key,
   Bell,
-  Shield,
   Clock,
   Save,
-  CheckCircle2,
   CreditCard,
   Building2,
   MessageSquare,
-  Plug,
   Wallet,
   CalendarCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/dialogs";
 import { CheckoutModal } from "@/components/dashboard/checkout-modal";
 import { CreditPanel } from "@/components/dashboard/credit-panel";
 import { PLANS } from "@/lib/lipila/plans";
@@ -32,7 +30,6 @@ const TABS = [
   { id: "business", label: "Business", icon: Building2 },
   { id: "messaging", label: "Messages & Hours", icon: MessageSquare },
   { id: "bookings", label: "Bookings", icon: CalendarCheck },
-  { id: "integrations", label: "Integrations", icon: Plug },
   { id: "billing", label: "Plan & Billing", icon: Wallet },
 ] as const;
 type TabId = typeof TABS[number]["id"];
@@ -47,6 +44,7 @@ export default function SettingsPage() {
 
 function SettingsContent() {
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [saving, setSaving] = useState(false);
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState("My Store");
@@ -324,6 +322,26 @@ function SettingsContent() {
                 ))}
               </div>
             </div>
+
+            {/* WhatsApp connection. A status line, not a section - the number is
+                provisioned by us, so there is nothing here to configure. */}
+            <div className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-gray-400 shrink-0" />
+                <span className="text-sm font-medium text-gray-700">WhatsApp</span>
+              </div>
+              {whatsappConnected ? (
+                <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Live
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
+                  <span className="h-1.5 w-1.5 rounded-full bg-gray-300" />
+                  Not connected yet - we&apos;ll email you when it&apos;s live
+                </span>
+              )}
+            </div>
           </CardContent>
         </Card>
       </>)}
@@ -507,51 +525,6 @@ function SettingsContent() {
         </Card>
       </>)}
 
-      {/* ── INTEGRATIONS TAB ── */}
-      {activeTab === "integrations" && (<>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Phone className="h-5 w-5 text-green-600" />
-              <CardTitle>WhatsApp Connection</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {whatsappConnected ? (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-emerald-800">Connected & Active</p>
-                  <p className="text-xs text-emerald-600">Managed by First in Queue - your WhatsApp Business API is live</p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
-                <Clock className="h-5 w-5 text-blue-600 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-blue-800">Setup In Progress</p>
-                  <p className="text-xs text-blue-600">Our team is configuring your WhatsApp connection. You&apos;ll be emailed once it&apos;s live.</p>
-                </div>
-              </div>
-            )}
-            <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
-              <div className="flex items-start gap-3">
-                <Shield className="h-5 w-5 text-gray-400 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Fully managed</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    WhatsApp Business API, AI engine, and hosting are managed by First in Queue. No setup required.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <p className="text-xs text-gray-400">
-              Need help? Contact <span className="text-emerald-600 font-medium">support@codarti.com</span>
-            </p>
-          </CardContent>
-        </Card>
-      </>)}
-
       {/* ── PLAN & BILLING TAB ── */}
       {activeTab === "billing" && (<>
         {(() => {
@@ -599,7 +572,15 @@ function SettingsContent() {
                     className="gap-1.5 text-red-700 border-red-200 hover:bg-red-50"
                     disabled={cancelling}
                     onClick={async () => {
-                      if (!confirm("Are you sure you want to cancel your subscription? You'll be moved to the free plan.")) return;
+                      const ok = await confirm({
+                        title: "Cancel your subscription?",
+                        description:
+                          "You move to the free plan at the end of the current period. WhatsApp and voice stop; website chat keeps working.",
+                        confirmLabel: "Cancel subscription",
+                        cancelLabel: "Keep my plan",
+                        tone: "danger",
+                      });
+                      if (!ok) return;
                       setCancelling(true);
                       try {
                         const res = await fetch("/api/subscriptions", { method: "DELETE" });

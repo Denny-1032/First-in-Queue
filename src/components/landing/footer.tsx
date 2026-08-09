@@ -19,7 +19,6 @@ export function Footer() {
             <h4 className="text-sm font-semibold text-gray-900 mb-3">Product</h4>
             <ul className="space-y-2 text-sm text-gray-500">
               <li><Link href="/how-it-works" className="hover:text-gray-900 transition-colors">How It Works</Link></li>
-              <li><Link href="/industries" className="hover:text-gray-900 transition-colors">Industries</Link></li>
               <li><Link href="/pricing" className="hover:text-gray-900 transition-colors">Pricing</Link></li>
               <li><Link href="/login" className="hover:text-gray-900 transition-colors">Dashboard</Link></li>
             </ul>

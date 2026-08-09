@@ -22,10 +22,10 @@ export function formatNgwee(ngwee: number): string {
 /**
  * What one unit of metered usage costs the customer, in ngwee.
  *
- * These match the overage rates already published on /pricing and in the FiQ
- * knowledge base. They are deliberately the same numbers: a customer who reads
- * "K1.70 per WhatsApp message" on the pricing page and then watches credit come
- * off at a different rate has caught us being inconsistent, and rightly.
+ * These are the only place the rates are stated to a customer: the dashboard
+ * Usage Credit panel renders them from here. /pricing and the knowledge base
+ * deliberately no longer quote figures, so there is nothing to drift out of
+ * sync with - but the panel must keep showing what is actually charged.
  *
  * WHATSAPP_REPLY IS PROVISIONAL. Meta publishes Rest-of-Africa rates no later
  * than 1 September 2026, and per-message charging starts 1 October 2026

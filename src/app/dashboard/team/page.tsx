@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/dialogs";
 import type { Agent } from "@/types";
 
 interface InviteRow {
@@ -43,6 +44,7 @@ const emptyInvite = (): InviteRow => ({
 
 export default function TeamPage() {
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
@@ -168,7 +170,13 @@ export default function TeamPage() {
   };
 
   const handleDelete = async (agent: Agent) => {
-    if (!window.confirm(`Remove ${agent.name} from your team? They will no longer have access.`)) return;
+    const ok = await confirm({
+      title: `Remove ${agent.name} from your team?`,
+      description: "They lose access to this workspace immediately.",
+      confirmLabel: "Remove",
+      tone: "danger",
+    });
+    if (!ok) return;
     setDeleting(agent.id);
     try {
       const res = await fetch(`/api/agents/${agent.id}`, { method: "DELETE" });

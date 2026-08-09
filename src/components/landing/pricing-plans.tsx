@@ -98,10 +98,10 @@ export function PricingPlans() {
                     plan.id === "institution"
                       ? "/contact"
                       : plan.priceZMW === 0
-                        ? "/login"
+                        ? "/signup"
                         : fromSettings
                           ? `/trial-payment?plan=${plan.id}&billing=${billing}`
-                          : "/login"
+                          : "/signup"
                   }
                   className={`block w-full text-center rounded-xl py-3 text-sm font-semibold transition-all ${
                     plan.highlight
@@ -114,7 +114,7 @@ export function PricingPlans() {
                 {plan.id === "pro" && (
                   <>
                     <p className="text-xs text-gray-500 text-center mt-3">
-                      WhatsApp and voice are paid from prepaid credit: K1.70/message and K7.00/minute
+                      WhatsApp and voice are paid from prepaid usage credit
                     </p>
                     <p className="text-xs text-emerald-600 text-center mt-1 font-medium">
                       30-day money-back guarantee

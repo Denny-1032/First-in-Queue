@@ -226,9 +226,10 @@ export async function processIncomingMessage(
 
       if (!usage.allowed) {
         // Allowance spent. Prepaid credit pays for replies past it, at the
-        // K1.70/message rate already published on /pricing. Charged per reply
-        // rather than per conversation because that is what the published
-        // overage says, and because from October Meta bills per message too.
+        // WHATSAPP_REPLY_NGWEE rate the dashboard shows the customer. Charged
+        // per reply rather than per conversation because that is what the
+        // Usage Credit panel says, and because from October Meta bills per
+        // message too.
         //
         // channelLocked is different and credit must NOT be charged: the plan
         // does not include WhatsApp at all, so taking the customer's money

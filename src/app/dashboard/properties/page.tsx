@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Copy, Globe, KeyRound, Loader2, Palette, Pencil, Phone, Plus, Trash2 } from "lucide-react";
+import { useConfirm } from "@/components/ui/dialogs";
 import {
   BrandingEditor,
   textColorFor,
@@ -80,6 +81,7 @@ function snippetFor(widgetKey: string): string {
 }
 
 export default function PropertiesPage() {
+  const confirm = useConfirm();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -222,13 +224,14 @@ export default function PropertiesPage() {
   };
 
   const rotate = async (id: string) => {
-    if (
-      !confirm(
-        "Rotate this key? Your website's snippet must be updated within the hour or the chat widget will stop loading."
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Rotate this widget key?",
+      description:
+        "The snippet on your website must be updated within the hour, or the chat widget will stop loading for visitors.",
+      confirmLabel: "Rotate key",
+      tone: "warning",
+    });
+    if (!ok) return;
     setBusyId(id);
     setError("");
     try {
@@ -246,9 +249,13 @@ export default function PropertiesPage() {
   };
 
   const remove = async (id: string, propName: string) => {
-    if (!confirm(`Delete "${propName}"? The widget will stop working on that site immediately.`)) {
-      return;
-    }
+    const ok = await confirm({
+      title: `Delete "${propName}"?`,
+      description: "The widget stops working on that site immediately. This cannot be undone.",
+      confirmLabel: "Delete website",
+      tone: "danger",
+    });
+    if (!ok) return;
     setBusyId(id);
     setError("");
     try {

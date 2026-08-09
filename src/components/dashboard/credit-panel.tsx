@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePrompt } from "@/components/ui/dialogs";
 
 interface TopupPack {
   id: string;
@@ -32,6 +33,7 @@ interface CreditState {
  * a confident wrong figure is worse than an honest blank.
  */
 export function CreditPanel({ phoneNumber }: { phoneNumber?: string }) {
+  const prompt = usePrompt();
   const [credit, setCredit] = useState<CreditState | null>(null);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState<string | null>(null);
@@ -51,7 +53,23 @@ export function CreditPanel({ phoneNumber }: { phoneNumber?: string }) {
   }, []);
 
   async function topUp(pack: TopupPack) {
-    const phone = phoneNumber || window.prompt("Mobile money number to charge (e.g. 0971234567)");
+    const phone =
+      phoneNumber ||
+      (await prompt({
+        title: `Top up ${pack.label}`,
+        description: `${pack.description}. A payment prompt goes to the number you enter.`,
+        label: "Mobile money number",
+        placeholder: "e.g. 0971234567",
+        inputMode: "tel",
+        confirmLabel: `Charge ${pack.label}`,
+        validate: (v) => {
+          const digits = v.replace(/\D/g, "");
+          if (digits.length < 9) return "Enter a full Zambian mobile number.";
+          if (!/^(26)?0?(96|76|97|77|95|75)/.test(digits))
+            return "That is not an Airtel, MTN or Zamtel number.";
+          return null;
+        },
+      }));
     if (!phone) return;
 
     setBuying(pack.id);

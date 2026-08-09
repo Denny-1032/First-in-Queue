@@ -84,7 +84,7 @@ Read from the codebase (`README.md`, `docs/widget-integration.md`, `public/widge
 - Industry templates (E-Commerce, Healthcare, Restaurant, Real Estate)
 - WhatsApp Cloud API as a first-class channel — tawk.to does **not** have this
 - Voice agents via Retell — tawk.to does **not** have this
-- Local payment rails: Lipila (Airtel/MTN/Zamtel) + Lenco cards, in ZMW
+- Local payment rails: Lipila (Airtel/MTN/Zamtel mobile money + cards), in ZMW
 - Web crawling for KB population, lead scoring, bookings, scheduled messages
 - 8+ page dashboard already built
 

@@ -323,10 +323,10 @@ export default function AboutPage() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
               <Link
-                href="/#book-demo"
+                href="/signup"
                 className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-semibold text-emerald-700 hover:bg-emerald-50 transition-all shadow-lg"
               >
-                Book a Demo
+                Get Started
                 <ArrowRight className="h-5 w-5" />
               </Link>
               <Link

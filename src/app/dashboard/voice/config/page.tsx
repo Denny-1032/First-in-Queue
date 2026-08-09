@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/dialogs";
 import Link from "next/link";
 
 interface VoiceAgentRow {
@@ -65,6 +66,7 @@ interface TranscriptEntry {
 
 export default function VoiceConfigPage() {
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [agents, setAgents] = useState<VoiceAgentRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -269,9 +271,13 @@ export default function VoiceConfigPage() {
 
   const handleDelete = async (agentId: string) => {
     if (!tenantId) return;
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this voice agent? This will also remove it from Retell AI and cannot be undone."
-    );
+    const confirmed = await confirm({
+      title: "Delete this voice agent?",
+      description:
+        "It is also removed from Retell AI. Any number pointed at it stops answering. This cannot be undone.",
+      confirmLabel: "Delete agent",
+      tone: "danger",
+    });
     if (!confirmed) return;
     try {
       const res = await fetch(`/api/voice/agents?agentId=${agentId}&tenantId=${tenantId}`, {

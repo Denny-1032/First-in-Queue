@@ -37,13 +37,6 @@ export function MobileNav() {
                 How It Works
               </Link>
               <Link
-                href="/industries"
-                onClick={() => setOpen(false)}
-                className="px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Industries
-              </Link>
-              <Link
                 href="/pricing"
                 onClick={() => setOpen(false)}
                 className="px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
@@ -66,12 +59,19 @@ export function MobileNav() {
                 Login
               </Link>
               <Link
-                href="/#book-demo"
+                href="/signup"
                 onClick={() => setOpen(false)}
                 className="mx-4 mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-3 text-sm font-medium text-white"
               >
-                Book a Demo
+                Get Started
                 <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/#book-demo"
+                onClick={() => setOpen(false)}
+                className="mx-4 mt-1 px-4 py-3 text-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+              >
+                Or book a demo
               </Link>
             </div>
           </div>

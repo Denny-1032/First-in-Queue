@@ -1068,10 +1068,10 @@ export default function WhyFiqPage() {
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
                 <Link
-                  href="/#book-demo"
+                  href="/signup"
                   className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-8 py-4 text-base font-semibold text-white hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/25"
                 >
-                  Book a Demo
+                  Get Started
                   <ArrowRight className="h-5 w-5" />
                 </Link>
                 <Link

@@ -21,10 +21,23 @@ export function ScrollAnimate({
     const el = ref.current;
     if (!el) return;
 
+    // The CSS already forces these elements visible under reduced motion, but
+    // skipping the observer means no stray timer fires either.
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      el.classList.add("scroll-animate-visible");
+      return;
+    }
+
+    // IntersectionObserver only fires on a change, so an element already in
+    // view at mount reports as intersecting on the first callback - that is
+    // what reveals content above the fold on a deep link or a refresh
+    // part-way down the page.
+    let timer: ReturnType<typeof setTimeout>;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setTimeout(() => {
+          timer = setTimeout(() => {
             el.classList.add("scroll-animate-visible");
           }, delay);
           observer.unobserve(el);
@@ -34,7 +47,10 @@ export function ScrollAnimate({
     );
 
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
   }, [delay]);
 
   return (

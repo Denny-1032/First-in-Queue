@@ -185,16 +185,15 @@ FiQ integrates with the WhatsApp Business API to enable automated messaging at s
     ],
 
     usageCredit: `WhatsApp and voice are not bundled into Pro. They are paid for with prepaid usage credit, which you top up from the dashboard:
-- WhatsApp: K1.70 per message
-- Voice: K7.00 per minute
+- WhatsApp is charged per message, voice per minute
+- The live rates are shown on the Usage Credit panel in Dashboard -> Settings -> Plan & Billing. Never quote a rate from memory; point the customer at that panel.
 - Top-up packs: K200, K500, K1,000, K2,000
 - The dashboard shows your balance and, once there is enough history, roughly how long it will last at your current rate
 - If your credit runs out, WhatsApp and voice go quiet until you top up. Your website chat keeps working.
 - Website chat AI replies are never charged to credit - they are included in the plan.`,
 
     overagePolicy: `Institution plans have monthly conversation and voice allowances. Past them:
-- WhatsApp: Additional messages charged at K1.70 per message
-- Voice minutes: Additional minutes charged at K7.00/minute
+- Additional WhatsApp messages and voice minutes are charged at the rates agreed in the contract
 - You'll receive usage alerts at 80% and 100% of your limit
 - Higher allowances can be agreed in your contract
 
@@ -204,7 +203,7 @@ On Pro there is no allowance to exceed: WhatsApp and voice draw from prepaid cre
       "Airtel Money",
       "MTN Mobile Money",
       "Zamtel Kwacha",
-      "Bank card payments (via Lenco)",
+      "Bank card payments - Visa, Mastercard, American Express",
     ],
   },
 
@@ -381,9 +380,9 @@ UPGRADING: Instant upgrade, prorated billing for remainder of cycle
 DOWNGRADING: Takes effect at next billing cycle
 CANCELLING: Account remains active until period end, then downgrades to free`,
     
-    paymentProcess: `Payments are processed through Lipila (Zambian mobile money) and Lenco (card payments):
+    paymentProcess: `Payments are processed through Lipila (mobile money and cards):
 1. Select your plan and payment method
-2. Enter payment details (phone number for mobile money, card for Lenco)
+2. Enter payment details (phone number for mobile money, or card details on Lipila's secure checkout)
 3. Authorize payment on your device
 4. Payment confirmation within seconds
 5. Subscription activates immediately
@@ -734,7 +733,7 @@ SELF-HELP:
     },
     {
       question: "What happens when I reach my message limit?",
-      answer: "You'll receive alerts at 80% and 100% usage. Additional usage is charged at K1.70 per WhatsApp message and K7.00 per voice minute. You can upgrade your plan anytime to get more included usage.",
+      answer: "You'll receive alerts at 80% and 100% usage. Additional WhatsApp messages and voice minutes are then paid from your prepaid usage credit - the current rates are shown on the Usage Credit panel in Settings. You can upgrade your plan anytime to get more included usage.",
     },
     {
       question: "Can the AI speak my local language?",
@@ -750,7 +749,7 @@ SELF-HELP:
     },
     {
       question: "What payment methods do you accept?",
-      answer: "We accept Airtel Money, MTN Mobile Money, Zamtel Kwacha, and card payments (via Lenco). All payments are processed securely in ZMW (Zambian Kwacha).",
+      answer: "We accept Airtel Money, MTN Mobile Money, Zamtel Kwacha, and Visa, Mastercard and American Express cards. All payments are processed securely by Lipila in ZMW (Zambian Kwacha).",
     },
     {
       question: "Is my customer data secure?",
@@ -762,7 +761,7 @@ SELF-HELP:
     },
     {
       question: "What's the difference between plans?",
-      answer: "Free (K0): website chat only, 500 AI replies a month, 1 website, shows a small \"Powered by First in Queue\". Pro (K499): removes the branding and unlocks WhatsApp, voice and automated actions, unlimited websites and agents, 5,000 web AI replies - WhatsApp and voice are paid from prepaid credit at K1.70/message and K7.00/minute. Institution (Custom, from K5,000, annual): everything in Pro plus 5,000 conversations, 500 voice minutes, up to 10 numbers, SLA, SSO, audit log, data residency and a dedicated CSM.",
+      answer: "Free (K0): website chat only, 500 AI replies a month, 1 website, shows a small \"Powered by First in Queue\". Pro (K499): removes the branding and unlocks WhatsApp, voice and automated actions, unlimited websites and agents, 5,000 web AI replies - WhatsApp and voice are paid from prepaid usage credit. Institution (Custom, from K5,000, annual): everything in Pro plus 5,000 conversations, 500 voice minutes, up to 10 numbers, SLA, SSO, audit log, data residency and a dedicated CSM.",
     },
     {
       question: "Do I need Meta/Facebook Business verification?",
@@ -988,12 +987,12 @@ Customize with:
         ],
       },
       {
-        name: "Lenco Card Payments",
+        name: "Lipila Card Payments",
         description: "Credit/debit card payment processing",
         setupComplexity: "None (pre-integrated)",
         setupTime: "Instant",
         capabilities: [
-          "Visa/Mastercard processing",
+          "Visa, Mastercard and American Express processing",
           "3D Secure authentication",
           "Automatic reconciliation",
           "Refund processing",

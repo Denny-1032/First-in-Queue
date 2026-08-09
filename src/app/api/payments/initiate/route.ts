@@ -7,7 +7,6 @@ import {
   formatZambianPhone,
 } from "@/lib/lipila/client";
 import { getPlanById } from "@/lib/lipila/plans";
-import { getWidgetConfig, generateLencoReference } from "@/lib/lenco/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +21,7 @@ export async function POST(request: NextRequest) {
       firstName,
       lastName,
       city,
+      country,
       address,
       zip,
       billingInterval, // "monthly" | "yearly"
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const referenceId = paymentMethod === "card" ? generateLencoReference() : generateReferenceId();
+    const referenceId = generateReferenceId();
     const isYearly = billingInterval === "yearly";
     const amount = isYearly ? plan.yearlyPriceZMW : plan.priceZMW;
     const intervalLabel = isYearly ? "Yearly" : "Monthly";
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       billing_interval: isYearly ? "yearly" : "monthly",
       // Distinguishes this from a credit top-up (migration 019).
       purpose: "subscription",
-      // Picks Lipila vs Lenco on confirmation (migration 021).
+      // "mobile_money" | "card" (migration 021).
       payment_method: paymentMethod,
     };
 
@@ -164,31 +164,57 @@ export async function POST(request: NextRequest) {
           "A payment prompt has been sent to your phone. Please enter your PIN to complete the payment.",
       };
     } else if (paymentMethod === "card") {
-      // Use Lenco for card payments (Lipila card doesn't work)
-      const widgetConfig = getWidgetConfig({
-        reference: referenceId,
-        email,
-        amount,
-        currency: "ZMW",
-        channels: ["card"],
-        customer: {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+      const lipilaResponse = await collectCard({
+        customerInfo: {
           firstName: firstName || "Customer",
-          lastName: lastName || "",
-          phone: formatZambianPhone(phoneNumber),
+          lastName: lastName || "-",
+          phoneNumber: formatZambianPhone(phoneNumber),
+          city: city || "Lusaka",
+          country: country || "ZM",
+          address: address || "-",
+          zip: zip || "10101",
+          email,
         },
-        metadata: {
-          tenantId,
-          planId,
-          billingInterval,
+        collectionRequest: {
+          referenceId,
+          amount,
+          narration,
+          // Lipila keys the collection off the payer's contact, not the card
+          // number - the card itself is only ever entered on their checkout.
+          accountNumber: formatZambianPhone(phoneNumber),
+          currency: "ZMW",
+          // Where the customer lands either way. confirm re-checks the status
+          // with Lipila before it decides anything, so it is safe as the
+          // landing page for an abandoned payment too.
+          backUrl: `${appUrl}/api/payments/confirm?ref=${encodeURIComponent(referenceId)}`,
+          referenceData: narration,
         },
       });
+
+      await supabase
+        .from("payments")
+        .update({
+          payment_type: lipilaResponse.paymentType,
+          lipila_identifier: lipilaResponse.identifier,
+        })
+        .eq("id", payment.id);
+
+      if (!lipilaResponse.cardRedirectionUrl) {
+        return NextResponse.json(
+          { error: "Lipila did not return a card checkout URL" },
+          { status: 502 }
+        );
+      }
 
       response = {
         paymentId: payment.id,
         referenceId,
         paymentMethod: "card",
-        widgetConfig,
-        message: "Ready to load payment widget",
+        status: lipilaResponse.status,
+        cardRedirectionUrl: lipilaResponse.cardRedirectionUrl,
+        message: "Redirecting you to the secure card checkout.",
       };
     } else {
       return NextResponse.json({ error: "Invalid payment method" }, { status: 400 });

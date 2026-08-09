@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, CheckCircle2, Star, HelpCircle, ShieldCheck } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
+import { ScrollAnimate } from "@/components/ui/scroll-animate";
 import { Footer } from "@/components/landing/footer";
 import { SELLABLE_PLANS } from "@/lib/lipila/plans";
 import { FAQPageJsonLd } from "@/components/seo/json-ld";
@@ -24,7 +25,7 @@ const faqs = [
   },
   {
     question: "How do WhatsApp and voice get paid for?",
-    answer: "From prepaid usage credit, not a bundled quota. WhatsApp is K1.70 per message and voice is K7.00 per minute, and you top up in packs of K200, K500, K1,000 or K2,000. Your dashboard shows the balance and how long it should last at your current rate. If the credit runs out, WhatsApp and voice go quiet until you top up - your website chat keeps working.",
+    answer: "From prepaid usage credit, not a bundled quota. You top up in packs of K200, K500, K1,000 or K2,000, and your dashboard shows the current per-message and per-minute rate, your balance, and how long it should last at your rate of use. If the credit runs out, WhatsApp and voice go quiet until you top up - your website chat keeps working.",
   },
   {
     question: "Which payment methods do you accept?",
@@ -44,11 +45,11 @@ const faqs = [
   },
   {
     question: "Can I get a surprise bill?",
-    answer: "No. WhatsApp and voice only ever spend credit you have already bought, so there is nothing to run up. On Institution plans, usage past the contracted allowance is billed at K1.70 per WhatsApp message and K7.00 per voice minute.",
+    answer: "No. WhatsApp and voice only ever spend credit you have already bought, so there is nothing to run up. On Institution plans, usage past the contracted allowance is billed at the rates agreed in your contract.",
   },
   {
     question: "What are AI voice call minutes?",
-    answer: "Your AI assistant can make and receive phone calls - handling customer enquiries, scheduling callbacks, and more. Voice is unlocked by Pro and paid from your usage credit at K7.00 a minute, tracked separately from WhatsApp.",
+    answer: "Your AI assistant can make and receive phone calls - handling customer enquiries, scheduling callbacks, and more. Voice is unlocked by Pro and paid by the minute from your usage credit, tracked separately from WhatsApp.",
   },
 ];
 
@@ -66,18 +67,18 @@ function PricingContent() {
       {/* Hero */}
       <section className="pt-32 pb-12 px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">
+          <h1 className="animate-enter animate-enter-1 text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">
             Plans that grow{" "}
             <span className="bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
               with your business
             </span>
           </h1>
-          <p className="text-lg text-gray-500 mt-6 max-w-2xl mx-auto">
+          <p className="animate-enter animate-enter-2 text-lg text-gray-500 mt-6 max-w-2xl mx-auto">
             Start free on your website, forever. Add WhatsApp and voice when you need them.
           </p>
 
           {/* 30-day guarantee banner */}
-          <div className="inline-flex items-center gap-2.5 mt-8 rounded-full bg-emerald-50 border border-emerald-200 px-6 py-3">
+          <div className="animate-enter animate-enter-3 inline-flex items-center gap-2.5 mt-8 rounded-full bg-emerald-50 border border-emerald-200 px-6 py-3">
             <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0" />
             <span className="text-sm font-semibold text-emerald-800">
               30-day money-back guarantee - no questions asked
@@ -85,7 +86,7 @@ function PricingContent() {
           </div>
 
           {/* Billing toggle */}
-          <div className="flex items-center justify-center gap-3 mt-8">
+          <div className="animate-enter animate-enter-4 flex items-center justify-center gap-3 mt-8">
             <span className={`text-sm font-medium ${!isYearly ? "text-gray-900" : "text-gray-400"}`}>Monthly</span>
             <button
               onClick={() => setBilling(isYearly ? "monthly" : "yearly")}
@@ -170,10 +171,10 @@ function PricingContent() {
                     plan.id === "institution"
                       ? "/contact"
                       : plan.priceZMW === 0
-                        ? "/login"
+                        ? "/signup"
                         : fromSettings
                           ? `/trial-payment?plan=${plan.id}&billing=${billing}`
-                          : "/login"
+                          : "/signup"
                   }
                   className={`block w-full text-center rounded-xl py-3 text-sm font-semibold transition-all ${
                     plan.highlight
@@ -186,7 +187,7 @@ function PricingContent() {
                 {plan.id === "pro" && (
                   <>
                     <p className="text-xs text-gray-500 text-center mt-3">
-                      WhatsApp and voice are paid from prepaid credit: K1.70/message and K7.00/minute
+                      WhatsApp and voice are paid from prepaid usage credit
                     </p>
                     <p className="text-xs text-emerald-600 text-center mt-1 font-medium">
                       30-day money-back guarantee
@@ -212,6 +213,7 @@ function PricingContent() {
       {/* Money-back guarantee callout */}
       <section className="py-12 px-6">
         <div className="max-w-3xl mx-auto">
+          <ScrollAnimate animation="scale-in">
           <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-8 md:p-10 text-center">
             <ShieldCheck className="h-10 w-10 text-emerald-600 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-900 mb-2">30-Day Money-Back Guarantee</h3>
@@ -220,15 +222,19 @@ function PricingContent() {
               of your first payment, we&apos;ll refund every Kwacha - no questions asked.
             </p>
           </div>
+          </ScrollAnimate>
         </div>
       </section>
 
       {/* FAQs */}
       <section id="faq" className="py-20 px-6 bg-gray-50">
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Frequently Asked Questions</h2>
-          </div>
+          <ScrollAnimate animation="fade-up">
+            <div className="text-center mb-12">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Frequently Asked Questions</h2>
+            </div>
+          </ScrollAnimate>
+          <ScrollAnimate animation="fade-up" delay={100}>
           <div className="space-y-6">
             {faqs.map((faq) => (
               <div key={faq.question} className="rounded-xl bg-white border border-gray-200 p-6">
@@ -242,25 +248,36 @@ function PricingContent() {
               </div>
             ))}
           </div>
+          </ScrollAnimate>
         </div>
       </section>
 
       {/* CTA */}
       <section className="py-20 px-6">
         <div className="max-w-4xl mx-auto text-center">
+          <ScrollAnimate animation="scale-in">
           <div className="rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 p-12 md:p-16 text-white">
             <h2 className="text-3xl md:text-4xl font-bold">See FiQ in action</h2>
             <p className="text-emerald-100 mt-4 max-w-lg mx-auto">
-              Book a free demo. No commitment required.
+              Start on the free plan in minutes. No card, no commitment.
             </p>
-            <Link
-              href="/#book-demo"
-              className="inline-flex items-center gap-2 mt-8 rounded-xl bg-white px-8 py-4 text-base font-semibold text-emerald-700 hover:bg-emerald-50 transition-all shadow-lg"
-            >
-              Book a Demo
-              <ArrowRight className="h-5 w-5" />
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
+              <Link
+                href="/signup"
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-semibold text-emerald-700 hover:bg-emerald-50 transition-all shadow-lg"
+              >
+                Get Started
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+              <Link
+                href="/#book-demo"
+                className="inline-flex items-center gap-2 rounded-xl border-2 border-white/30 px-8 py-4 text-base font-semibold text-white hover:bg-white/10 transition-all"
+              >
+                Book a Demo
+              </Link>
+            </div>
           </div>
+          </ScrollAnimate>
         </div>
       </section>
 

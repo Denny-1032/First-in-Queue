@@ -324,7 +324,7 @@ export function CheckoutModal({
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Phone Number (optional)
+                      Phone Number
                     </label>
                     <input
                       type="tel"
@@ -333,6 +333,11 @@ export function CheckoutModal({
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
                     />
+                    {/* Lipila requires a contact number on card collections too -
+                        it is what the transaction is keyed to, not the card. */}
+                    <p className="text-xs text-gray-400 mt-1">
+                      Required by our payment provider
+                    </p>
                   </div>
                 </>
               )}
@@ -352,7 +357,8 @@ export function CheckoutModal({
                 disabled={
                   loading ||
                   !email ||
-                  (paymentMethod === "mobile_money" && !phoneNumber)
+                  !phoneNumber ||
+                  (paymentMethod === "card" && (!firstName || !lastName))
                 }
                 className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 py-3.5 text-sm font-semibold text-white hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >

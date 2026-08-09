@@ -112,7 +112,7 @@ export const PLANS: PlanDefinition[] = [
     yearlyPriceLabel: "K4,990",
     yearlyMonthlyLabel: "K416",
     // Zero bundled pass-through usage. Every WhatsApp reply and voice minute is
-    // drawn from prepaid credit at the rate published on /pricing. This is the
+    // drawn from prepaid credit at the CREDIT_RATES the dashboard shows. This is the
     // whole point of v2: no uncapped liability, and margin that does not
     // collapse when a customer is busy.
     messagesPerMonth: 0,

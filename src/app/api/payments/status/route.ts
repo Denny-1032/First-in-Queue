@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { checkCollectionStatus } from "@/lib/lipila/client";
-import { activateSubscription } from "@/lib/lipila/subscription-helpers";
+import { settlePayment } from "@/lib/lipila/settle";
 
 /**
  * Check payment status - polls Lipila and updates local record.
- * Used by the frontend to check MoMo payment status after prompt is sent.
+ * Used by the checkout modal while a MoMo prompt is outstanding, and by the
+ * card flow if the customer gets back before the callback lands.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
         paymentType: payment.payment_type,
         amount: payment.amount,
         currency: payment.currency,
+        purpose: payment.purpose ?? "subscription",
       });
     }
 
@@ -46,27 +48,22 @@ export async function GET(request: NextRequest) {
       if (lipilaStatus.status === "Successful" || lipilaStatus.status === "Failed") {
         const newStatus = lipilaStatus.status === "Successful" ? "successful" : "failed";
 
-        await supabase
-          .from("payments")
-          .update({
-            status: newStatus,
-            payment_type: lipilaStatus.paymentType,
-            lipila_identifier: lipilaStatus.identifier,
-            lipila_external_id: lipilaStatus.externalId || null,
-            error_message: lipilaStatus.status === "Failed" ? lipilaStatus.message : null,
-          })
-          .eq("id", payment.id);
-
-        // If successful, activate subscription
-        if (newStatus === "successful") {
-          await activateSubscription(payment.tenant_id, payment.id, payment.amount);
-        }
+        // settlePayment writes the row and applies the purchase - a credit
+        // top-up adds credit, a plan purchase activates the subscription. This
+        // route used to activate a subscription either way.
+        await settlePayment(payment, newStatus, {
+          payment_type: lipilaStatus.paymentType,
+          lipila_identifier: lipilaStatus.identifier,
+          lipila_external_id: lipilaStatus.externalId || null,
+          error_message: lipilaStatus.status === "Failed" ? lipilaStatus.message : null,
+        });
 
         return NextResponse.json({
           status: newStatus,
           paymentType: lipilaStatus.paymentType,
           amount: payment.amount,
           currency: payment.currency,
+          purpose: payment.purpose ?? "subscription",
           message: lipilaStatus.message,
         });
       }
@@ -79,6 +76,7 @@ export async function GET(request: NextRequest) {
       paymentType: payment.payment_type,
       amount: payment.amount,
       currency: payment.currency,
+      purpose: payment.purpose ?? "subscription",
     });
   } catch (error) {
     console.error("[Payment Status] Error:", error);

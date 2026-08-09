@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Mail, MessageSquare, Clock, MapPin, Phone, X } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
+import { ScrollAnimate } from "@/components/ui/scroll-animate";
 import { Footer } from "@/components/landing/footer";
 import { WebCallWidget } from "@/components/voice/web-call-widget";
 
@@ -16,13 +17,13 @@ export default function ContactPage() {
       {/* Hero */}
       <section className="pt-32 pb-16 px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">
+          <h1 className="animate-enter animate-enter-1 text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">
             Get in{" "}
             <span className="bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
               touch
             </span>
           </h1>
-          <p className="text-lg text-gray-500 mt-6 max-w-2xl mx-auto">
+          <p className="animate-enter animate-enter-2 text-lg text-gray-500 mt-6 max-w-2xl mx-auto">
             Questions, demos, or custom plans - we&apos;re here to help.
           </p>
         </div>
@@ -30,6 +31,7 @@ export default function ContactPage() {
 
       {/* Contact Cards */}
       <section className="py-12 px-6">
+        <ScrollAnimate animation="fade-up">
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Talk to Support - Voice Call */}
           <button
@@ -79,10 +81,12 @@ export default function ContactPage() {
             <p className="text-gray-500 text-sm mt-1">Serving businesses across Southern Africa</p>
           </div>
         </div>
+        </ScrollAnimate>
       </section>
 
       {/* Enterprise */}
       <section className="py-16 px-6 bg-gray-50">
+        <ScrollAnimate animation="fade-up">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Enterprise or custom needs?</h2>
           <p className="text-gray-500 mb-8">
@@ -96,6 +100,7 @@ export default function ContactPage() {
             Contact Sales
           </a>
         </div>
+        </ScrollAnimate>
       </section>
 
       {/* Call Modal */}

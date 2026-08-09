@@ -72,6 +72,54 @@ body {
   transform: translateY(0) translateX(0) scale(1) !important;
 }
 
+/* Above-the-fold content never enters the viewport, so it never fires the
+   observer. These run on load instead. */
+@keyframes enter-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-enter {
+  opacity: 0;
+  animation: enter-fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-enter-1 { animation-delay: 0.05s; }
+.animate-enter-2 { animation-delay: 0.15s; }
+.animate-enter-3 { animation-delay: 0.25s; }
+.animate-enter-4 { animation-delay: 0.35s; }
+
+/* Motion is decoration here - none of it carries meaning. Anyone who has asked
+   their OS for less of it gets the content, immediately, with no movement. */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-animate,
+  .scroll-animate-fade-up,
+  .scroll-animate-fade-left,
+  .scroll-animate-fade-right,
+  .scroll-animate-fade-in,
+  .scroll-animate-scale-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    will-change: auto;
+  }
+
+  .animate-enter {
+    opacity: 1;
+    animation: none;
+  }
+
+  .animate-marquee {
+    animation: none;
+  }
+}
+
 /* Chrome autofill paints inputs white/yellow, breaking dark-theme forms.
    background-clip:text keeps the input's own background visible. */
 input:-webkit-autofill,
