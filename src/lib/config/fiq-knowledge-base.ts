@@ -189,7 +189,7 @@ FiQ integrates with the WhatsApp Business API to enable automated messaging at s
     ],
     
     overagePolicy: `If you exceed your monthly conversation or voice minute limits:
-- Conversations: Additional messages charged at K0.50 per conversation
+- WhatsApp: Additional messages charged at K1.70 per message
 - Voice minutes: Additional minutes charged at K7.00/minute
 - You'll receive usage alerts at 80% and 100% of your limit
 - Option to upgrade plan at any time to avoid overages`,
@@ -728,7 +728,7 @@ SELF-HELP:
     },
     {
       question: "What happens when I reach my message limit?",
-      answer: "You'll receive alerts at 80% and 100% usage. Additional messages are charged at K0.50 per conversation. You can upgrade your plan anytime to get more included messages.",
+      answer: "You'll receive alerts at 80% and 100% usage. Additional usage is charged at K1.70 per WhatsApp message and K7.00 per voice minute. You can upgrade your plan anytime to get more included usage.",
     },
     {
       question: "Can the AI speak my local language?",

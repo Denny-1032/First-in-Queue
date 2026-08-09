@@ -325,7 +325,9 @@ needs somewhere to live.
 4. **1 September 2026: re-run pricing-model-v2 §1** with Meta's published Rest of
    Africa rates, then set the WhatsApp credit price
 
-Carried forward, not fixed: the FiQ knowledge base quotes WhatsApp overage at
-**K0.50/conversation** while `/pricing` says **K1.70/message**. Both sit above
-COGS so neither is a margin risk, but the agent and the page disagree. Phase 3
-resolves it when credit rates are set.
+Also done 2026-08-09: the FiQ knowledge base quoted WhatsApp overage at
+**K0.50/conversation** against `/pricing`'s **K1.70/message**. Reconciled to
+K1.70/message and K7.00/minute, so the agent and every pricing surface now
+quote the same rates. "Per message" is also the honest label until Phase 2
+lands - `incrementMessageUsage()` still meters per message, not per
+conversation (§4).
