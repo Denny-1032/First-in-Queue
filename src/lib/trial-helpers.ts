@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { PLANS } from "./lipila/plans";
+import { resolvePlanFromPayment, getPlanOrFree } from "./lipila/plans";
 
 /**
  * @deprecated Trials are no longer offered. Use direct payment flow instead.
@@ -25,38 +25,30 @@ export async function activatePaidSubscription(
   amount: number
 ) {
   const supabase = getSupabaseAdmin();
-  
-  // Find plan from amount - match exact prices (monthly or yearly)
-  // Sort paid plans by price descending to match highest first
-  const paidPlans = PLANS.filter((p) => p.priceZMW > 0);
-  
-  let matchedPlan = null;
-  let isYearly = false;
 
-  // Check yearly prices first (they are higher amounts)
-  for (const p of paidPlans.sort((a, b) => b.yearlyPriceZMW - a.yearlyPriceZMW)) {
-    if (p.yearlyPriceZMW > 0 && amount >= p.yearlyPriceZMW) {
-      matchedPlan = p;
-      isYearly = true;
-      break;
-    }
+  // Read the plan off the payment row wherever it is recorded (migration 020).
+  // Inferring it from the amount was silently wrong the moment a price changed
+  // or a partial payment arrived, and it is what would have turned a credit
+  // top-up into a plan upgrade.
+  const { data: payment } = await supabase
+    .from("payments")
+    .select("plan_id, billing_interval, amount")
+    .eq("id", paymentId)
+    .maybeSingle();
+
+  const resolved = resolvePlanFromPayment(
+    payment ?? { amount }
+  );
+
+  if (!resolved) {
+    console.error(
+      `[Subscription] Unable to determine plan for payment ${paymentId} (amount: ${amount})`
+    );
+    throw new Error("Unable to determine plan from payment");
   }
 
-  // If no yearly match, check monthly prices
-  if (!matchedPlan) {
-    for (const p of paidPlans.sort((a, b) => b.priceZMW - a.priceZMW)) {
-      if (amount >= p.priceZMW) {
-        matchedPlan = p;
-        isYearly = false;
-        break;
-      }
-    }
-  }
-  
-  if (!matchedPlan) {
-    console.error(`[Subscription] Unable to determine plan from amount: ${amount}`);
-    throw new Error("Unable to determine plan from amount");
-  }
+  const matchedPlan = getPlanOrFree(resolved.planId);
+  const isYearly = resolved.interval === "yearly";
 
   const now = new Date();
   const periodEnd = new Date(now);

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { getPlanById } from "@/lib/lipila/plans";
 
 export async function GET() {
   try {
@@ -21,10 +22,12 @@ export async function GET() {
       (s) => s.status === "active" || s.status === "trialing"
     ).length || 0;
 
+    // Priced from PLANS rather than hardcoded ids, so legacy subscriptions
+    // still inside a paid period are counted at what they actually pay, and a
+    // new plan cannot be added without its revenue appearing here.
     const monthlyRecurring = subscriptions?.reduce((sum, s) => {
-      if (s.status === "active" && s.plan_id === "basic") return sum + 499;
-      if (s.status === "active" && s.plan_id === "business") return sum + 1699;
-      return sum;
+      if (s.status !== "active") return sum;
+      return sum + (getPlanById(s.plan_id)?.priceZMW ?? 0);
     }, 0) || 0;
 
     return NextResponse.json({

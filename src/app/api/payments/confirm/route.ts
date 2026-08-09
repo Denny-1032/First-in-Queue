@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { checkCollectionStatus } from "@/lib/lipila/client";
 import { verifyPayment } from "@/lib/lenco/client";
-import { activateSubscription, resolvePlanFromAmount } from "@/lib/lipila/subscription-helpers";
+import { activateSubscription, resolvePlanFromPayment } from "@/lib/lipila/subscription-helpers";
 import { addCredit } from "@/lib/credit/credit";
 import { kwachaToNgwee } from "@/lib/credit/rates";
 
@@ -96,9 +96,15 @@ export async function GET(request: NextRequest) {
 
       // Activate subscription using shared helper
       await activateSubscription(payment.tenant_id, payment.id, payment.amount);
-      const { planId } = resolvePlanFromAmount(payment.amount);
 
-      return NextResponse.redirect(`${appUrl}/dashboard/settings?payment=success&plan=${planId}`);
+      // Display only - the subscription itself was resolved from the payment
+      // row inside activatePaidSubscription. null means the amount matched no
+      // plan, which is worth surfacing rather than papering over.
+      const resolved = resolvePlanFromPayment(payment);
+
+      return NextResponse.redirect(
+        `${appUrl}/dashboard/settings?payment=success&plan=${resolved?.planId ?? "unknown"}`
+      );
     } else if (status === "failed") {
       await supabase
         .from("payments")

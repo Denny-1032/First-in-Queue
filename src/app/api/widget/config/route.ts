@@ -3,6 +3,7 @@ import { resolveByKey, widgetJson, corsHeaders, checkBurst } from "@/lib/propert
 import { getTenantById } from "@/lib/db/operations";
 import { isOutsideOperatingHours } from "@/lib/engine/handler";
 import { resolveWidgetVoice } from "@/lib/voice/widget-voice";
+import { resolveShowBranding } from "@/lib/lipila/entitlements";
 
 // Boot configuration for the widget loader.
 // Branding lives server-side so a customer can restyle from the dashboard
@@ -54,6 +55,15 @@ export async function GET(request: NextRequest) {
     // only learns whether the call button should render. See widget-voice.ts.
     const voice = await resolveWidgetVoice(property.tenant_id, property.branding);
     branding.voice_enabled = voice.enabled;
+
+    // Branding removal is a paid capability (pricing-model-v2 §4). The stored
+    // flag is editable from the dashboard, so a Free tenant could clear it and
+    // keep the badge off; the plan decides here, server-side, every request.
+    branding.show_branding = await resolveShowBranding(
+      property.tenant_id,
+      (property.branding || {}).show_branding
+    );
+
     for (const k of PRIVATE_BRANDING_KEYS) delete branding[k];
 
     // Explicit allowlist. Never spread the tenant or property row — both carry

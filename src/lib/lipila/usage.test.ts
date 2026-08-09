@@ -46,19 +46,26 @@ describe("getWebReplyCeiling", () => {
     expect(await getWebReplyCeiling("t1")).toBe(500);
   });
 
-  it("basic (Pro) plan → 5000", async () => {
+  it("pro plan → 5000", async () => {
+    state.result = subOf("pro");
+    expect(await getWebReplyCeiling("t1")).toBe(5000);
+  });
+
+  it("institution plan → 50000 fair-use cap", async () => {
+    state.result = subOf("institution");
+    expect(await getWebReplyCeiling("t1")).toBe(50000);
+  });
+
+  // Legacy plans are honoured until their period ends, so their ceilings must
+  // keep resolving rather than silently dropping the tenant to the free cap.
+  it("legacy basic plan → 5000", async () => {
     state.result = subOf("basic");
     expect(await getWebReplyCeiling("t1")).toBe(5000);
   });
 
-  it("business plan → 5000", async () => {
+  it("legacy business plan → 5000", async () => {
     state.result = subOf("business");
     expect(await getWebReplyCeiling("t1")).toBe(5000);
-  });
-
-  it("enterprise plan → 50000 fair-use cap", async () => {
-    state.result = subOf("enterprise");
-    expect(await getWebReplyCeiling("t1")).toBe(50000);
   });
 
   it("no active subscription → free ceiling (500)", async () => {

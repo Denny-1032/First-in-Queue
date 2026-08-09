@@ -229,9 +229,20 @@ export async function processIncomingMessage(
         // K1.70/message rate already published on /pricing. Charged per reply
         // rather than per conversation because that is what the published
         // overage says, and because from October Meta bills per message too.
-        const overage = await chargeWhatsAppOverage(tenant.id, msg.externalId);
+        //
+        // channelLocked is different and credit must NOT be charged: the plan
+        // does not include WhatsApp at all, so taking the customer's money
+        // would sell them something the plan cannot deliver.
+        const overage = usage.channelLocked
+          ? { allowed: false, balanceNgwee: 0, alreadyCharged: false }
+          : await chargeWhatsAppOverage(tenant.id, msg.externalId);
 
         if (!overage.allowed) {
+          if (usage.channelLocked) {
+            console.log(`[Handler] Response path: LOCKED - plan does not include ${transport.channel}`);
+            return;
+          }
+
           // No allowance and no credit: go quiet on this channel rather than
           // erroring. Web chat is unaffected - it is not metered.
           const limitMsg =

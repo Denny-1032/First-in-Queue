@@ -63,7 +63,7 @@ function SettingsContent() {
   const [periodEnd, setPeriodEnd] = useState<string | null>(null);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [checkoutPlanId, setCheckoutPlanId] = useState("basic");
+  const [checkoutPlanId, setCheckoutPlanId] = useState("pro");
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
   const [cancelling, setCancelling] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("business");
@@ -579,7 +579,7 @@ function SettingsContent() {
                     Renew Plan
                   </Button>
                 )}
-                {subscriptionStatus === "active" && currentPlanId !== "enterprise" && (
+                {subscriptionStatus === "active" && currentPlanId !== "institution" && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -652,40 +652,64 @@ function SettingsContent() {
                   ) : subscriptionStatus === "expired" ? "Expired" : subscriptionStatus}
                 </Badge>
               </div>
+              {/* Under v2 a plan may bundle NO WhatsApp or voice at all - Pro
+                  meters both from prepaid credit. A "0 / 0" bar would read as
+                  an exhausted allowance rather than a different billing model,
+                  so those plans get a sentence instead of a meter. */}
               <div className="py-3 border-b border-gray-100 space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-700">WhatsApp Conversations This Month</p>
-                    <p className="text-xs text-gray-500">Counted once per 24-hour conversation, not per message</p>
+                    <p className="text-xs text-gray-500">
+                      {messagesLimit > 0
+                        ? "Counted once per 24-hour conversation, not per message"
+                        : currentPlan.channelsUnlocked
+                          ? "Billed from your usage credit, per message"
+                          : "Not included on Free - upgrade to Pro to use WhatsApp"}
+                    </p>
                   </div>
                   <span className="text-sm font-semibold text-gray-900">
-                    {messagesUsed.toLocaleString()} / {messagesLimit.toLocaleString()}
+                    {messagesLimit > 0
+                      ? `${messagesUsed.toLocaleString()} / ${messagesLimit.toLocaleString()}`
+                      : currentPlan.channelsUnlocked
+                        ? "Pay as you go"
+                        : "Not included"}
                   </span>
                 </div>
-                <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all",
-                      usagePercent > 80 ? "bg-red-500" : usagePercent > 60 ? "bg-amber-500" : "bg-emerald-500"
-                    )}
-                    style={{ width: `${usagePercent}%` }}
-                  />
-                </div>
+                {messagesLimit > 0 && (
+                  <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        usagePercent > 80 ? "bg-red-500" : usagePercent > 60 ? "bg-amber-500" : "bg-emerald-500"
+                      )}
+                      style={{ width: `${usagePercent}%` }}
+                    />
+                  </div>
+                )}
               </div>
               <div className="py-3 border-b border-gray-100 space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-700">Voice Minutes This Month</p>
-                    <p className="text-xs text-gray-500">AI phone call minutes used</p>
+                    <p className="text-xs text-gray-500">
+                      {currentPlan.voiceMinutesPerMonth > 0
+                        ? "AI phone call minutes used"
+                        : currentPlan.channelsUnlocked
+                          ? "Billed from your usage credit, per minute"
+                          : "Not included on Free - upgrade to Pro to use voice"}
+                    </p>
                   </div>
                   <span className="text-sm font-semibold text-gray-900">
-                    {voiceMinutesUsed.toLocaleString()} / {currentPlan.voiceMinutesPerMonth.toLocaleString()}
+                    {currentPlan.voiceMinutesPerMonth > 0
+                      ? `${voiceMinutesUsed.toLocaleString()} / ${currentPlan.voiceMinutesPerMonth.toLocaleString()}`
+                      : currentPlan.channelsUnlocked
+                        ? "Pay as you go"
+                        : "Not included"}
                   </span>
                 </div>
-                {(() => {
-                  const voicePercent = currentPlan.voiceMinutesPerMonth > 0
-                    ? Math.min(100, Math.round((voiceMinutesUsed / currentPlan.voiceMinutesPerMonth) * 100))
-                    : 0;
+                {currentPlan.voiceMinutesPerMonth > 0 && (() => {
+                  const voicePercent = Math.min(100, Math.round((voiceMinutesUsed / currentPlan.voiceMinutesPerMonth) * 100));
                   return (
                     <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
                       <div
@@ -729,11 +753,11 @@ function SettingsContent() {
                 </div>
                 <Badge variant="secondary">Managed by FiQ</Badge>
               </div>
-              {(subscriptionStatus === "trialing" || currentPlanId !== "enterprise") && (
+              {(subscriptionStatus === "trialing" || currentPlanId !== "institution") && (
                 <div className="flex items-center justify-between py-3">
                   <div>
                     <p className="text-sm font-medium text-gray-700">Billing Cycle</p>
-                    <p className="text-xs text-gray-500">{billingInterval === "yearly" ? "Save 20% with annual billing" : "Switch to yearly to save 20%"}</p>
+                    <p className="text-xs text-gray-500">{billingInterval === "yearly" ? "2 months free with annual billing" : "Switch to yearly and get 2 months free"}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={cn("text-xs font-medium", billingInterval === "monthly" ? "text-gray-900" : "text-gray-400")}>Monthly</span>

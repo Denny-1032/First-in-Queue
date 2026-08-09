@@ -15,7 +15,7 @@ function TrialPaymentContent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  const planId = searchParams.get("plan") || "basic";
+  const planId = searchParams.get("plan") || "pro";
   const billingParam = searchParams.get("billing") || "monthly";
 
   const [loading, setLoading] = useState(false);
@@ -110,7 +110,8 @@ function TrialPaymentContent() {
                   <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">30-day guarantee</Badge>
                 </div>
                 <div className="text-sm text-gray-500 space-y-1">
-                  <div>• {plan.messagesLabel} + {plan.voiceMinutesLabel}</div>
+                  <div>• {plan.messagesLabel}</div>
+                  <div>• {plan.voiceMinutesLabel}</div>
                   <div>• {periodLabel} (charged immediately)</div>
                   <div>• Full refund available within 30 days</div>
                 </div>

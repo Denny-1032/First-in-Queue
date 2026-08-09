@@ -111,72 +111,68 @@ FiQ integrates with the WhatsApp Business API to enable automated messaging at s
   pricing: {
     currency: "ZMW (Zambian Kwacha)",
     billingCycle: "Monthly or Yearly (17% discount on yearly)",
-    trial: "7-day free trial with full features",
-    guarantee: "30-day money-back guarantee",
-    
+    trial: "No trial needed - the Free plan is free forever, no card required",
+    guarantee: "30-day money-back guarantee on Pro",
+
     plans: [
       {
-        id: "basic",
-        name: "Basic",
-        price: "K499/month",
-        yearlyPrice: "K4,790/year (K399/month)",
-        description: "Perfect for small businesses just getting started with WhatsApp automation.",
+        id: "free",
+        name: "Free",
+        price: "K0",
+        description: "Website chat, free forever. No card, no trial clock.",
         includes: [
-          "1,000 WhatsApp conversations per month",
-          "30 AI voice call minutes per month",
-          "1 WhatsApp phone number",
-          "AI-powered responses (FAQs, enquiries, bookings)",
-          "24/7 support in 40+ languages (text chat; voice English only)",
-          "Basic analytics dashboard",
-          "7-day free trial",
+          "Website chat widget",
+          "Unlimited conversations and team seats",
+          "500 AI replies per month",
+          "1 website",
+          "Shows a small \"Powered by First in Queue\"",
         ],
         limits: [
-          "Up to 1,000 conversations/month",
-          "Up to 30 voice minutes/month",
-          "1 WhatsApp number only",
+          "Website chat only - no WhatsApp, no voice",
+          "500 AI replies per month",
+          "1 website",
+          "FiQ branding cannot be removed",
         ],
-        bestFor: "Small businesses, startups, solopreneurs",
+        bestFor: "Small businesses adding chat to their website for the first time",
       },
       {
-        id: "business",
-        name: "Business",
-        price: "K1,699/month",
-        yearlyPrice: "K16,310/year (K1,359/month)",
-        description: "Best for growing businesses with higher volume and team collaboration needs.",
+        id: "pro",
+        name: "Pro",
+        price: "K499/month",
+        yearlyPrice: "K4,990/year (K416/month)",
+        description: "Unlocks WhatsApp, voice and automated actions, and removes FiQ branding.",
         includes: [
-          "5,000 WhatsApp conversations per month",
-          "120 AI voice call minutes per month",
-          "2 WhatsApp phone numbers",
+          "Everything in Free",
+          "FiQ branding removed",
+          "WhatsApp, voice and automated actions unlocked",
+          "Unlimited websites and team agents",
+          "5,000 web AI replies per month",
           "Human agent handoff",
-          "Scheduled outbound calls (reminders, follow-ups)",
-          "Advanced analytics & reporting",
-          "Dedicated onboarding support",
-          "Everything in Basic",
+          "24/7 support in 40+ languages (text chat; voice English only)",
         ],
         limits: [
-          "Up to 5,000 conversations/month",
-          "Up to 120 voice minutes/month",
-          "2 WhatsApp numbers",
+          "WhatsApp and voice are not bundled - they are paid from prepaid usage credit",
+          "5,000 web AI replies per month",
         ],
-        bestFor: "Growing businesses, multi-location businesses, teams",
+        bestFor: "Businesses that talk to customers on WhatsApp or by phone",
         badge: "Most Popular",
       },
       {
-        id: "enterprise",
-        name: "Enterprise",
-        price: "Custom (Starting from K5,000/month)",
-        description: "Tailored solutions for large organizations with custom requirements.",
+        id: "institution",
+        name: "Institution",
+        price: "Custom (Starting from K5,000/month, billed annually)",
+        description: "For organisations that need contractual guarantees rather than more volume.",
         includes: [
+          "Everything in Pro",
           "5,000 WhatsApp conversations per month",
           "500 AI voice call minutes per month",
           "Up to 10 WhatsApp phone numbers",
           "Higher allowances and overage rates agreed in your contract",
-          "Custom AI trained on business data",
           "99.9% uptime SLA",
-          "Dedicated account manager",
+          "SSO, audit log and data residency",
+          "Dedicated customer success manager",
           "Custom integrations (POS, ERP, CRM)",
           "On-site onboarding & training",
-          "Everything in Business",
         ],
         limits: [
           "Up to 5,000 conversations/month",
@@ -184,15 +180,25 @@ FiQ integrates with the WhatsApp Business API to enable automated messaging at s
           "Up to 10 WhatsApp numbers",
           "Allowances above these are contracted, not automatic",
         ],
-        bestFor: "Large enterprises, franchises, high-volume businesses",
+        bestFor: "Banks, government, large enterprises, franchises",
       },
     ],
-    
-    overagePolicy: `If you exceed your monthly conversation or voice minute limits:
+
+    usageCredit: `WhatsApp and voice are not bundled into Pro. They are paid for with prepaid usage credit, which you top up from the dashboard:
+- WhatsApp: K1.70 per message
+- Voice: K7.00 per minute
+- Top-up packs: K200, K500, K1,000, K2,000
+- The dashboard shows your balance and, once there is enough history, roughly how long it will last at your current rate
+- If your credit runs out, WhatsApp and voice go quiet until you top up. Your website chat keeps working.
+- Website chat AI replies are never charged to credit - they are included in the plan.`,
+
+    overagePolicy: `Institution plans have monthly conversation and voice allowances. Past them:
 - WhatsApp: Additional messages charged at K1.70 per message
 - Voice minutes: Additional minutes charged at K7.00/minute
 - You'll receive usage alerts at 80% and 100% of your limit
-- Option to upgrade plan at any time to avoid overages`,
+- Higher allowances can be agreed in your contract
+
+On Pro there is no allowance to exceed: WhatsApp and voice draw from prepaid credit at the same rates from the first message.`,
     
     paymentMethods: [
       "Airtel Money",
@@ -584,13 +590,13 @@ ACCESS CONTROL:
 - Role-based access (admin, supervisor, agent)
 - Two-factor authentication available
 - Session timeout after inactivity
-- IP whitelisting available (Enterprise)
+- IP whitelisting available (Institution)
 
 DATA STORAGE:
 - Hosted on Supabase (SOC 2 compliant)
 - Backups daily, retained for 30 days
 - Data stored in secure cloud infrastructure
-- Geographic redundancy available (Enterprise)`,
+- Geographic redundancy available (Institution)`,
     
     compliance: `FiQ compliance standards:
 
@@ -613,7 +619,7 @@ INDUSTRY STANDARDS:
     
     messageRetention: `Message and conversation retention:
 - Standard: 12 months retention
-- Enterprise: Custom retention periods available
+- Institution: Custom retention periods available
 - Deleted upon account cancellation (unless legally required)
 - Export your data anytime from Dashboard → Settings`,
   },
@@ -692,7 +698,7 @@ IN-APP CHAT: Click help icon in dashboard
 - Response time: Within 4 hours (Business hours)
 - Best for: Quick questions, how-to guidance
 
-PHONE: +260-XXX-XXXX (Enterprise only)
+PHONE: +260-XXX-XXXX (Institution only)
 - Available: Business hours
 - Best for: Urgent issues, enterprise accounts
 
@@ -756,7 +762,7 @@ SELF-HELP:
     },
     {
       question: "What's the difference between plans?",
-      answer: "Basic (K499): 1,000 conversations, 30 voice mins, 1 number, basic features. Business (K1,699): 5,000 conversations, 120 voice mins, 2 numbers, advanced features + human handoff. Enterprise (Custom, from K5,000): 5,000 conversations, 500 voice mins, up to 10 numbers, plus custom AI, SLA and a dedicated account manager - higher allowances are agreed in your contract.",
+      answer: "Free (K0): website chat only, 500 AI replies a month, 1 website, shows a small \"Powered by First in Queue\". Pro (K499): removes the branding and unlocks WhatsApp, voice and automated actions, unlimited websites and agents, 5,000 web AI replies - WhatsApp and voice are paid from prepaid credit at K1.70/message and K7.00/minute. Institution (Custom, from K5,000, annual): everything in Pro plus 5,000 conversations, 500 voice minutes, up to 10 numbers, SLA, SSO, audit log, data residency and a dedicated CSM.",
     },
     {
       question: "Do I need Meta/Facebook Business verification?",
@@ -764,7 +770,7 @@ SELF-HELP:
     },
     {
       question: "Can FiQ integrate with my existing systems?",
-      answer: "Enterprise plan includes custom integrations (POS, ERP, CRM). Business plan has basic API webhooks. Contact us for specific integration requirements.",
+      answer: "Institution plans include custom integrations (POS, ERP, CRM). Pro includes API webhooks. Contact us for specific integration requirements.",
     },
   ],
 
@@ -877,7 +883,7 @@ Get your API credentials in Dashboard → Settings → API Access.
 Rate limits:
 - Basic: 100 requests/minute
 - Business: 500 requests/minute
-- Enterprise: 2000 requests/minute`,
+- Institution: 2000 requests/minute`,
       endpoints: [
         { method: "GET", endpoint: "/api/v1/conversations", description: "List conversations with filtering" },
         { method: "GET", endpoint: "/api/v1/conversations/:id", description: "Get specific conversation details" },
@@ -900,8 +906,8 @@ Rate limits:
 - You want separate numbers for sales vs support
 - You handle different product lines
 - You serve different geographic regions`,
-      setup: `Business Plan: Supports up to 2 numbers
-Enterprise Plan: Supports up to 10 numbers
+      setup: `Pro Plan: Supports up to 2 numbers
+Institution Plan: Supports up to 10 numbers
 
 Configuration:
 1. Add each number in Dashboard → Settings → WhatsApp Numbers
@@ -923,7 +929,7 @@ Example with Business Plan (5,000 conversations):
 - Number 2: 2,000 conversations
 Total cannot exceed plan limit.
 
-Or upgrade to Enterprise for a larger shared allowance across up to 10 numbers.`,
+Or upgrade to Institution for a larger shared allowance across up to 10 numbers.`,
     },
     
     operatingHours: {
@@ -1008,8 +1014,8 @@ Customize with:
     ],
     
     customIntegrations: {
-      description: "Enterprise plan includes custom integrations with your existing systems",
-      availableFor: "Enterprise customers only",
+      description: "Institution plan includes custom integrations with your existing systems",
+      availableFor: "Institution customers only",
       typicalIntegrations: [
         { system: "CRM", examples: "Salesforce, HubSpot, Zoho, Pipedrive", useCase: "Sync customer data, log conversations, create leads" },
         { system: "ERP", examples: "SAP, Oracle, Microsoft Dynamics", useCase: "Order lookup, inventory checks, invoice generation" },
@@ -1053,7 +1059,7 @@ Customize with:
 5. Select action app and configure
 6. Test and activate
 
-Note: Business and Enterprise plans include Zapier/Make access. Basic plan requires upgrade.`,
+Note: Pro and Institution plans include Zapier/Make access. Free requires an upgrade.`,
     },
   },
 
@@ -1200,7 +1206,7 @@ Proactive: Enable token expiration notifications 7 days before expiry.`,
         "Preparation instructions for common procedures",
         "Emergency contact procedures",
       ],
-      complianceNotes: "HIPAA compliance requires Enterprise plan with BAA. Never provide medical advice via AI - always escalate to healthcare professionals. Include disclaimers that AI is for informational purposes only.",
+      complianceNotes: "HIPAA compliance requires Institution plan with BAA. Never provide medical advice via AI - always escalate to healthcare professionals. Include disclaimers that AI is for informational purposes only.",
     },
     
     realestate: {

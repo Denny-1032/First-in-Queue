@@ -45,6 +45,14 @@ export async function POST(request: NextRequest) {
     // live 24h window opens one, which is exactly the case Meta charges for.
     const usage = await consumeConversation(tenant.id, "whatsapp", normalisedPhone);
     if (!usage.allowed) {
+      // No WhatsApp on this plan at all: credit cannot buy a locked channel.
+      if (usage.channelLocked) {
+        return NextResponse.json({
+          error: "WhatsApp not included",
+          message: "Your plan does not include WhatsApp. Upgrade to Pro to message customers on WhatsApp.",
+        }, { status: 403 });
+      }
+
       const overage = await chargeWhatsAppOverage(tenant.id);
       if (!overage.allowed) {
         return NextResponse.json({

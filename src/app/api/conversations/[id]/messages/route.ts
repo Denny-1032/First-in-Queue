@@ -50,6 +50,15 @@ export async function POST(
     // the reply opens a new window.
     const usage = await consumeConversation(tenant.id, "whatsapp", conversation.customer_phone);
     if (!usage.allowed) {
+      // The plan has no WhatsApp at all - credit cannot unlock it, only an
+      // upgrade can, so do not charge for it.
+      if (usage.channelLocked) {
+        return NextResponse.json({
+          error: "WhatsApp not included",
+          message: "Your plan does not include WhatsApp. Upgrade to Pro to message customers on WhatsApp.",
+        }, { status: 403 });
+      }
+
       // Past the allowance, prepaid credit pays for the send. Only when that is
       // empty too does the agent get blocked.
       const overage = await chargeWhatsAppOverage(tenant.id);

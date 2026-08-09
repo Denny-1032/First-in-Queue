@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { PLANS } from "@/lib/lipila/plans";
 import { checkVoiceMinutes } from "./usage";
 
 // =============================================
@@ -17,8 +18,17 @@ import { checkVoiceMinutes } from "./usage";
 // the dashboard — a visitor must never be able to read a business's plan.
 // =============================================
 
-/** Plans whose subscription includes web-call minutes. Free is deliberately out. */
-export const VOICE_PLANS = ["basic", "business", "enterprise"];
+/**
+ * Plans that unlock voice at all. Free is deliberately out.
+ *
+ * Under v2 this is a CAPABILITY gate, not a volume one: Pro unlocks the channel
+ * and the minutes themselves come out of prepaid credit. `basic`/`business` are
+ * legacy plans still inside a paid period and keep their access.
+ *
+ * Derived from `channelsUnlocked` so a new plan cannot be added to plans.ts and
+ * silently forget to appear here.
+ */
+export const VOICE_PLANS = PLANS.filter((p) => p.channelsUnlocked).map((p) => p.id);
 
 export type VoiceBlockReason =
   | "ok"

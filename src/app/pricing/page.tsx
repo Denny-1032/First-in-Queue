@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { ArrowRight, CheckCircle2, Star, HelpCircle, ShieldCheck } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
-import { PLANS } from "@/lib/lipila/plans";
+import { SELLABLE_PLANS } from "@/lib/lipila/plans";
 import { FAQPageJsonLd } from "@/components/seo/json-ld";
 
 const faqs = [
@@ -16,11 +16,15 @@ const faqs = [
   },
   {
     question: "What do I get when I sign up?",
-    answer: "When you create an account, you get 3 free voice minutes and 5 free WhatsApp messages to test the platform. To unlock full features, choose a paid plan.",
+    answer: "The Free plan, forever, with no card. That is the website chat widget with unlimited conversations and team seats, 500 AI replies a month and one website. Pro removes the FiQ branding and unlocks WhatsApp, voice and automated actions.",
   },
   {
     question: "What counts as a WhatsApp conversation?",
-    answer: "Each automated response counts as one conversation. Inbound customer messages and system messages don't count.",
+    answer: "A 24-hour window with one customer, matching how WhatsApp itself bills. The first message opens it; everything else you exchange with that customer in the next 24 hours is part of the same conversation.",
+  },
+  {
+    question: "How do WhatsApp and voice get paid for?",
+    answer: "From prepaid usage credit, not a bundled quota. WhatsApp is K1.70 per message and voice is K7.00 per minute, and you top up in packs of K200, K500, K1,000 or K2,000. Your dashboard shows the balance and how long it should last at your current rate. If the credit runs out, WhatsApp and voice go quiet until you top up - your website chat keeps working.",
   },
   {
     question: "Which payment methods do you accept?",
@@ -39,12 +43,12 @@ const faqs = [
     answer: "40+ languages including English, Bemba, Nyanja, Tonga, Lozi, French, Portuguese, and more. Auto-detected from each message.",
   },
   {
-    question: "What if I exceed my plan limits?",
-    answer: "Service continues automatically. Additional usage is billed at K1.70 per WhatsApp message and K7.00 per voice minute. No service interruption.",
+    question: "Can I get a surprise bill?",
+    answer: "No. WhatsApp and voice only ever spend credit you have already bought, so there is nothing to run up. On Institution plans, usage past the contracted allowance is billed at K1.70 per WhatsApp message and K7.00 per voice minute.",
   },
   {
     question: "What are AI voice call minutes?",
-    answer: "Your AI assistant can make and receive phone calls - handling customer enquiries, scheduling callbacks, and more. Voice minutes are tracked separately from WhatsApp conversations.",
+    answer: "Your AI assistant can make and receive phone calls - handling customer enquiries, scheduling callbacks, and more. Voice is unlocked by Pro and paid from your usage credit at K7.00 a minute, tracked separately from WhatsApp.",
   },
 ];
 
@@ -69,7 +73,7 @@ function PricingContent() {
             </span>
           </h1>
           <p className="text-lg text-gray-500 mt-6 max-w-2xl mx-auto">
-            Get 3 free voice minutes and 5 messages on signup. Upgrade anytime.
+            Start free on your website, forever. Add WhatsApp and voice when you need them.
           </p>
 
           {/* 30-day guarantee banner */}
@@ -94,7 +98,7 @@ function PricingContent() {
             </span>
             {isYearly && (
               <span className="text-xs font-bold text-emerald-700 bg-emerald-100 rounded-full px-2.5 py-0.5">
-                Save 20%
+                2 months free
               </span>
             )}
           </div>
@@ -105,7 +109,7 @@ function PricingContent() {
       <section className="py-12 px-6">
         <div className="flex justify-center">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl">
-            {PLANS.filter((plan) => plan.id !== "free").map((plan) => (
+            {SELLABLE_PLANS.map((plan) => (
               <div
                 key={plan.id}
                 className={`rounded-2xl border-2 p-7 flex flex-col ${
@@ -125,14 +129,16 @@ function PricingContent() {
                 <div className="text-center mb-6">
                   <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
                   <div className="mt-3">
-                    {plan.id === "enterprise" ? (
+                    {plan.id === "institution" ? (
                       <span className="text-3xl font-bold text-gray-900">Custom</span>
+                    ) : plan.priceZMW === 0 ? (
+                      <span className="text-3xl font-bold text-gray-900">Free</span>
                     ) : isYearly ? (
                       <>
                         <span className="text-3xl font-bold text-gray-900">{plan.yearlyMonthlyLabel}</span>
                         <span className="text-gray-500">/mo</span>
                         <p className="text-xs text-emerald-600 font-medium mt-1">
-                          {plan.yearlyPriceLabel}/year &middot; Save 20%
+                          {plan.yearlyPriceLabel}/year &middot; 2 months free
                         </p>
                       </>
                     ) : (
@@ -143,12 +149,12 @@ function PricingContent() {
                     )}
                   </div>
                   <p className="text-sm text-gray-600 mt-3 font-medium">
-                    {plan.id === "basic" && "For small businesses getting started with automated customer support"}
-                    {plan.id === "business" && "For growing businesses handling daily customer demand"}
-                    {plan.id === "enterprise" && "For high-volume or mission-critical operations"}
+                    {plan.id === "free" && "For businesses starting out with chat on their website"}
+                    {plan.id === "pro" && "For businesses using WhatsApp, voice and automated actions"}
+                    {plan.id === "institution" && "For organisations needing SLA, SSO and data residency"}
                   </p>
-                  {plan.id === "basic" && (
-                    <p className="text-xs text-gray-500 mt-2 italic">&quot;Ideal for businesses handling up to ~30 customer enquiries per day&quot;</p>
+                  {plan.id === "free" && (
+                    <p className="text-xs text-gray-500 mt-2 italic">&quot;No card, no trial clock. It stays free.&quot;</p>
                   )}
                 </div>
                 <ul className="space-y-2.5 mb-8 flex-1">
@@ -161,11 +167,13 @@ function PricingContent() {
                 </ul>
                 <Link
                   href={
-                    plan.id === "enterprise"
+                    plan.id === "institution"
                       ? "/contact"
-                      : fromSettings
-                        ? `/trial-payment?plan=${plan.id}&billing=${billing}`
-                        : "/login"
+                      : plan.priceZMW === 0
+                        ? "/login"
+                        : fromSettings
+                          ? `/trial-payment?plan=${plan.id}&billing=${billing}`
+                          : "/login"
                   }
                   className={`block w-full text-center rounded-xl py-3 text-sm font-semibold transition-all ${
                     plan.highlight
@@ -173,19 +181,24 @@ function PricingContent() {
                       : "border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
                   }`}
                 >
-                  {fromSettings && plan.id !== "enterprise" ? "Choose Plan" : plan.cta}
+                  {fromSettings && plan.id !== "institution" ? "Choose Plan" : plan.cta}
                 </Link>
-                {plan.id !== "enterprise" && (
+                {plan.id === "pro" && (
                   <>
                     <p className="text-xs text-gray-500 text-center mt-3">
-                      Additional usage charged at K1.70/message and K7.00/minute
+                      WhatsApp and voice are paid from prepaid credit: K1.70/message and K7.00/minute
                     </p>
                     <p className="text-xs text-emerald-600 text-center mt-1 font-medium">
                       30-day money-back guarantee
                     </p>
                   </>
                 )}
-                {plan.id === "enterprise" && (
+                {plan.id === "free" && (
+                  <p className="text-xs text-gray-500 text-center mt-3">
+                    Website chat only. Add WhatsApp and voice with Pro.
+                  </p>
+                )}
+                {plan.id === "institution" && (
                   <p className="text-xs text-gray-500 text-center mt-3 italic">
                     Higher allowances and overage rates agreed in your contract
                   </p>

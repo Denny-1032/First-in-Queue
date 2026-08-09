@@ -282,7 +282,39 @@ the constant is not trustworthy and the promise is already public.
 
 ---
 
-## 6. Phase 4 - Plan structure and data migration
+## 6. Phases 4-6 - Plan structure, gating and surfaces
+
+**Shipped together 2026-08-09** per §2, in `supabase/migrations/020_v2_plan_structure.sql`
+and across `plans.ts`, `entitlements.ts` and every pricing surface. The
+`/why-fiq` vs `/pricing` contradiction is now closed.
+
+Decisions taken during the build:
+
+- **Pro bundles zero WhatsApp and zero voice.** That is where the ~89% margin in
+  pricing-model-v2 §4.5 comes from - every reply and minute is drawn from
+  prepaid credit. `plans.test.ts` asserts it, because the moment either becomes
+  non-zero K499 carries uncapped liability again.
+- **Basic and Business are kept as `legacy: true` entries**, hidden from every
+  pricing surface but with their allowances untouched. The live K1,699
+  subscription keeps what it paid for until its period ends and moves to Pro on
+  renewal - the FK on `subscriptions.plan_id` needs the rows to exist anyway.
+- **Enterprise is remapped to Institution** in the migration: no live
+  subscription referenced it.
+- **`channelLocked`** is a distinct signal from an exhausted allowance. Credit
+  can pay for overage; it must never be charged to unlock a channel the plan
+  does not include, or we would take money for something we cannot deliver.
+- **Branding is resolved server-side on every widget config request**, not read
+  from the stored property flag. The flag is dashboard-editable, so a Free
+  tenant could otherwise clear it and keep the badge off.
+
+Corrected while sweeping the surfaces: "Save 20%" on annual billing was wrong -
+K4,990 against K499x12 is two months free, about 17%. Now stated as "2 months
+free" everywhere.
+
+Still to do: the `payments` drift from §5 (`payment_method`, `lenco_reference`,
+`completed_at`), and the 1 Sep re-derivation of the WhatsApp rate.
+
+### Original plan (for reference)
 
 *Blocked on §1.4: do not set the WhatsApp credit rate until Meta publishes on
 1 September 2026.*
@@ -367,9 +399,12 @@ needs somewhere to live.
    tenants (§1.5). The shadow meter shipped in Phase 2 is the instrument:
    `conversations_used` vs `messages_used` on the same subscription row, over a
    full billing cycle, excluding internal tenants.
-6. Reconcile the remaining `payments` drift: `payment_method`,
+6. ~~Phases 4-6 - plan structure, capability gating, pricing surfaces~~ -
+   **done 2026-08-09**, migration 020. Free / Pro / Institution live; Basic and
+   Business kept as hidden legacy entries so the one paid period is honoured.
+7. Reconcile the remaining `payments` drift: `payment_method`,
    `lenco_reference`, `completed_at` exist in code but in no migration (§5).
-7. **1 September 2026: re-run pricing-model-v2 §1** with Meta's published Rest of
+8. **1 September 2026: re-run pricing-model-v2 §1** with Meta's published Rest of
    Africa rates, then set the WhatsApp credit price in
    `src/lib/credit/rates.ts` (`CREDIT_RATES.WHATSAPP_REPLY_NGWEE`) and the
    matching published overage on `/pricing` and in the knowledge base

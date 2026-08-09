@@ -81,6 +81,12 @@ export interface ConversationConsumeResult {
   planId: string;
   /** True when a live 24h window absorbed this message, so nothing was charged. */
   windowOpen: boolean;
+  /**
+   * True when the plan does not include this channel at all (Free is web-only).
+   * Distinct from an exhausted allowance: usage credit cannot unlock it, only
+   * upgrading can, so the caller must not try to charge for it.
+   */
+  channelLocked?: boolean;
 }
 
 /**
@@ -124,6 +130,22 @@ export async function consumeConversation(
 
   const plan = PLANS.find((p) => p.id === active.plan_id);
   const limit = plan?.messagesPerMonth ?? 100;
+
+  // Capability gate (pricing-model-v2 §4). Free is web-only: WhatsApp and voice
+  // are the real pass-through costs, so they are unlocked by Pro rather than
+  // given away. Reported as not-allowed with a zero limit, which routes the
+  // caller into the same quiet-degradation path as an exhausted allowance -
+  // and credit cannot rescue it, because the channel is not part of the plan.
+  if (plan && !plan.channelsUnlocked) {
+    return {
+      allowed: false,
+      conversationsUsed: 0,
+      conversationsLimit: 0,
+      planId: active.plan_id,
+      windowOpen: false,
+      channelLocked: true,
+    };
+  }
 
   const { data, error } = await supabase.rpc("consume_conversation", {
     p_tenant_id: tenantId,

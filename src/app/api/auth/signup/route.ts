@@ -111,8 +111,9 @@ export async function POST(request: NextRequest) {
       user_id: user.id,
     });
 
-    // Create free tier subscription with 3 voice minutes and 5 messages
-    // Users get limited free credits to test, then must upgrade to paid plan
+    // Free plan: website chat only, forever. WhatsApp and voice are paid
+    // capabilities unlocked by Pro (pricing-model-v2 §4), so there are no
+    // starter WhatsApp messages or voice minutes to hand out here.
     const now = new Date();
     const freePeriodEnd = new Date(now);
     freePeriodEnd.setFullYear(freePeriodEnd.getFullYear() + 10); // Free tier never expires

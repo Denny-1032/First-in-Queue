@@ -40,9 +40,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
 
-    if (planId === "enterprise") {
+    if (plan.legacy) {
       return NextResponse.json(
-        { error: "Enterprise plan requires contacting sales" },
+        { error: "That plan is no longer available" },
+        { status: 400 }
+      );
+    }
+
+    if (planId === "institution") {
+      return NextResponse.json(
+        { error: "Institution plans are arranged with sales" },
         { status: 400 }
       );
     }
@@ -71,6 +78,12 @@ export async function POST(request: NextRequest) {
       status: "pending",
       narration,
       account_number: phoneNumber ? formatZambianPhone(phoneNumber) : email,
+      // Carry the plan explicitly (migration 020). Activation reads this rather
+      // than inferring the plan from the amount, which broke the moment a price
+      // changed or a payment arrived short.
+      plan_id: planId,
+      billing_interval: isYearly ? "yearly" : "monthly",
+      purpose: "subscription",
     };
 
     let payment = null;
