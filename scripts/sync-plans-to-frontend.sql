@@ -1,4 +1,16 @@
 -- =============================================
+-- SUPERSEDED - DO NOT RUN
+-- ---------------------------------------------
+-- This script was applied by hand in the Supabase SQL Editor. Running it
+-- outside the migration files is what caused the subscription_plans drift
+-- documented in docs/v2-implementation-plan.md §1.1.
+--
+-- Its effect now lives in supabase/migrations/017_reconcile_subscription_plans.sql,
+-- which is idempotent and additionally caps the Enterprise allowances.
+-- Kept only as the historical record of what was changed in production.
+-- =============================================
+
+-- =============================================
 -- Sync subscription_plans table to match frontend
 -- Run this in Supabase SQL Editor (run each step separately)
 -- =============================================
