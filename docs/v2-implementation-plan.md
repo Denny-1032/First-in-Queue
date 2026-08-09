@@ -222,6 +222,31 @@ Decision taken: **meter real conversations** rather than relabel to messages.
 *pricing-model-v2 §7 item 3. Largest build. Greenfield per §1.3. Hard deadline
 1 October 2026.*
 
+**Shipped 2026-08-09** - `supabase/migrations/019_usage_credit.sql`,
+`src/lib/credit/`. Rates chosen to match what `/pricing` already publishes:
+**K1.70 per WhatsApp reply, K7.00 per voice minute**. Packs: K200 / K500 /
+K1,000 / K2,000. The WhatsApp rate is provisional and sits ~9x above projected
+COGS - re-derive it on 1 Sep (§1.4); it is one constant in
+`src/lib/credit/rates.ts`.
+
+Credit funds usage **past the plan allowance**, it does not replace it. That
+keeps faith with the one live paying subscription, and Phase 4 turns credit into
+the primary meter simply by dropping the bundled allowances to zero.
+
+Not built, deliberately:
+- **Auto-top-up.** The columns exist on `usage_credits`
+  (`auto_topup_enabled`, `auto_topup_pack_ngwee`, `auto_topup_threshold_ngwee`)
+  but nothing reads them. Charging a customer's mobile money without them
+  present needs a stored mandate we do not have.
+- **Low-balance alerts.** The forecast is computed and displayed on demand; it
+  is not pushed anywhere yet.
+
+Found while wiring the top-up: **`payments` has the same migration drift as
+§1.1.** `payment_method`, `lenco_reference` and `completed_at` are read and
+written by code but appear in no migration file - `/api/payments/initiate` even
+carries a `PGRST204` fallback for the missing column. Migration 019 adds
+`purpose` properly; the other three still need reconciling.
+
 **Schema**
 
 - `usage_credits` - per-tenant balance held in **ngwee (integer)**, never
@@ -335,12 +360,19 @@ needs somewhere to live.
 3. ~~Phase 2 - meter conversations, not messages~~ - **done 2026-08-09**,
    migration 018. Windows are 24h and aligned to Meta's customer-service window.
    `messages_used` keeps ticking as a shadow meter so the two can be compared.
-4. Instrument replies-per-conversation against real traffic, excluding internal
+4. ~~Phase 3 - usage credit and overage billing~~ - **done 2026-08-09**,
+   migration 019. Ngwee integers, append-only ledger, idempotent draw-downs,
+   fails closed. Auto-top-up and low-balance alerts deliberately not built (§5).
+5. Instrument replies-per-conversation against real traffic, excluding internal
    tenants (§1.5). The shadow meter shipped in Phase 2 is the instrument:
    `conversations_used` vs `messages_used` on the same subscription row, over a
    full billing cycle, excluding internal tenants.
-5. **1 September 2026: re-run pricing-model-v2 §1** with Meta's published Rest of
-   Africa rates, then set the WhatsApp credit price
+6. Reconcile the remaining `payments` drift: `payment_method`,
+   `lenco_reference`, `completed_at` exist in code but in no migration (§5).
+7. **1 September 2026: re-run pricing-model-v2 §1** with Meta's published Rest of
+   Africa rates, then set the WhatsApp credit price in
+   `src/lib/credit/rates.ts` (`CREDIT_RATES.WHATSAPP_REPLY_NGWEE`) and the
+   matching published overage on `/pricing` and in the knowledge base
 
 Also done 2026-08-09: the FiQ knowledge base quoted WhatsApp overage at
 **K0.50/conversation** against `/pricing`'s **K1.70/message**. Reconciled to

@@ -20,6 +20,7 @@ import {
 import { extractBookingFromCollectedData } from "@/lib/booking/extract";
 import { trackOnce } from "@/lib/analytics/track";
 import { consumeConversation, incrementMessageUsage } from "@/lib/lipila/usage";
+import { chargeWhatsAppOverage } from "@/lib/credit/credit";
 import type {
   WhatsAppWebhookPayload,
   Tenant,
@@ -222,23 +223,36 @@ export async function processIncomingMessage(
     // 5 messages, which is the opposite of what the free tier is for.
     if (transport.channel !== "web") {
       const usage = await consumeConversation(tenant.id, transport.channel, msg.customerRef);
+
       if (!usage.allowed) {
-        const limitMsg =
-          `We've reached our monthly conversation limit (${usage.conversationsLimit.toLocaleString()} conversations). ` +
-          `Please contact the business directly or try again next month. We apologise for the inconvenience!`;
-        const waLimitId = await transport.sendText(msg.customerRef, limitMsg);
-        await persistOutbound(transport, {
-          conversation_id: conversation.id,
-          tenant_id: tenant.id,
-          direction: "outbound",
-          sender_type: "bot",
-          message_type: "text",
-          content: { text: limitMsg },
-          whatsapp_message_id: waLimitId,
-          status: "sent",
-        });
-        console.log(`[Handler] Response path: LIMIT - conversation limit reached`);
-        return;
+        // Allowance spent. Prepaid credit pays for replies past it, at the
+        // K1.70/message rate already published on /pricing. Charged per reply
+        // rather than per conversation because that is what the published
+        // overage says, and because from October Meta bills per message too.
+        const overage = await chargeWhatsAppOverage(tenant.id, msg.externalId);
+
+        if (!overage.allowed) {
+          // No allowance and no credit: go quiet on this channel rather than
+          // erroring. Web chat is unaffected - it is not metered.
+          const limitMsg =
+            `We've reached our monthly conversation limit (${usage.conversationsLimit.toLocaleString()} conversations). ` +
+            `Please contact the business directly or try again next month. We apologise for the inconvenience!`;
+          const waLimitId = await transport.sendText(msg.customerRef, limitMsg);
+          await persistOutbound(transport, {
+            conversation_id: conversation.id,
+            tenant_id: tenant.id,
+            direction: "outbound",
+            sender_type: "bot",
+            message_type: "text",
+            content: { text: limitMsg },
+            whatsapp_message_id: waLimitId,
+            status: "sent",
+          });
+          console.log(`[Handler] Response path: LIMIT - allowance exhausted and no credit`);
+          return;
+        }
+
+        console.log(`[Handler] Overage reply billed to credit, balance now ${overage.balanceNgwee} ngwee`);
       }
 
       // Shadow meter: still counting messages so the two can be compared over a

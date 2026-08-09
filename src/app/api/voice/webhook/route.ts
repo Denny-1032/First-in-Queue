@@ -166,7 +166,8 @@ async function handleCallEnded(payload: Record<string, unknown>) {
 
   // Record voice usage
   if (voiceCall && durationSeconds > 0) {
-    await recordVoiceUsage(voiceCall.tenant_id, durationSeconds);
+    // retellCallId doubles as the billing idempotency key: this webhook retries.
+    await recordVoiceUsage(voiceCall.tenant_id, durationSeconds, retellCallId);
   }
 
   // ── Post-call booking safety net ─────────────────────────────────

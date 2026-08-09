@@ -3,6 +3,8 @@ import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { checkCollectionStatus } from "@/lib/lipila/client";
 import { verifyPayment } from "@/lib/lenco/client";
 import { activateSubscription, resolvePlanFromAmount } from "@/lib/lipila/subscription-helpers";
+import { addCredit } from "@/lib/credit/credit";
+import { kwachaToNgwee } from "@/lib/credit/rates";
 
 /**
  * Payment Confirmation Redirect
@@ -69,6 +71,29 @@ export async function GET(request: NextRequest) {
     }
 
     if (status === "successful") {
+      // A credit top-up is NOT a plan purchase. Without this branch the amount
+      // would be run through resolvePlanFromAmount and silently change the
+      // tenant's subscription - a K500 top-up read as a plan upgrade.
+      if (payment.purpose === "credit_topup") {
+        // Idempotent on the payment id: this redirect can be replayed by a
+        // refresh or a duplicate callback, and money must not be created twice.
+        const credited = await addCredit({
+          tenantId: payment.tenant_id,
+          amountNgwee: kwachaToNgwee(Number(payment.amount)),
+          referenceType: "payment",
+          referenceId: payment.id,
+        });
+
+        if (!credited) {
+          console.error(`[Payment Confirm] Top-up ${payment.id} paid but NOT credited`);
+          return NextResponse.redirect(`${appUrl}/dashboard/settings?tab=billing&topup=error`);
+        }
+
+        return NextResponse.redirect(
+          `${appUrl}/dashboard/settings?tab=billing&topup=success&balance=${credited.balanceNgwee}`
+        );
+      }
+
       // Activate subscription using shared helper
       await activateSubscription(payment.tenant_id, payment.id, payment.amount);
       const { planId } = resolvePlanFromAmount(payment.amount);

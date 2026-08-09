@@ -3,6 +3,7 @@ import { getMessages, saveMessage, getConversation, updateConversation } from "@
 import { createWhatsAppClient } from "@/lib/whatsapp/client";
 import { getTenantById } from "@/lib/db/operations";
 import { consumeConversation, incrementMessageUsage } from "@/lib/lipila/usage";
+import { chargeWhatsAppOverage } from "@/lib/credit/credit";
 
 export async function GET(
   request: NextRequest,
@@ -49,10 +50,15 @@ export async function POST(
     // the reply opens a new window.
     const usage = await consumeConversation(tenant.id, "whatsapp", conversation.customer_phone);
     if (!usage.allowed) {
-      return NextResponse.json({
-        error: "Conversation limit reached",
-        message: `You've reached your monthly limit of ${usage.conversationsLimit.toLocaleString()} conversations. Please upgrade your plan to continue.`
-      }, { status: 403 });
+      // Past the allowance, prepaid credit pays for the send. Only when that is
+      // empty too does the agent get blocked.
+      const overage = await chargeWhatsAppOverage(tenant.id);
+      if (!overage.allowed) {
+        return NextResponse.json({
+          error: "Conversation limit reached",
+          message: `You've reached your monthly limit of ${usage.conversationsLimit.toLocaleString()} conversations and your usage credit is empty. Top up or upgrade your plan to continue.`
+        }, { status: 403 });
+      }
     }
 
     // Try to send via WhatsApp

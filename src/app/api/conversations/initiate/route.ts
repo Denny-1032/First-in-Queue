@@ -3,6 +3,7 @@ import { requireSession, AuthError } from "@/lib/auth/session";
 import { getOrCreateConversation, getTenantById, saveMessage, updateConversation } from "@/lib/db/operations";
 import { createWhatsAppClient } from "@/lib/whatsapp/client";
 import { consumeConversation, incrementMessageUsage } from "@/lib/lipila/usage";
+import { chargeWhatsAppOverage } from "@/lib/credit/credit";
 import type { Conversation } from "@/types";
 
 /**
@@ -44,10 +45,13 @@ export async function POST(request: NextRequest) {
     // live 24h window opens one, which is exactly the case Meta charges for.
     const usage = await consumeConversation(tenant.id, "whatsapp", normalisedPhone);
     if (!usage.allowed) {
-      return NextResponse.json({
-        error: "Conversation limit reached",
-        message: `You've reached your monthly limit of ${usage.conversationsLimit.toLocaleString()} conversations. Please upgrade your plan to continue.`,
-      }, { status: 403 });
+      const overage = await chargeWhatsAppOverage(tenant.id);
+      if (!overage.allowed) {
+        return NextResponse.json({
+          error: "Conversation limit reached",
+          message: `You've reached your monthly limit of ${usage.conversationsLimit.toLocaleString()} conversations and your usage credit is empty. Top up or upgrade your plan to continue.`,
+        }, { status: 403 });
+      }
     }
 
     // Get or create conversation

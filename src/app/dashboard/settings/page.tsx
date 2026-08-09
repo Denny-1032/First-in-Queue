@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { CheckoutModal } from "@/components/dashboard/checkout-modal";
+import { CreditPanel } from "@/components/dashboard/credit-panel";
 import { PLANS } from "@/lib/lipila/plans";
 
 const TABS = [
@@ -750,6 +751,7 @@ function SettingsContent() {
           </Card>
           );
         })()}
+        <CreditPanel />
       </>)}
 
       {/* Checkout Modal */}
