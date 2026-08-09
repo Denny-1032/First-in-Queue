@@ -70,7 +70,12 @@ const ai = vi.hoisted(() => ({
 }));
 
 const usage = vi.hoisted(() => ({
-  checkMessageUsage: vi.fn<AnyFn>(async () => ({ allowed: true, messagesLimit: 1000, messagesUsed: 1 })),
+  consumeConversation: vi.fn<AnyFn>(async () => ({
+    allowed: true,
+    conversationsLimit: 1000,
+    conversationsUsed: 1,
+    windowOpen: false,
+  })),
   incrementMessageUsage: vi.fn<AnyFn>(async () => {}),
 }));
 
@@ -94,7 +99,7 @@ vi.mock("@/lib/supabase/server", () => {
   return { getSupabaseAdmin: vi.fn(() => chain) };
 });
 
-import { handleWebhook } from "@/lib/engine/handler";
+import { handleWebhook, processIncomingMessage } from "@/lib/engine/handler";
 
 // --- Fixture factories ---
 
@@ -190,7 +195,12 @@ beforeEach(() => {
   db.getRecentMessageHistory.mockResolvedValue([]);
   db.getAvailableAgent.mockResolvedValue(null);
   ai.generateResponse.mockResolvedValue({ text: "AI answer", should_escalate: false, confidence: 0.9 });
-  usage.checkMessageUsage.mockResolvedValue({ allowed: true, messagesLimit: 1000, messagesUsed: 1 });
+  usage.consumeConversation.mockResolvedValue({
+    allowed: true,
+    conversationsLimit: 1000,
+    conversationsUsed: 1,
+    windowOpen: false,
+  });
 });
 
 describe("processIncomingMessage routing (WhatsApp)", () => {
@@ -232,9 +242,14 @@ describe("processIncomingMessage routing (WhatsApp)", () => {
     expect(transport.sendTypingIndicator).toHaveBeenCalled();
   });
 
-  it("blocks the bot when the monthly message limit is reached", async () => {
+  it("blocks the bot when the monthly conversation limit is reached", async () => {
     arrange();
-    usage.checkMessageUsage.mockResolvedValue({ allowed: false, messagesLimit: 1000, messagesUsed: 1000 });
+    usage.consumeConversation.mockResolvedValue({
+      allowed: false,
+      conversationsLimit: 1000,
+      conversationsUsed: 1000,
+      windowOpen: false,
+    });
 
     await handleWebhook(makePayload(makeTextMessage("hi there")));
 
@@ -242,6 +257,39 @@ describe("processIncomingMessage routing (WhatsApp)", () => {
     expect(transport.sendText.mock.calls[0][1]).toContain("1,000");
     expect(usage.incrementMessageUsage).not.toHaveBeenCalled();
     expect(ai.generateResponse).not.toHaveBeenCalled();
+  });
+
+  it("meters the conversation once, keyed on the customer's number", async () => {
+    arrange();
+
+    await handleWebhook(makePayload(makeTextMessage("hi there")));
+
+    expect(usage.consumeConversation).toHaveBeenCalledTimes(1);
+    expect(usage.consumeConversation).toHaveBeenCalledWith("tenant-1", "whatsapp", "260970000000");
+    // The message counter still runs alongside it as a shadow meter (§1.5).
+    expect(usage.incrementMessageUsage).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not charge the WhatsApp allowance for web chat", async () => {
+    // Web is the zero-third-party-cost channel and has its own meter in the
+    // widget route (consumeAiReply). Charging it here capped a Free tenant's
+    // website widget at 5 messages.
+    const { tenant } = arrange();
+    const webTransport = {
+      ...transport,
+      channel: "web" as const,
+      capabilities: { ...transport.capabilities, persistsOutbound: true },
+    };
+
+    await processIncomingMessage(
+      tenant,
+      { customerRef: "visitor-abc", customerName: "Visitor", type: "text", content: { text: "hello" }, externalId: "web-1" } as never,
+      webTransport as never
+    );
+
+    expect(usage.consumeConversation).not.toHaveBeenCalled();
+    expect(usage.incrementMessageUsage).not.toHaveBeenCalled();
+    expect(webTransport.sendText).toHaveBeenCalled();
   });
 
   it("sends the outside-hours message when the schedule is closed", async () => {
@@ -416,7 +464,7 @@ describe("booking confirm/cancel buttons (WhatsApp)", () => {
     expect(db.updateBooking).toHaveBeenCalledWith("bk-1", expect.objectContaining({ status: "confirmed" }));
     expect(transport.sendText.mock.calls[0][1]).toContain("is confirmed");
     // booking buttons are handled ahead of the usage gate and the AI
-    expect(usage.checkMessageUsage).not.toHaveBeenCalled();
+    expect(usage.consumeConversation).not.toHaveBeenCalled();
     expect(ai.generateResponse).not.toHaveBeenCalled();
   });
 

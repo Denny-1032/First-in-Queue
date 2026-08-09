@@ -19,7 +19,7 @@ import {
 } from "@/lib/db/operations";
 import { extractBookingFromCollectedData } from "@/lib/booking/extract";
 import { trackOnce } from "@/lib/analytics/track";
-import { checkMessageUsage, incrementMessageUsage } from "@/lib/lipila/usage";
+import { consumeConversation, incrementMessageUsage } from "@/lib/lipila/usage";
 import type {
   WhatsAppWebhookPayload,
   Tenant,
@@ -209,29 +209,42 @@ export async function processIncomingMessage(
       return;
     }
 
-    // Check plan message limit before generating any bot response
-    const usage = await checkMessageUsage(tenant.id);
-    if (!usage.allowed) {
-      const limitMsg =
-        `We've reached our monthly message limit (${usage.messagesLimit.toLocaleString()} messages). ` +
-        `Please contact the business directly or try again next month. We apologise for the inconvenience!`;
-      const waLimitId = await transport.sendText(msg.customerRef, limitMsg);
-      await persistOutbound(transport, {
-        conversation_id: conversation.id,
-        tenant_id: tenant.id,
-        direction: "outbound",
-        sender_type: "bot",
-        message_type: "text",
-        content: { text: limitMsg },
-        whatsapp_message_id: waLimitId,
-        status: "sent",
-      });
-      console.log(`[Handler] Response path: LIMIT - message limit reached`);
-      return;
-    }
+    // Plan limit, checked before generating any bot response.
+    //
+    // Metered per CONVERSATION, not per message: the charge lands once when a
+    // 24h window opens and every message inside that window is free. See
+    // consumeConversation.
+    //
+    // Web is deliberately excluded. It is the zero-third-party-cost channel
+    // (pricing-model-v2 §3) and already has its own meter in the widget route
+    // (consumeAiReply, 500 replies/month on Free). Running it through the
+    // WhatsApp allowance as well meant a Free tenant's web widget died after
+    // 5 messages, which is the opposite of what the free tier is for.
+    if (transport.channel !== "web") {
+      const usage = await consumeConversation(tenant.id, transport.channel, msg.customerRef);
+      if (!usage.allowed) {
+        const limitMsg =
+          `We've reached our monthly conversation limit (${usage.conversationsLimit.toLocaleString()} conversations). ` +
+          `Please contact the business directly or try again next month. We apologise for the inconvenience!`;
+        const waLimitId = await transport.sendText(msg.customerRef, limitMsg);
+        await persistOutbound(transport, {
+          conversation_id: conversation.id,
+          tenant_id: tenant.id,
+          direction: "outbound",
+          sender_type: "bot",
+          message_type: "text",
+          content: { text: limitMsg },
+          whatsapp_message_id: waLimitId,
+          status: "sent",
+        });
+        console.log(`[Handler] Response path: LIMIT - conversation limit reached`);
+        return;
+      }
 
-    // Increment message counter (all paths below send a bot response)
-    await incrementMessageUsage(tenant.id);
+      // Shadow meter: still counting messages so the two can be compared over a
+      // full billing cycle (§1.5). Not a gate.
+      await incrementMessageUsage(tenant.id);
+    }
 
     // Check operating hours - if outside hours, send the outside-hours message
     if (isOutsideOperatingHours(tenant)) {

@@ -499,6 +499,9 @@ export interface Subscription {
   status: "active" | "trialing" | "past_due" | "cancelled" | "expired";
   current_period_start: string;
   current_period_end: string;
+  /** Billable meter: one per 24h WhatsApp conversation window (migration 018). */
+  conversations_used: number;
+  /** Shadow meter, retained for one billing cycle to calibrate the above. */
   messages_used: number;
   voice_minutes_used: number;
   cancel_at_period_end: boolean;

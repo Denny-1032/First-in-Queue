@@ -187,6 +187,18 @@ Plans advertise *"1,000 WhatsApp conversations"*. `incrementMessageUsage()` in
 buying 1,000 conversations is cut off after 1,000 messages. Per §1.5 above the
 real gap may be far wider than the 6-10x pricing-model-v2 estimated.
 
+**Shipped 2026-08-09** - `supabase/migrations/018_conversation_metering.sql`,
+`consumeConversation()` in `src/lib/lipila/usage.ts`. Still to apply in the
+Supabase SQL editor; until then the code falls back to the message meter
+(Postgres 42883) rather than taking WhatsApp down.
+
+Also fixed in the same pass, found while tracing the meter: **web chat was
+being charged against the WhatsApp allowance.** `handler.ts` is shared by both
+transports, so every web message ran through `checkMessageUsage` as well as the
+widget's own `consumeAiReply` - which capped a Free tenant's website widget at
+**5 messages**, against a 500-reply web allowance. The conversation meter is now
+skipped for `channel === "web"` entirely.
+
 Decision taken: **meter real conversations** rather than relabel to messages.
 
 - Define the conversation window. **Recommend aligning to WhatsApp's own 24-hour
@@ -320,9 +332,14 @@ needs somewhere to live.
    numbers, with overage stated as contracted rather than published (no WhatsApp
    rate can be set before §1.4). Voice overage on Basic/Business raised from
    K3.80/min to K7.00/min - the old rate sat 8% above the K3.51 COGS.
-3. Instrument replies-per-conversation against real traffic, excluding internal
-   tenants (§1.5)
-4. **1 September 2026: re-run pricing-model-v2 §1** with Meta's published Rest of
+3. ~~Phase 2 - meter conversations, not messages~~ - **done 2026-08-09**,
+   migration 018. Windows are 24h and aligned to Meta's customer-service window.
+   `messages_used` keeps ticking as a shadow meter so the two can be compared.
+4. Instrument replies-per-conversation against real traffic, excluding internal
+   tenants (§1.5). The shadow meter shipped in Phase 2 is the instrument:
+   `conversations_used` vs `messages_used` on the same subscription row, over a
+   full billing cycle, excluding internal tenants.
+5. **1 September 2026: re-run pricing-model-v2 §1** with Meta's published Rest of
    Africa rates, then set the WhatsApp credit price
 
 Also done 2026-08-09: the FiQ knowledge base quoted WhatsApp overage at

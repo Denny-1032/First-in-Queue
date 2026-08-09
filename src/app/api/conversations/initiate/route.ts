@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession, AuthError } from "@/lib/auth/session";
 import { getOrCreateConversation, getTenantById, saveMessage, updateConversation } from "@/lib/db/operations";
 import { createWhatsAppClient } from "@/lib/whatsapp/client";
-import { checkMessageUsage, incrementMessageUsage } from "@/lib/lipila/usage";
+import { consumeConversation, incrementMessageUsage } from "@/lib/lipila/usage";
 import type { Conversation } from "@/types";
 
 /**
@@ -40,12 +40,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid phone number. Use international format, e.g. +260971234567" }, { status: 400 });
     }
 
-    // Check message usage limit
-    const usage = await checkMessageUsage(tenant.id);
+    // Plan limit, metered per conversation. Reaching out to a customer with no
+    // live 24h window opens one, which is exactly the case Meta charges for.
+    const usage = await consumeConversation(tenant.id, "whatsapp", normalisedPhone);
     if (!usage.allowed) {
       return NextResponse.json({
-        error: "Message limit reached",
-        message: `You've reached your monthly limit of ${usage.messagesLimit.toLocaleString()} messages. Please upgrade your plan to continue.`,
+        error: "Conversation limit reached",
+        message: `You've reached your monthly limit of ${usage.conversationsLimit.toLocaleString()} conversations. Please upgrade your plan to continue.`,
       }, { status: 403 });
     }
 
@@ -109,7 +110,8 @@ export async function POST(request: NextRequest) {
       status: deliveryFailed ? "failed" : "sent",
     });
 
-    // Increment usage on successful send
+    // Shadow message counter, kept in parallel with the conversation meter for
+    // one billing cycle (v2 plan §1.5). Only on successful send.
     if (!deliveryFailed) {
       await incrementMessageUsage(tenant.id);
     }

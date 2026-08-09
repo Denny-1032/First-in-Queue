@@ -149,7 +149,10 @@ function SettingsContent() {
           const data = await res.json();
           if (data.subscription) {
             setCurrentPlanId(data.subscription.plan_id);
-            setMessagesUsed(data.subscription.messages_used);
+            // The conversation meter is what the plan limit gates on (migration
+            // 018). messages_used still ticks alongside it, but showing that
+            // number against a conversation allowance would misreport usage.
+            setMessagesUsed(data.subscription.conversations_used ?? 0);
             setVoiceMinutesUsed(data.subscription.voice_minutes_used || 0);
             setPeriodEnd(data.subscription.current_period_end);
             setSubscriptionStatus(data.subscription.status);
@@ -651,8 +654,8 @@ function SettingsContent() {
               <div className="py-3 border-b border-gray-100 space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-700">Messages This Month</p>
-                    <p className="text-xs text-gray-500">AI-powered responses sent</p>
+                    <p className="text-sm font-medium text-gray-700">WhatsApp Conversations This Month</p>
+                    <p className="text-xs text-gray-500">Counted once per 24-hour conversation, not per message</p>
                   </div>
                   <span className="text-sm font-semibold text-gray-900">
                     {messagesUsed.toLocaleString()} / {messagesLimit.toLocaleString()}

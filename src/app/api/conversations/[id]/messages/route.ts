@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getMessages, saveMessage, getConversation, updateConversation } from "@/lib/db/operations";
 import { createWhatsAppClient } from "@/lib/whatsapp/client";
 import { getTenantById } from "@/lib/db/operations";
-import { checkMessageUsage, incrementMessageUsage } from "@/lib/lipila/usage";
+import { consumeConversation, incrementMessageUsage } from "@/lib/lipila/usage";
 
 export async function GET(
   request: NextRequest,
@@ -44,12 +44,14 @@ export async function POST(
       return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
     }
 
-    // Check message usage limit before sending
-    const usage = await checkMessageUsage(tenant.id);
+    // Plan limit, metered per conversation. An agent replying inside the
+    // customer's live 24h window costs nothing extra, so this only charges when
+    // the reply opens a new window.
+    const usage = await consumeConversation(tenant.id, "whatsapp", conversation.customer_phone);
     if (!usage.allowed) {
-      return NextResponse.json({ 
-        error: "Message limit reached", 
-        message: `You've reached your monthly limit of ${usage.messagesLimit.toLocaleString()} messages. Please upgrade your plan to continue.`
+      return NextResponse.json({
+        error: "Conversation limit reached",
+        message: `You've reached your monthly limit of ${usage.conversationsLimit.toLocaleString()} conversations. Please upgrade your plan to continue.`
       }, { status: 403 });
     }
 
@@ -95,7 +97,8 @@ export async function POST(
     // Update conversation timestamp so it appears at top of list
     await updateConversation(id, { last_message_at: new Date().toISOString() });
 
-    // Increment message usage counter (only on successful send)
+    // Shadow message counter, kept in parallel with the conversation meter for
+    // one billing cycle (v2 plan §1.5). Only on successful send.
     if (!deliveryFailed) {
       await incrementMessageUsage(tenant.id);
     }
