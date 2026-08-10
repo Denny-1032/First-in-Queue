@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { renderMarkdown } from "@/lib/widget/markdown";
-import { useVoiceCall, formatCallTime } from "@/lib/widget/use-voice-call";
+import { useVoiceCall } from "@/lib/widget/use-voice-call";
+import { CallOverlay } from "@/components/widget/call-overlay";
 
 // Text web-chat widget (Phase 1, Block 7).
 //
@@ -59,6 +60,10 @@ function ChatContent() {
   // Loaded directly in an Android WebView / WKWebView: there is no parent frame
   // to post "close" to, so the host app supplies its own dismiss chrome.
   const nativeEmbed = searchParams.get("embed") === "native";
+  // Embedded inline in a page (our own landing hero), not in the launcher's
+  // panel: there is nothing to collapse back into, so no close button either.
+  const inlineEmbed = searchParams.get("embed") === "inline";
+  const dismissable = !nativeEmbed && !inlineEmbed;
 
   const [branding, setBranding] = useState<Branding | null>(null);
   const [online, setOnline] = useState(true);
@@ -338,7 +343,7 @@ function ChatContent() {
             </svg>
           </button>
         )}
-        {!nativeEmbed && (
+        {dismissable && (
           <button
             type="button"
             className="fiq-close"
@@ -350,43 +355,7 @@ function ChatContent() {
         )}
       </header>
 
-      {(onCall || voice.state === "error") && (
-        <div className={`fiq-callbar ${voice.state}`} role="status" aria-live="polite">
-          <span className="fiq-callstate">
-            {voice.state === "connecting" && "Connecting…"}
-            {voice.state === "active" && (
-              <>
-                <span className={`fiq-dot ${voice.agentTalking ? "on" : "off"}`} aria-hidden="true" />
-                {voice.agentTalking ? "Assistant speaking" : "On call"} ·{" "}
-                <time>{formatCallTime(voice.seconds)}</time>
-              </>
-            )}
-            {voice.state === "error" && (voice.error || "Call failed")}
-          </span>
-
-          {onCall ? (
-            <span className="fiq-callbtns">
-              <button
-                type="button"
-                onClick={voice.toggleMute}
-                aria-pressed={voice.muted}
-                disabled={voice.state !== "active"}
-              >
-                {voice.muted ? "Unmute" : "Mute"}
-              </button>
-              <button type="button" className="danger" onClick={voice.stop}>
-                End
-              </button>
-            </span>
-          ) : (
-            <span className="fiq-callbtns">
-              <button type="button" onClick={voice.reset}>
-                Dismiss
-              </button>
-            </span>
-          )}
-        </div>
-      )}
+      <CallOverlay voice={voice} title={b.title} logoUrl={b.logo_url} />
 
       <div
         className="fiq-list"
@@ -513,6 +482,8 @@ function ChatContent() {
         .fiq-chat {
           display: flex; flex-direction: column; height: 100vh; height: 100dvh;
           background: #fff; color: #111; font-size: 15px;
+          /* Containing block for the call overlay, which covers the whole panel. */
+          position: relative;
         }
         .fiq-header {
           display: flex; align-items: center; gap: 10px; padding: 12px 14px;
@@ -537,21 +508,6 @@ function ChatContent() {
         }
         .fiq-call:hover, .fiq-wa:hover { background: rgba(255, 255, 255, .3); }
         .fiq-call:focus-visible, .fiq-wa:focus-visible { outline: 3px solid #111; outline-offset: 2px; }
-        .fiq-callbar {
-          display: flex; align-items: center; justify-content: space-between; gap: 8px;
-          padding: 8px 12px; font-size: 12px; flex: 0 0 auto;
-          background: #f0fdf4; border-bottom: 1px solid #dcfce7; color: #14532d;
-        }
-        .fiq-callbar.error { background: #fef2f2; border-bottom-color: #fee2e2; color: #991b1b; }
-        .fiq-callstate { display: flex; align-items: center; gap: 6px; min-width: 0; }
-        .fiq-callbtns { display: flex; gap: 6px; flex: 0 0 auto; }
-        .fiq-callbtns button {
-          border: 1px solid currentColor; background: transparent; color: inherit;
-          border-radius: 14px; padding: 3px 10px; font-size: 12px; cursor: pointer;
-        }
-        .fiq-callbtns button:disabled { opacity: .5; cursor: not-allowed; }
-        .fiq-callbtns button.danger { background: #dc2626; border-color: #dc2626; color: #fff; }
-        .fiq-callbtns button:focus-visible { outline: 3px solid #111; outline-offset: 2px; }
         /* WebView embeds have no browser chrome - keep the composer off the
            home indicator / gesture bar. */
         .fiq-chat.native .fiq-composer { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }

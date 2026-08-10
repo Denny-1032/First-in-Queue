@@ -161,6 +161,9 @@ export function useVoiceCall({ getToken, endpoint = WIDGET_VOICE_ENDPOINT, onEve
   return { state, seconds, muted, agentTalking, error, start, stop, toggleMute, reset };
 }
 
+/** Everything a call UI needs; see CallOverlay, which renders nothing else. */
+export type VoiceCall = ReturnType<typeof useVoiceCall>;
+
 export function formatCallTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;

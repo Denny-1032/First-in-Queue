@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 
-export function DemoBooking({ id }: { id?: string }) {
+/**
+ * `bare` drops the card chrome for callers that already provide it - the modal
+ * supplies its own border, padding and shadow, and nesting a second card inside
+ * it looked like a bug.
+ */
+export function DemoBooking({ id, bare = false }: { id?: string; bare?: boolean }) {
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [contact, setContact] = useState("");
@@ -34,9 +39,20 @@ export function DemoBooking({ id }: { id?: string }) {
     }
   };
 
+  const shell = bare
+    ? ""
+    : "rounded-2xl border border-gray-200 bg-white shadow-xl p-8";
+
   if (submitted) {
     return (
-      <div id={id} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center">
+      <div
+        id={id}
+        className={
+          bare
+            ? "py-4 text-center"
+            : "rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center"
+        }
+      >
         <CheckCircle2 className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
         <h3 className="text-xl font-bold text-gray-900 mb-2">Demo Booked!</h3>
         <p className="text-gray-600 text-sm">
@@ -47,7 +63,7 @@ export function DemoBooking({ id }: { id?: string }) {
   }
 
   return (
-    <div id={id} className="rounded-2xl border border-gray-200 bg-white shadow-xl p-8">
+    <div id={id} className={shell}>
       <h3 className="text-xl font-bold text-gray-900 mb-1">Book a Free Demo</h3>
       <p className="text-sm text-gray-500 mb-6">See FiQ in action - personalized for your business.</p>
       <form onSubmit={handleSubmit} className="space-y-4">

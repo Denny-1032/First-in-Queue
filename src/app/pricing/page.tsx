@@ -7,6 +7,7 @@ import { ArrowRight, CheckCircle2, Star, HelpCircle, ShieldCheck } from "lucide-
 import { Navbar } from "@/components/landing/navbar";
 import { ScrollAnimate } from "@/components/ui/scroll-animate";
 import { Footer } from "@/components/landing/footer";
+import { BookDemoButton } from "@/components/landing/demo-booking-dialog";
 import { SELLABLE_PLANS } from "@/lib/lipila/plans";
 import { FAQPageJsonLd } from "@/components/seo/json-ld";
 
@@ -269,12 +270,9 @@ function PricingContent() {
                 Get Started
                 <ArrowRight className="h-5 w-5" />
               </Link>
-              <Link
-                href="/#book-demo"
-                className="inline-flex items-center gap-2 rounded-xl border-2 border-white/30 px-8 py-4 text-base font-semibold text-white hover:bg-white/10 transition-all"
-              >
+              <BookDemoButton className="inline-flex items-center gap-2 rounded-xl border-2 border-white/30 px-8 py-4 text-base font-semibold text-white hover:bg-white/10 transition-all">
                 Book a Demo
-              </Link>
+              </BookDemoButton>
             </div>
           </div>
           </ScrollAnimate>

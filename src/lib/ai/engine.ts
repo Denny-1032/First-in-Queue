@@ -332,6 +332,26 @@ You can book, check, reschedule and cancel appointments using the provided tools
 - After a successful create_booking, confirm the booked date and time back to the customer in your final response text.`;
 }
 
+/**
+ * OpenAI SDK errors keep the useful part on the instance rather than in the
+ * message, so logging the bare object told us nothing about whether the key was
+ * rejected, the model name was wrong, or we were being rate limited - and every
+ * one of those reached the customer as the same "brief technical issue" line.
+ */
+export function describeAIError(error: unknown): string {
+  if (error instanceof OpenAI.APIError) {
+    return [`OpenAI ${error.status ?? "?"}`, error.type, error.code, error.message]
+      .filter(Boolean)
+      .join(" ");
+  }
+  return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+}
+
+/** Has to hold the JSON envelope AND the reply. */
+const MAX_TOKENS = 2000;
+/** One retry's worth of headroom when a reply is cut off mid-envelope. */
+const TRUNCATION_RETRY_TOKENS = 4000;
+
 export class AIEngine {
   private openai: OpenAI;
   private model: string;
@@ -391,24 +411,31 @@ export class AIEngine {
 
     const MAX_TOOL_ITERATIONS = 5;
     let createdBookingId: string | undefined;
+    let maxTokens = MAX_TOKENS;
+    let retriedTruncation = false;
 
     try {
-      for (let iteration = 0; ; iteration++) {
+      // Tool passes are counted separately from loop turns: a truncation retry
+      // must not burn one, or a booking conversation could run out of tool
+      // budget because one earlier reply happened to be long.
+      for (let toolPass = 0; ; ) {
         // On the last allowed pass, withhold tools to force a final answer
-        const allowTools = bookingEnabled && iteration < MAX_TOOL_ITERATIONS;
+        const allowTools = bookingEnabled && toolPass < MAX_TOOL_ITERATIONS;
         const completion = await this.openai.chat.completions.create({
           model: this.model,
           messages,
           temperature: 0.7,
-          max_tokens: 1000,
+          max_tokens: maxTokens,
           response_format: { type: "json_object" },
           ...(allowTools && { tools: BOOKING_TOOLS }),
         });
 
-        const message = completion.choices[0]?.message;
+        const choice = completion.choices[0];
+        const message = choice?.message;
 
         if (message?.tool_calls?.length && toolCtx && allowTools) {
-          console.log(`[AIEngine] Tool loop iteration ${iteration + 1}: ${message.tool_calls.length} call(s)`);
+          toolPass++;
+          console.log(`[AIEngine] Tool loop pass ${toolPass}: ${message.tool_calls.length} call(s)`);
           messages.push(message);
           for (const toolCall of message.tool_calls) {
             if (toolCall.type !== "function") continue;
@@ -428,7 +455,26 @@ export class AIEngine {
         }
 
         const responseText = message?.content || "";
-        const parsed = JSON.parse(responseText) as AIResponse;
+        let parsed: AIResponse;
+        try {
+          parsed = JSON.parse(responseText) as AIResponse;
+        } catch (parseError) {
+          // A cut-off envelope is a token-budget problem, not an outage. Retry
+          // once with room to finish rather than telling a customer whose
+          // question was simply answered at length to come back later.
+          if (choice?.finish_reason === "length" && !retriedTruncation) {
+            retriedTruncation = true;
+            maxTokens = TRUNCATION_RETRY_TOKENS;
+            console.warn(
+              `[AIEngine] Reply truncated at ${MAX_TOKENS} tokens - retrying at ${TRUNCATION_RETRY_TOKENS}`
+            );
+            continue;
+          }
+          console.error(
+            `[AIEngine] Unparseable reply: finish_reason=${choice?.finish_reason ?? "none"}, chars=${responseText.length}`
+          );
+          throw parseError;
+        }
 
         return {
           text: parsed.text || "I'm sorry, I couldn't process that. Could you please try again?",
@@ -442,7 +488,7 @@ export class AIEngine {
         };
       }
     } catch (error) {
-      console.error("[AIEngine] Error generating response:", error);
+      console.error(`[AIEngine] Error generating response: ${describeAIError(error)}`, error);
       return {
         // A booking may already exist even when the final completion failed -
         // surface it so the handler still sends the confirm buttons

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
+import { BookDemoButton } from "@/components/landing/demo-booking-dialog";
 import { ScrollAnimate } from "@/components/ui/scroll-animate";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
@@ -432,12 +433,9 @@ export default function HowItWorksPage() {
               </div>
               <p className="text-sm text-gray-500 mt-6">
                 Would rather be walked through it?{" "}
-                <Link
-                  href="/#book-demo"
-                  className="text-emerald-400 font-medium hover:text-emerald-300 underline underline-offset-2"
-                >
+                <BookDemoButton className="text-emerald-400 font-medium hover:text-emerald-300 underline underline-offset-2">
                   Book a demo
-                </Link>{" "}
+                </BookDemoButton>{" "}
                 and we will build one around your business.
               </p>
             </div>

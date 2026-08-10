@@ -1,14 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Bot, Globe, MessageSquare, Mic, MicOff, Phone, PhoneOff, Loader2 } from "lucide-react";
+import { Bot, MessageSquare, Mic, MicOff, Phone, PhoneOff, Loader2 } from "lucide-react";
 import { useVoiceCall, formatCallTime } from "@/lib/widget/use-voice-call";
+import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 
-// "See it in action". The chat tabs replay a scripted conversation at real
-// speed - typing indicator, pauses, the lot - because a screenshot of a
-// conversation proves nothing about a product whose whole claim is that it
-// answers fast.
+// The channels you cannot put on a web page.
+//
+// Website chat used to be a tab here, replayed from a script; it is now the
+// real widget, running in the hero. What is left is WhatsApp - which genuinely
+// cannot be embedded, so it replays at real speed, typing indicator and all -
+// and voice.
 //
 // The voice tab is not a simulation: it dials the same FiQ support agent a
 // customer would reach. That endpoint is IP rate limited server-side, since
@@ -26,27 +29,6 @@ interface ScriptLine {
   /** Pause before the line is shown, i.e. how long the customer took to write. */
   delayMs?: number;
 }
-
-const WEB_SCRIPT: ScriptLine[] = [
-  { from: "customer", text: "Hi! Do you deliver to Kitwe?", delayMs: 600 },
-  {
-    from: "bot",
-    text: "Yes we do! Deliveries to Kitwe go out every Tuesday and Friday, and usually arrive the next morning.",
-    typingMs: 1100,
-  },
-  { from: "customer", text: "How much is delivery?", delayMs: 1400 },
-  {
-    from: "bot",
-    text: "K85 for orders under K1,000, and free above that. Would you like me to check if your order qualifies?",
-    typingMs: 1200,
-  },
-  { from: "customer", text: "Yes please, order #ORD-2024-8847", delayMs: 1500 },
-  {
-    from: "bot",
-    text: "That one's K1,240 - so delivery is free. It's packed and leaves on Friday. Anything else?",
-    typingMs: 1400,
-  },
-];
 
 const WHATSAPP_SCRIPT: ScriptLine[] = [
   { from: "customer", text: "Good evening, are you still open?", delayMs: 600 },
@@ -70,7 +52,6 @@ const WHATSAPP_SCRIPT: ScriptLine[] = [
 ];
 
 const TABS = [
-  { id: "web", label: "Website chat", icon: Globe },
   { id: "whatsapp", label: "WhatsApp", icon: MessageSquare },
   { id: "voice", label: "Voice call", icon: Phone },
 ] as const;
@@ -78,7 +59,7 @@ const TABS = [
 type TabId = (typeof TABS)[number]["id"];
 
 export function LiveDemo() {
-  const [tab, setTab] = useState<TabId>("web");
+  const [tab, setTab] = useState<TabId>("whatsapp");
 
   return (
     <div>
@@ -107,20 +88,12 @@ export function LiveDemo() {
         </div>
       </div>
 
-      {tab === "voice" ? (
-        <VoiceDemo />
-      ) : (
-        <ChatReplay
-          key={tab}
-          script={tab === "whatsapp" ? WHATSAPP_SCRIPT : WEB_SCRIPT}
-          channel={tab}
-        />
-      )}
+      {tab === "voice" ? <VoiceDemo /> : <ChatReplay script={WHATSAPP_SCRIPT} />}
     </div>
   );
 }
 
-function ChatReplay({ script, channel }: { script: ScriptLine[]; channel: "web" | "whatsapp" }) {
+function ChatReplay({ script }: { script: ScriptLine[] }) {
   const [shown, setShown] = useState<ScriptLine[]>([]);
   const [typing, setTyping] = useState(false);
   const [done, setDone] = useState(false);
@@ -193,19 +166,13 @@ function ChatReplay({ script, channel }: { script: ScriptLine[]; channel: "web" 
     });
   }, [shown, typing, reducedMotion]);
 
-  const isWhatsApp = channel === "whatsapp";
-
   return (
     <div
       className="rounded-2xl border border-gray-200 bg-gradient-to-b from-gray-50 to-white shadow-2xl shadow-gray-200/50 overflow-hidden"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div
-        className={`px-6 py-4 flex items-center gap-3 ${
-          isWhatsApp ? "bg-[#075E54]" : "bg-emerald-600"
-        }`}
-      >
+      <div className="px-6 py-4 flex items-center gap-3 bg-[#075E54]">
         <Image
           src="/fiq-logo.png?v=2"
           alt=""
@@ -215,9 +182,7 @@ function ChatReplay({ script, channel }: { script: ScriptLine[]; channel: "web" 
         />
         <div className="flex-1">
           <p className="text-white font-medium text-sm">FiQ Assistant</p>
-          <p className="text-emerald-200 text-xs">
-            {isWhatsApp ? "WhatsApp Business" : "online"}
-          </p>
+          <p className="text-emerald-200 text-xs">WhatsApp Business</p>
         </div>
         {done && (
           <button
@@ -231,9 +196,7 @@ function ChatReplay({ script, channel }: { script: ScriptLine[]; channel: "web" 
 
       <div
         ref={listRef}
-        className={`p-6 space-y-4 h-[340px] overflow-y-auto ${
-          isWhatsApp ? "bg-[#ECE5DD]" : "bg-[#f0f2f5]"
-        }`}
+        className="p-6 space-y-4 h-[340px] overflow-y-auto bg-[#ECE5DD]"
         role="log"
         aria-live="polite"
       >
@@ -242,7 +205,7 @@ function ChatReplay({ script, channel }: { script: ScriptLine[]; channel: "web" 
             <div
               className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm max-w-[75%] ${
                 line.from === "bot"
-                  ? `rounded-tr-sm text-white ${isWhatsApp ? "bg-[#128C7E]" : "bg-emerald-500"}`
+                  ? "rounded-tr-sm text-white bg-[#128C7E]"
                   : "rounded-tl-sm bg-white text-gray-900"
               }`}
             >
@@ -392,25 +355,3 @@ function VoiceDemo() {
   );
 }
 
-const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
-
-function subscribeReducedMotion(onChange: () => void) {
-  const mq = window.matchMedia(REDUCED_MOTION_QUERY);
-  mq.addEventListener("change", onChange);
-  return () => mq.removeEventListener("change", onChange);
-}
-
-/**
- * The media query is external state, so it is read through
- * useSyncExternalStore rather than mirrored into a useState - that way the
- * first render already knows the answer and the animation never starts for
- * someone who asked for no motion. Server render returns false; the client
- * corrects it on hydration.
- */
-function usePrefersReducedMotion(): boolean {
-  return useSyncExternalStore(
-    subscribeReducedMotion,
-    () => window.matchMedia(REDUCED_MOTION_QUERY).matches,
-    () => false
-  );
-}
