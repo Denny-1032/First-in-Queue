@@ -4,6 +4,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import { DialogProvider } from "@/components/ui/dialogs";
 import { OrganizationJsonLd, WebSiteJsonLd } from "@/components/seo/json-ld";
 import { FiqWidgetLoader } from "@/components/landing/fiq-widget-loader";
+import { DemoBookingDialog } from "@/components/landing/demo-booking-dialog";
 import "./globals.css";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
@@ -115,6 +116,9 @@ export default function RootLayout({
           <DialogProvider>
             {children}
             <FiqWidgetLoader />
+            {/* Every "Book a Demo" CTA across the marketing pages opens this
+                one instance; it renders nothing until something does. */}
+            <DemoBookingDialog />
           </DialogProvider>
         </ToastProvider>
       </body>

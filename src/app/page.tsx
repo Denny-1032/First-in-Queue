@@ -14,8 +14,10 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
-import { DemoBooking } from "@/components/landing/demo-booking";
+import { BookDemoButton } from "@/components/landing/demo-booking-dialog";
+import { InlineWidgetChat } from "@/components/landing/inline-widget-chat";
 import { LiveDemo } from "@/components/landing/live-demo";
+import { TwoLaneStory } from "@/components/landing/two-lane-story";
 import { SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 import { ScrollAnimate } from "@/components/ui/scroll-animate";
 
@@ -77,12 +79,9 @@ export default function Home() {
                   Get Started
                   <ArrowRight className="h-5 w-5" />
                 </Link>
-                <Link
-                  href="#book-demo"
-                  className="inline-flex items-center gap-2 rounded-xl border-2 border-gray-200 px-8 py-4 text-base font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-all"
-                >
+                <BookDemoButton className="inline-flex items-center gap-2 rounded-xl border-2 border-gray-200 px-8 py-4 text-base font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-all">
                   Book a Demo
-                </Link>
+                </BookDemoButton>
               </div>
               <div className="animate-enter animate-enter-4 flex flex-wrap items-center gap-4 sm:gap-6 mt-8 text-sm text-gray-500">
                 <div className="flex items-center gap-1.5">
@@ -102,9 +101,10 @@ export default function Home() {
                 30-day money-back guarantee. Try it risk-free.
               </p>
             </div>
-            {/* Demo Booking Form - right side of hero */}
+            {/* The product itself, running - not a form asking for a number
+                first, and not a screenshot of a conversation. */}
             <div className="animate-enter animate-enter-4 lg:pl-8">
-              <DemoBooking id="book-demo" />
+              <InlineWidgetChat />
             </div>
           </div>
         </div>
@@ -191,15 +191,17 @@ export default function Home() {
         <div className="max-w-4xl mx-auto">
           <ScrollAnimate animation="fade-up">
             <div className="text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">See it in action</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+                The other two channels
+              </h2>
               <p className="text-gray-500 mt-3">
-                Watch a conversation play out, or pick up the phone and talk to it yourself.
+                Watch a WhatsApp conversation play out, or pick up the phone and talk to it
+                yourself.
               </p>
             </div>
             <LiveDemo />
             <p className="text-center text-sm text-gray-500 mt-6">
-              Prefer to just try it? The chat bubble in the corner is the real thing - the same
-              widget your customers would use.
+              The website chat is at the top of this page - that one you can type into.
             </p>
           </ScrollAnimate>
         </div>
@@ -228,71 +230,10 @@ export default function Home() {
           {/* ROI COMPARISON - Price anchoring (moved from above) */}
           <ScrollAnimate animation="fade-up" delay={100}>
           <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">The old way vs FiQ</h2>
-            <p className="text-gray-500 mt-2 text-sm">Why businesses are switching to automated support</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">One message, two Saturdays</h2>
+            <p className="text-gray-500 mt-2 text-sm">The same customer, with and without FiQ</p>
           </div>
-          <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-lg">
-            {/* Desktop table */}
-            <table className="w-full text-sm hidden md:table">
-              <thead>
-                <tr className="bg-gray-900">
-                  <th className="text-left px-6 py-4 font-semibold text-gray-400 text-xs uppercase tracking-wider">Metric</th>
-                  <th className="text-left px-6 py-4 font-semibold text-gray-400 text-xs uppercase tracking-wider">Human Support Staff</th>
-                  <th className="text-left px-6 py-4 font-semibold text-emerald-400 text-xs uppercase tracking-wider">
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                      FiQ
-                    </span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  ["Monthly cost", "K3,000\u20135,000", "From K499", true],
-                  ["Available hours", "8hrs/day, 5 days", "24/7, 365 days", false],
-                  ["Concurrent chats", "1 at a time", "Unlimited", false],
-                  ["Response time", "Minutes to hours", "Under 10 seconds", true],
-                  ["Languages (chat)", "1\u20132", "40+", false],
-                  ["Sick days / leave", "Yes \u2014 business stops", "Never", false],
-                  ["Setup time", "Weeks of hiring + training", "1\u20132 business days", false],
-                ].map(([label, old, fiq, highlight], i) => (
-                  <tr key={label as string} className={`border-b border-gray-100 ${highlight ? "bg-emerald-50/50" : i % 2 === 0 ? "bg-white" : "bg-gray-50/50"} hover:bg-emerald-50/30 transition-colors`}>
-                    <td className="px-6 py-4 text-gray-700 font-medium">{label as string}</td>
-                    <td className="px-6 py-4 text-gray-400">{old as string}</td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1.5 text-emerald-600 font-semibold">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        {fiq as string}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {/* Mobile: stacked cards */}
-            <div className="md:hidden divide-y divide-gray-100">
-              {[
-                ["Monthly cost", "K3,000\u20135,000", "From K499"],
-                ["Available hours", "8hrs/day, 5 days", "24/7, 365 days"],
-                ["Concurrent chats", "1 at a time", "Unlimited"],
-                ["Response time", "Minutes to hours", "Under 10 seconds"],
-                ["Languages (chat)", "1\u20132", "40+"],
-                ["Sick days / leave", "Yes \u2014 business stops", "Never"],
-                ["Setup time", "Weeks of hiring + training", "1\u20132 business days"],
-              ].map(([label, old, fiq]) => (
-                <div key={label} className="p-5 hover:bg-gray-50 transition-colors">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{label}</p>
-                  <div className="flex justify-between items-baseline gap-4">
-                    <span className="text-sm text-gray-400 line-through">{old}</span>
-                    <span className="text-sm text-emerald-600 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      {fiq}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <TwoLaneStory />
           <div className="flex items-center justify-center gap-2 mt-8">
             <div className="h-px flex-1 max-w-[60px] bg-emerald-200" />
             <p className="text-center text-gray-700 font-semibold text-sm">
@@ -420,12 +361,9 @@ export default function Home() {
                 Get Started
                 <ArrowRight className="h-5 w-5" />
               </Link>
-              <Link
-                href="#book-demo"
-                className="inline-flex items-center gap-2 rounded-xl border-2 border-white/30 px-8 py-4 text-base font-semibold text-white hover:bg-white/10 transition-all"
-              >
+              <BookDemoButton className="inline-flex items-center gap-2 rounded-xl border-2 border-white/30 px-8 py-4 text-base font-semibold text-white hover:bg-white/10 transition-all">
                 Book a Demo
-              </Link>
+              </BookDemoButton>
             </div>
             <p className="text-sm text-emerald-200 mt-4">
               30-day money-back guarantee - if it doesn&apos;t work, every kwacha back.

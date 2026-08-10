@@ -14,10 +14,19 @@ import { usePathname } from "next/navigation";
 /** Surfaces where our own support widget would be noise or a distraction. */
 const HIDDEN_PREFIXES = ["/dashboard", "/admin", "/login", "/signup", "/onboarding", "/widget", "/trial-payment"];
 
+/**
+ * Exact paths, not prefixes - "/" as a prefix would match every page.
+ *
+ * The homepage hero embeds the same widget inline, and two launchers onto one
+ * conversation is confusing rather than twice as convincing.
+ */
+const HIDDEN_EXACT = ["/"];
+
 export function FiqWidgetLoader() {
   const pathname = usePathname();
   const key = process.env.NEXT_PUBLIC_FIQ_WIDGET_KEY;
-  const hidden = HIDDEN_PREFIXES.some((p) => pathname.startsWith(p));
+  const hidden =
+    HIDDEN_EXACT.includes(pathname) || HIDDEN_PREFIXES.some((p) => pathname.startsWith(p));
 
   useEffect(() => {
     // No key configured yet (e.g. a fresh environment): render nothing rather

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X, ArrowRight } from "lucide-react";
+import { BookDemoButton } from "@/components/landing/demo-booking-dialog";
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
@@ -66,13 +67,12 @@ export function MobileNav() {
                 Get Started
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link
-                href="/#book-demo"
+              <BookDemoButton
                 onClick={() => setOpen(false)}
                 className="mx-4 mt-1 px-4 py-3 text-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
               >
                 Or book a demo
-              </Link>
+              </BookDemoButton>
             </div>
           </div>
         </>
