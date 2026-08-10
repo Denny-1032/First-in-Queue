@@ -41,6 +41,15 @@ interface Branding {
 
 const POLL_MS = 3000;
 
+/**
+ * Seed text for the WhatsApp handoff. Deliberately generic: the widget's
+ * transcript is not carried over - it lives against a visitor token that the
+ * WhatsApp conversation has no way to claim, and pasting it into the message
+ * box would hand the customer's own words back to them as if they had typed
+ * them again.
+ */
+const WHATSAPP_PREFILL = "Hi! I was just on your website and have a question.";
+
 function ChatContent() {
   const searchParams = useSearchParams();
   const widgetKey = searchParams.get("key") || "";
@@ -62,6 +71,7 @@ function ChatContent() {
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [booted, setBooted] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [whatsappNumber, setWhatsappNumber] = useState<string | null>(null);
 
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -98,6 +108,7 @@ function ChatContent() {
         setBranding(cfg.branding);
         setOnline(cfg.online !== false);
         setVoiceEnabled(cfg.voice?.enabled === true);
+        setWhatsappNumber(cfg.whatsapp?.enabled ? cfg.whatsapp.number : null);
 
         const storeKey = `fiq_visitor_${cfg.property_id}`;
         const stored = localStorage.getItem(storeKey);
@@ -300,6 +311,20 @@ function ChatContent() {
             {online ? "We're online" : "Away - leave a message"}
           </p>
         </div>
+        {whatsappNumber && !onCall && (
+          <a
+            className="fiq-wa"
+            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(WHATSAPP_PREFILL)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Continue this conversation on WhatsApp"
+            title="Continue on WhatsApp"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+              <path d="M12.04 2A9.9 9.9 0 0 0 2.1 11.9c0 1.75.46 3.46 1.34 4.97L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01a9.9 9.9 0 0 0 9.9-9.9A9.9 9.9 0 0 0 12.04 2zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.39 8.22 8.22 0 0 1 8.25-8.2 8.22 8.22 0 0 1 8.2 8.24 8.22 8.22 0 0 1-8.2 8.21zm4.5-6.15c-.25-.12-1.46-.72-1.68-.8-.23-.09-.39-.13-.56.12-.16.25-.64.8-.78.97-.15.16-.29.18-.53.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.7-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.44.13-.15.17-.25.25-.42.08-.16.04-.31-.02-.43-.06-.13-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43h-.48c-.16 0-.43.06-.65.31-.23.25-.86.84-.86 2.05s.88 2.38 1 2.54c.13.17 1.73 2.64 4.19 3.7.58.26 1.04.4 1.4.51.59.19 1.13.16 1.55.1.47-.07 1.46-.6 1.66-1.18.21-.58.21-1.07.15-1.18-.06-.11-.22-.17-.47-.29z" />
+            </svg>
+          </a>
+        )}
         {voiceEnabled && !onCall && (
           <button
             type="button"
@@ -504,13 +529,14 @@ function ChatContent() {
           background: transparent; border: none; color: #fff; font-size: 26px;
           line-height: 1; cursor: pointer; padding: 0 4px;
         }
-        .fiq-call {
+        .fiq-call, .fiq-wa {
           background: rgba(255, 255, 255, .18); border: none; color: #fff;
           width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
           display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+          text-decoration: none;
         }
-        .fiq-call:hover { background: rgba(255, 255, 255, .3); }
-        .fiq-call:focus-visible { outline: 3px solid #111; outline-offset: 2px; }
+        .fiq-call:hover, .fiq-wa:hover { background: rgba(255, 255, 255, .3); }
+        .fiq-call:focus-visible, .fiq-wa:focus-visible { outline: 3px solid #111; outline-offset: 2px; }
         .fiq-callbar {
           display: flex; align-items: center; justify-content: space-between; gap: 8px;
           padding: 8px 12px; font-size: 12px; flex: 0 0 auto;

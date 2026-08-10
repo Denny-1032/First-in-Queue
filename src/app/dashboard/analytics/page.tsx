@@ -12,43 +12,59 @@ import {
   Globe,
   CheckCircle2,
   RefreshCw,
+  Smile,
+  Meh,
+  Frown,
 } from "lucide-react";
 import type { AnalyticsData } from "@/types";
 
+// History and breakdowns. The dashboard home covers "right now" - everything
+// here is the longer view, which is why the sentiment split, topic mix, weekly
+// volume and AI performance all live on this page and not on both.
 
 export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAnalytics = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
+  const fetchAnalytics = useCallback(async () => {
     try {
       const res = await fetch("/api/analytics");
       if (res.ok) {
         const data = await res.json();
-        if (data && data.total_conversations !== undefined) {
-          setAnalytics(data);
-          return;
-        }
+        if (data && data.total_conversations !== undefined) setAnalytics(data);
       }
-    } catch { /* API unavailable */ }
+    } catch {
+      /* API unavailable */
+    }
   }, []);
 
   useEffect(() => {
-    fetchAnalytics().finally(() => setLoading(false));
+    let cancelled = false;
+    (async () => {
+      await fetchAnalytics();
+      if (!cancelled) setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [fetchAnalytics]);
 
   const weeklyData = analytics?.daily_volume?.length
     ? analytics.daily_volume.map((d) => {
         const parsed = new Date(d.date);
-        const dayName = isNaN(parsed.getTime()) ? d.date : parsed.toLocaleDateString("en", { weekday: "short" });
-        return { day: dayName, messages: d.count, resolved: Math.round(d.count * 0.95), escalated: Math.round(d.count * 0.05) };
+        const dayName = isNaN(parsed.getTime())
+          ? d.date
+          : parsed.toLocaleDateString("en", { weekday: "short" });
+        return { day: dayName, messages: d.count };
       })
     : [];
 
   const peakHours = analytics?.hourly_volume?.length
-    ? analytics.hourly_volume.map((h) => ({ hour: `${h.hour % 12 || 12} ${h.hour < 12 ? "AM" : "PM"}`, volume: h.count }))
+    ? analytics.hourly_volume.map((h) => ({
+        hour: `${h.hour % 12 || 12} ${h.hour < 12 ? "AM" : "PM"}`,
+        volume: h.count,
+      }))
     : [];
 
   const maxVolume = Math.max(...peakHours.map((h) => h.volume), 1);
@@ -62,15 +78,24 @@ export default function AnalyticsPage() {
     );
   }
 
+  const sentimentSample = analytics?.sentiment_sample ?? 0;
+  const responseSample = analytics?.response_time_sample ?? 0;
+  const resolutionSample = analytics?.ai_resolution_sample ?? 0;
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Analytics</h1>
-          <p className="text-gray-500 mt-1 text-sm">Deep insights into your customer care performance</p>
+          <p className="text-gray-500 mt-1 text-sm">
+            Deep insights into your customer care performance
+          </p>
         </div>
         <button
-          onClick={() => fetchAnalytics(true).finally(() => setRefreshing(false))}
+          onClick={() => {
+            setRefreshing(true);
+            fetchAnalytics().finally(() => setRefreshing(false));
+          }}
           disabled={refreshing}
           className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
         >
@@ -82,11 +107,41 @@ export default function AnalyticsPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
-          { label: "Total Messages", value: analytics ? analytics.messages_this_week.toLocaleString() : "0", icon: MessageSquare, color: "text-blue-600" },
-          { label: "AI Resolution", value: analytics ? `${analytics.ai_resolution_rate.toFixed(1)}%` : "0%", icon: Bot, color: "text-emerald-600" },
-          { label: "Active Convos", value: analytics ? String(analytics.active_conversations) : "0", icon: Users, color: "text-purple-600" },
-          { label: "Avg First Reply", value: analytics ? `${analytics.avg_response_time_seconds}s` : "0s", icon: Zap, color: "text-amber-600" },
-          { label: "Resolved", value: analytics ? analytics.resolved_conversations.toLocaleString() : "0", icon: CheckCircle2, color: "text-emerald-600" },
+          {
+            label: "Messages this week",
+            value: analytics ? analytics.messages_this_week.toLocaleString() : "0",
+            icon: MessageSquare,
+            color: "text-blue-600",
+            note: null as string | null,
+          },
+          {
+            label: "AI Resolution",
+            value: resolutionSample > 0 ? `${analytics!.ai_resolution_rate.toFixed(1)}%` : "-",
+            icon: Bot,
+            color: "text-emerald-600",
+            note: resolutionSample > 0 ? `of ${resolutionSample} resolved` : "nothing resolved yet",
+          },
+          {
+            label: "Active Convos",
+            value: analytics ? String(analytics.active_conversations) : "0",
+            icon: Users,
+            color: "text-purple-600",
+            note: null,
+          },
+          {
+            label: "Avg First Reply",
+            value: responseSample > 0 ? formatDuration(analytics!.avg_response_time_seconds) : "-",
+            icon: Zap,
+            color: "text-amber-600",
+            note: responseSample > 0 ? `across ${responseSample} chats` : "no replies yet",
+          },
+          {
+            label: "Resolved",
+            value: analytics ? analytics.resolved_conversations.toLocaleString() : "0",
+            icon: CheckCircle2,
+            color: "text-emerald-600",
+            note: null,
+          },
         ].map((kpi) => (
           <Card key={kpi.label}>
             <CardContent className="p-4">
@@ -95,6 +150,7 @@ export default function AnalyticsPage() {
               </div>
               <p className="text-2xl font-bold text-gray-900">{kpi.value}</p>
               <p className="text-xs text-gray-500 mt-0.5">{kpi.label}</p>
+              {kpi.note && <p className="text-[10px] text-gray-400 mt-0.5">{kpi.note}</p>}
             </CardContent>
           </Card>
         ))}
@@ -107,34 +163,26 @@ export default function AnalyticsPage() {
             <CardTitle className="text-base">Weekly Message Volume</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {weeklyData.map((day) => (
-                <div key={day.day} className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500 w-8 shrink-0">{day.day}</span>
-                  <div className="flex-1 flex items-center gap-1 h-6">
-                    <div
-                      className="h-full rounded-r bg-emerald-500 transition-all"
-                      style={{ width: `${(day.resolved / maxMessages) * 100}%` }}
-                    />
-                    <div
-                      className="h-full rounded-r bg-amber-400 transition-all"
-                      style={{ width: `${(day.escalated / maxMessages) * 100}%` }}
-                    />
+            {weeklyData.every((d) => d.messages === 0) ? (
+              <EmptyPanel icon={MessageSquare} title="No messages this week" />
+            ) : (
+              <div className="space-y-3">
+                {weeklyData.map((day) => (
+                  <div key={day.day} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-500 w-8 shrink-0">{day.day}</span>
+                    <div className="flex-1 h-6 flex items-center">
+                      <div
+                        className="h-full rounded-r bg-emerald-500 transition-all"
+                        style={{ width: `${(day.messages / maxMessages) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-medium text-gray-700 w-8 text-right">
+                      {day.messages}
+                    </span>
                   </div>
-                  <span className="text-xs font-medium text-gray-700 w-8 text-right">{day.messages}</span>
-                </div>
-              ))}
-              <div className="flex items-center gap-4 pt-2 text-xs text-gray-500">
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2.5 w-2.5 rounded-sm bg-emerald-500" />
-                  AI Resolved
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2.5 w-2.5 rounded-sm bg-amber-400" />
-                  Escalated
-                </div>
+                ))}
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -145,49 +193,97 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             {peakHours.every((h) => h.volume === 0) ? (
-              <div className="flex flex-col items-center justify-center h-48 text-center">
-                <Clock className="h-8 w-8 text-gray-300 mb-2" />
-                <p className="text-sm text-gray-400">No activity today</p>
-                <p className="text-xs text-gray-300 mt-1">Hourly data will appear as messages arrive</p>
-              </div>
+              <EmptyPanel
+                icon={Clock}
+                title="No activity today"
+                subtitle="Hourly data will appear as messages arrive"
+              />
             ) : (
-            <div className="flex items-end gap-1 h-48">
-              {peakHours.map((h, idx) => {
-                const height = (h.volume / maxVolume) * 100;
-                const isPeak = h.volume === maxVolume;
-                const showLabel = idx % 3 === 0;
-                return (
-                  <div key={h.hour} className="flex-1 flex flex-col items-center gap-1 group relative">
-                    <span className="text-[10px] text-gray-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">{h.volume}</span>
-                    <div
-                      className={`w-full rounded-t transition-all group-hover:opacity-80 ${isPeak ? "bg-emerald-500" : "bg-emerald-200"}`}
-                      style={{ height: `${Math.max(height, 2)}%` }}
-                    />
-                    {showLabel ? (
-                      <span className="text-[10px] text-gray-400 whitespace-nowrap">{h.hour}</span>
-                    ) : (
-                      <span className="text-[10px] text-transparent">&nbsp;</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+              <div className="flex items-end gap-1 h-48">
+                {peakHours.map((h, idx) => {
+                  const height = (h.volume / maxVolume) * 100;
+                  const isPeak = h.volume === maxVolume;
+                  const showLabel = idx % 3 === 0;
+                  return (
+                    <div key={h.hour} className="flex-1 flex flex-col items-center gap-1 group relative">
+                      <span className="text-[10px] text-gray-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                        {h.volume}
+                      </span>
+                      <div
+                        className={`w-full rounded-t transition-all group-hover:opacity-80 ${
+                          isPeak ? "bg-emerald-500" : "bg-emerald-200"
+                        }`}
+                        style={{ height: `${Math.max(height, 2)}%` }}
+                      />
+                      {showLabel ? (
+                        <span className="text-[10px] text-gray-400 whitespace-nowrap">{h.hour}</span>
+                      ) : (
+                        <span className="text-[10px] text-transparent">&nbsp;</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Language Distribution */}
+        {/* How customers are feeling - moved off the dashboard home */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">How customers are feeling</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {sentimentSample === 0 ? (
+              <EmptyPanel
+                icon={Smile}
+                title="No sentiment yet"
+                subtitle="It is read from conversations as they happen"
+              />
+            ) : (
+              <div className="space-y-4">
+                {(
+                  [
+                    ["Happy", analytics!.sentiment_breakdown.positive, Smile, "text-emerald-500", "bg-emerald-500"],
+                    ["Neutral", analytics!.sentiment_breakdown.neutral, Meh, "text-amber-500", "bg-amber-500"],
+                    ["Unhappy", analytics!.sentiment_breakdown.negative, Frown, "text-red-500", "bg-red-500"],
+                  ] as const
+                ).map(([label, percent, Icon, iconColor, barColor]) => (
+                  <div key={label} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Icon className={`h-5 w-5 ${iconColor}`} />
+                      <span className="text-sm text-gray-600">{label}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-32 h-2 rounded-full bg-gray-100 overflow-hidden">
+                        <div className={`h-full rounded-full ${barColor}`} style={{ width: `${percent}%` }} />
+                      </div>
+                      <span className="text-sm font-medium text-gray-900 w-10 text-right">
+                        {percent}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                <p className="text-[10px] text-gray-400 pt-1">
+                  Across {sentimentSample} conversation{sentimentSample === 1 ? "" : "s"}.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Topics */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Globe className="h-5 w-5 text-gray-400" />
-              <CardTitle className="text-base">Topic Insights</CardTitle>
+              <CardTitle className="text-base">What customers ask about</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {analytics?.top_topics?.length ? (
-                analytics.top_topics.map((topic) => {
+            {analytics?.top_topics?.length ? (
+              <div className="space-y-4">
+                {analytics.top_topics.map((topic) => {
                   const maxCount = Math.max(...analytics.top_topics.map((t) => t.count), 1);
                   return (
                     <div key={topic.topic} className="space-y-1.5">
@@ -203,16 +299,20 @@ export default function AnalyticsPage() {
                       </div>
                     </div>
                   );
-                })
-              ) : (
-                <p className="text-sm text-gray-400 text-center py-4">No topic data yet. Start conversations to see insights.</p>
-              )}
-            </div>
+                })}
+              </div>
+            ) : (
+              <EmptyPanel
+                icon={MessageSquare}
+                title="No topics yet"
+                subtitle="Topics come from what the assistant detects in each chat"
+              />
+            )}
           </CardContent>
         </Card>
 
         {/* AI Performance */}
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-emerald-500" />
@@ -222,18 +322,44 @@ export default function AnalyticsPage() {
           <CardContent>
             <div className="space-y-4">
               {[
-                { label: "Queries Handled Autonomously", value: analytics ? `${analytics.ai_resolution_rate.toFixed(1)}%` : "0%", description: "Without human intervention" },
-                { label: "Total Conversations", value: analytics ? String(analytics.total_conversations) : "0", description: "All-time conversations" },
-                { label: "Avg Resolution Time", value: analytics ? `${Math.round(analytics.avg_resolution_time_seconds / 60)}m` : "0m", description: "Time to resolve" },
-                { label: "Customer Satisfaction", value: analytics ? `${analytics.customer_satisfaction}/5` : "0/5", description: "Based on customer feedback" },
-                { label: "Escalation Rate", value: analytics ? `${(100 - analytics.ai_resolution_rate).toFixed(1)}%` : "0%", description: "Conversations sent to agents" },
+                {
+                  label: "Queries Handled Autonomously",
+                  value: resolutionSample > 0 ? `${analytics!.ai_resolution_rate.toFixed(1)}%` : "-",
+                  description:
+                    resolutionSample > 0
+                      ? `Resolved without a human, across ${resolutionSample} conversations`
+                      : "Nothing has been resolved yet",
+                },
+                {
+                  label: "Total Conversations",
+                  value: analytics ? String(analytics.total_conversations) : "0",
+                  description: "All-time conversations",
+                },
+                {
+                  label: "Average First Reply",
+                  value: responseSample > 0 ? formatDuration(analytics!.avg_response_time_seconds) : "-",
+                  description:
+                    responseSample > 0
+                      ? `From the customer's first message, across ${responseSample} chats`
+                      : "No conversation has been replied to yet",
+                },
+                {
+                  label: "Escalation Rate",
+                  value: resolutionSample > 0 ? `${(100 - analytics!.ai_resolution_rate).toFixed(1)}%` : "-",
+                  description: "Conversations that needed a person",
+                },
               ].map((metric) => (
-                <div key={metric.label} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                <div
+                  key={metric.label}
+                  className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
+                >
                   <div>
                     <p className="text-sm text-gray-700">{metric.label}</p>
                     <p className="text-[10px] text-gray-400">{metric.description}</p>
                   </div>
-                  <Badge variant="default" className="text-sm">{metric.value}</Badge>
+                  <Badge variant="default" className="text-sm">
+                    {metric.value}
+                  </Badge>
                 </div>
               ))}
             </div>
@@ -242,4 +368,29 @@ export default function AnalyticsPage() {
       </div>
     </div>
   );
+}
+
+function EmptyPanel({
+  icon: Icon,
+  title,
+  subtitle,
+}: {
+  icon: React.ElementType;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center h-40 text-center">
+      <Icon className="h-8 w-8 text-gray-300 mb-2" />
+      <p className="text-sm text-gray-400">{title}</p>
+      {subtitle && <p className="text-xs text-gray-300 mt-1">{subtitle}</p>}
+    </div>
+  );
+}
+
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  if (mins < 60) return `${mins}m ${seconds % 60}s`;
+  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
 }

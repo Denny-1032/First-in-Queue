@@ -508,9 +508,26 @@ async function handleAIResponse(
   const aiResponse: AIResponse = await aiEngine.generateResponse(aiContext);
   console.log(`[Handler] AI response: intent=${aiResponse.detected_intent}, escalate=${aiResponse.should_escalate}, confidence=${aiResponse.confidence}, text_len=${aiResponse.text?.length || 0}`);
 
-  // Update conversation sentiment
-  if (aiResponse.sentiment) {
-    await updateConversation(conversation.id, { sentiment: aiResponse.sentiment });
+  // Record what this conversation was about, alongside how it felt. The intent
+  // was already being detected on every reply and then thrown away, which is
+  // why the dashboard's "what customers ask about" panel could only ever be
+  // empty. Tags are the aggregation source for it - see topTopics().
+  const conversationPatch: Partial<Conversation> = {};
+  if (aiResponse.sentiment) conversationPatch.sentiment = aiResponse.sentiment;
+
+  const intent = aiResponse.detected_intent?.trim();
+  // "other" is the model's fallback when it could not classify - not a topic.
+  if (intent && intent.toLowerCase() !== "other") {
+    const tags = conversation.tags || [];
+    if (!tags.includes(intent)) {
+      // Newest first, capped: a long-running conversation should not grow an
+      // unbounded tag list.
+      conversationPatch.tags = [intent, ...tags].slice(0, 5);
+    }
+  }
+
+  if (Object.keys(conversationPatch).length > 0) {
+    await updateConversation(conversation.id, conversationPatch);
   }
 
   // Handle escalation

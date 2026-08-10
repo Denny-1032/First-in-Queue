@@ -3,27 +3,36 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RetellWebClient } from "retell-client-js-sdk";
 
-// Browser voice call for the chat widget.
+// Browser voice call, used by the chat widget and by the landing page's demo.
 //
 // The SDK is ~200KB and most visitors never press call, so it is imported
 // dynamically on first use — the chat panel's initial load must not pay for it.
 //
-// The access token comes from /api/widget/voice-call, which is what enforces
-// plan, minutes and rate limits. Nothing here is a security control; a visitor
+// The access token comes from the server route, which is what enforces plan,
+// minutes and rate limits. Nothing here is a security control; a visitor
 // editing this code still cannot obtain a token.
 
 export type VoiceState = "idle" | "connecting" | "active" | "ended" | "error";
 
+/** Tenant widget calls. Gated by the visitor token, plan and minutes. */
+const WIDGET_VOICE_ENDPOINT = "/api/widget/voice-call";
+
 interface Options {
-  /** Reads the current visitor token at call time (it can be reissued). */
-  getToken: () => string | null;
+  /**
+   * Reads the current visitor token at call time (it can be reissued). Omit on
+   * public endpoints that have no visitor session - the FiQ demo line is rate
+   * limited by IP server-side instead.
+   */
+  getToken?: () => string | null;
+  /** Defaults to the tenant widget's own call route. */
+  endpoint?: string;
   onEvent?: (type: string, payload?: unknown) => void;
 }
 
 const MIC_DENIED =
   "We couldn't use your microphone. Allow microphone access and try again.";
 
-export function useVoiceCall({ getToken, onEvent }: Options) {
+export function useVoiceCall({ getToken, endpoint = WIDGET_VOICE_ENDPOINT, onEvent }: Options) {
   const [state, setState] = useState<VoiceState>("idle");
   const [seconds, setSeconds] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -45,8 +54,10 @@ export function useVoiceCall({ getToken, onEvent }: Options) {
 
   const start = useCallback(async () => {
     if (startingRef.current || state === "connecting" || state === "active") return;
-    const token = getToken();
-    if (!token) return;
+    // Only endpoints that take a visitor token require one - a public demo
+    // line has no session to read.
+    const token = getToken?.() ?? null;
+    if (getToken && !token) return;
 
     startingRef.current = true;
     setError(null);
@@ -55,9 +66,12 @@ export function useVoiceCall({ getToken, onEvent }: Options) {
     setState("connecting");
 
     try {
-      const res = await fetch("/api/widget/voice-call", {
+      const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({}),
       });
 
@@ -65,8 +79,10 @@ export function useVoiceCall({ getToken, onEvent }: Options) {
         const data = await res.json().catch(() => ({}));
         setState("error");
         setError(
+          // A 429 here is the server's own rate limit, and its message says
+          // what to do next - prefer it over a generic one.
           res.status === 429
-            ? "Too many call attempts. Please try again later."
+            ? data.error || "Too many call attempts. Please try again later."
             : res.status === 403
               ? "Voice calling isn't available right now. Send a message instead."
               : data.error || "We couldn't start the call. Please try again."
@@ -116,7 +132,7 @@ export function useVoiceCall({ getToken, onEvent }: Options) {
     } finally {
       startingRef.current = false;
     }
-  }, [getToken, onEvent, state]);
+  }, [getToken, endpoint, onEvent, state]);
 
   const toggleMute = useCallback(() => {
     const client = clientRef.current;

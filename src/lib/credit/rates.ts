@@ -48,8 +48,43 @@ export interface TopupPack {
   id: string;
   ngwee: number;
   label: string;
-  /** Rough guide shown next to the pack, derived from the rates above. */
+  /** What the pack buys, derived from the rates above. */
   description: string;
+  /** The same figures unformatted, for callers that lay them out themselves. */
+  units: { whatsappReplies: number; voiceMinutes: number };
+}
+
+/**
+ * How far a balance goes at today's rates.
+ *
+ * Floored, never rounded up: a customer who is told 117 replies must get at
+ * least 117. These are exact at the stated rates - the only thing that varies
+ * is the MIX, which the copy says out loud rather than hedging every number
+ * with "about".
+ */
+export function packUnits(ngwee: number): { whatsappReplies: number; voiceMinutes: number } {
+  return {
+    whatsappReplies: Math.floor(ngwee / CREDIT_RATES.WHATSAPP_REPLY_NGWEE),
+    voiceMinutes: Math.floor(ngwee / CREDIT_RATES.VOICE_MINUTE_NGWEE),
+  };
+}
+
+/** "117 WhatsApp replies or 28 voice minutes" */
+export function describePack(ngwee: number): string {
+  const u = packUnits(ngwee);
+  return `${u.whatsappReplies.toLocaleString("en-ZM")} WhatsApp replies or ${u.voiceMinutes.toLocaleString("en-ZM")} voice minutes`;
+}
+
+/**
+ * Said once wherever packs are shown, so no individual figure has to hedge.
+ * Answers the question the numbers raise: is this a bundle of messages, or
+ * money? It is money - see the balance ledger in credit.ts.
+ */
+export const TOPUP_MIX_NOTE =
+  "Credit is spent as you use it, in any mix. Website chat is never charged.";
+
+function pack(id: string, ngwee: number, label: string): TopupPack {
+  return { id, ngwee, label, description: describePack(ngwee), units: packUnits(ngwee) };
 }
 
 /**
@@ -58,10 +93,10 @@ export interface TopupPack {
  * "at your current rate, K200 lasts about 3 weeks" example.
  */
 export const TOPUP_PACKS: TopupPack[] = [
-  { id: "k200", ngwee: 20_000, label: "K200", description: "about 117 WhatsApp replies or 28 voice minutes" },
-  { id: "k500", ngwee: 50_000, label: "K500", description: "about 294 WhatsApp replies or 71 voice minutes" },
-  { id: "k1000", ngwee: 100_000, label: "K1,000", description: "about 588 WhatsApp replies or 142 voice minutes" },
-  { id: "k2000", ngwee: 200_000, label: "K2,000", description: "about 1,176 WhatsApp replies or 285 voice minutes" },
+  pack("k200", 20_000, "K200"),
+  pack("k500", 50_000, "K500"),
+  pack("k1000", 100_000, "K1,000"),
+  pack("k2000", 200_000, "K2,000"),
 ];
 
 export function getTopupPack(id: string): TopupPack | undefined {

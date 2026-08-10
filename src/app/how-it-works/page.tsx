@@ -188,12 +188,12 @@ export default function HowItWorksPage() {
           <ScrollAnimate animation="fade-up" delay={100}>
             <p className="text-gray-600 text-lg leading-relaxed">
               Under <strong className="text-gray-900">Websites</strong> in the
-              dashboard, every site you add gets its own widget key and its own
-              snippet. Copy it, drop it before the closing{" "}
+              dashboard, every site you add gets its own snippet. Copy it, paste
+              it anywhere in your site&apos;s HTML - the{" "}
               <code className="rounded bg-gray-200 px-1.5 py-0.5 text-sm font-mono text-gray-800">
-                &lt;/body&gt;
+                &lt;head&gt;
               </code>{" "}
-              tag on your site, publish. That is it.
+              or the footer, either works - and publish. That is it.
             </p>
           </ScrollAnimate>
 

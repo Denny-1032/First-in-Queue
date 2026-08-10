@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import {
-  Bot,
   ArrowRight,
   CheckCircle2,
   Shield,
@@ -17,22 +15,23 @@ import {
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 import { DemoBooking } from "@/components/landing/demo-booking";
+import { LiveDemo } from "@/components/landing/live-demo";
 import { SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 import { ScrollAnimate } from "@/components/ui/scroll-animate";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
 
 export const metadata: Metadata = {
-  title: "WhatsApp & Voice Customer Care for Zambian Businesses",
+  title: "Free Customer Care for Your Business",
   description:
-    "Never lose a customer to slow responses again. First in Queue automates WhatsApp messages and phone calls with AI - 24/7, in 40+ languages. 5-minute setup, free demo.",
+    "Put a free AI chat widget on your website in minutes - it answers customers 24/7, in 40+ languages. Add WhatsApp and phone support whenever you're ready. No card required.",
   alternates: {
     canonical: BASE_URL,
   },
   openGraph: {
-    title: "WhatsApp & Voice Customer Care | First in Queue",
+    title: "Free Customer Care for Your Business | First in Queue",
     description:
-      "Automate WhatsApp and phone support. Instant responses, 24/7, in 40+ languages.",
+      "A free AI chat widget for your website, answering customers 24/7 in 40+ languages. WhatsApp and voice when you need them.",
     url: BASE_URL,
     images: [
       {
@@ -47,7 +46,12 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    // overflow-x-CLIP, not hidden: `hidden` makes this box a scroll container
+    // (overflow-y resolves to auto), and the scroll-driven reveals in
+    // globals.css then measure against a box that never scrolls, so every
+    // section renders already-revealed. `clip` trims the same overflow without
+    // creating a scrollport.
+    <div className="min-h-screen bg-white overflow-x-clip">
       <SoftwareApplicationJsonLd />
       <Navbar />
 
@@ -57,14 +61,13 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="animate-enter animate-enter-1 text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 tracking-tight leading-[1.1]">
-                Never lose a customer to{" "}
                 <span className="bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
-                  slow responses
+                  Free
                 </span>{" "}
-                again
+                customer care for your business
               </h1>
               <p className="animate-enter animate-enter-2 text-lg text-gray-500 mt-6 max-w-lg">
-                An automated assistant answers your WhatsApp messages and phone calls instantly - 24/7, in 40+ languages. Your customers get help in seconds, not hours.
+                Put our chat widget on your website and it answers customers for you - instantly, 24/7, in 40+ languages. Free forever on your site. Add WhatsApp and phone support whenever you are ready.
               </p>
               <div className="animate-enter animate-enter-3 flex flex-col sm:flex-row items-start gap-4 mt-8">
                 <Link
@@ -84,7 +87,7 @@ export default function Home() {
               <div className="animate-enter animate-enter-4 flex flex-wrap items-center gap-4 sm:gap-6 mt-8 text-sm text-gray-500">
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                  Free to start
+                  500 free replies a month
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
@@ -183,51 +186,21 @@ export default function Home() {
         </div>
       </section>
 
-      {/* LIVE DEMO - Chat simulation */}
+      {/* LIVE DEMO - the real product, not a screenshot of it */}
       <section className="pb-20 px-6">
         <div className="max-w-4xl mx-auto">
           <ScrollAnimate animation="fade-up">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">See it in action</h2>
-            <p className="text-gray-500 mt-3">A real customer conversation, resolved automatically in 8 seconds.</p>
-          </div>
-          <div className="rounded-2xl border border-gray-200 bg-gradient-to-b from-gray-50 to-white shadow-2xl shadow-gray-200/50 overflow-hidden">
-            <div className="bg-emerald-600 px-6 py-4 flex items-center gap-3">
-              <Image src="/fiq-logo.png?v=2" alt="First in Queue" width={200} height={200} className="h-9 w-9 object-contain rounded-full bg-white/10 p-0.5" />
-              <div>
-                <p className="text-white font-medium text-sm">FiQ Assistant</p>
-                <p className="text-emerald-200 text-xs">online</p>
-              </div>
+            <div className="text-center mb-10">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">See it in action</h2>
+              <p className="text-gray-500 mt-3">
+                Watch a conversation play out, or pick up the phone and talk to it yourself.
+              </p>
             </div>
-            <div className="p-6 space-y-4 bg-[#f0f2f5]">
-              <div className="flex justify-start">
-                <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm text-gray-900 shadow-sm max-w-[70%]">
-                  Hi! I ordered a laptop 3 days ago but haven&apos;t received any tracking info yet. Can you help?
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <div className="bg-emerald-500 rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm text-white shadow-sm max-w-[70%]">
-                  Hey there! I&apos;d be happy to help track your order. Could you share your order number? It should start with #ORD-
-                </div>
-              </div>
-              <div className="flex justify-start">
-                <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm text-gray-900 shadow-sm">
-                  #ORD-2024-8847
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <div className="bg-emerald-500 rounded-2xl rounded-tr-sm px-4 py-3 text-sm text-white shadow-sm max-w-[75%] whitespace-pre-line">
-                  {"Found it! Here's your order status:\n\n✅ Order confirmed\n✅ Payment processed\n✅ Packed & shipped\n🚚 In transit - arriving tomorrow by 5 PM\n\nTracking: TRK-99281746\n\nAnything else I can help with?"}
-                </div>
-              </div>
-              <div className="flex justify-center">
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-white/80 rounded-full px-3 py-1">
-                  <Bot className="h-3 w-3 text-emerald-500" />
-                  Resolved automatically in 8 seconds
-                </div>
-              </div>
-            </div>
-          </div>
+            <LiveDemo />
+            <p className="text-center text-sm text-gray-500 mt-6">
+              Prefer to just try it? The chat bubble in the corner is the real thing - the same
+              widget your customers would use.
+            </p>
           </ScrollAnimate>
         </div>
       </section>

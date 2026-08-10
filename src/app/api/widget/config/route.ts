@@ -24,10 +24,11 @@ const DEFAULT_BRANDING = {
   offline_message: null as string | null,
   voice_enabled: false,
   voice_agent_id: null as string | null,
+  whatsapp_number: null as string | null,
 };
 
-/** Keys resolved into the separate `voice` block — not echoed to visitors. */
-const PRIVATE_BRANDING_KEYS = ["voice_agent_id"];
+/** Keys resolved into their own blocks below — not echoed inside `branding`. */
+const PRIVATE_BRANDING_KEYS = ["voice_agent_id", "whatsapp_number"];
 
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(request.headers.get("origin")) });
@@ -64,6 +65,11 @@ export async function GET(request: NextRequest) {
       (property.branding || {}).show_branding
     );
 
+    // The number IS public - it is meant to be dialled - but it belongs beside
+    // voice as a channel, not inside the styling blob.
+    const whatsappNumber =
+      typeof branding.whatsapp_number === "string" ? branding.whatsapp_number : null;
+
     for (const k of PRIVATE_BRANDING_KEYS) delete branding[k];
 
     // Explicit allowlist. Never spread the tenant or property row — both carry
@@ -74,6 +80,10 @@ export async function GET(request: NextRequest) {
         name: property.name,
         branding,
         voice: { enabled: voice.enabled },
+        whatsapp: {
+          enabled: !!whatsappNumber,
+          number: whatsappNumber,
+        },
         online: tenant ? !isOutsideOperatingHours(tenant) : true,
         locale: "en",
       },

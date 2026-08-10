@@ -3,30 +3,24 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Smartphone, ArrowRight, AlertCircle } from "lucide-react";
-import { useToast } from "@/components/ui/toast";
+import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckoutFlow } from "@/components/dashboard/checkout-flow";
 import { PLANS } from "@/lib/lipila/plans";
 
 function TrialPaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { toast } = useToast();
 
   const planId = searchParams.get("plan") || "pro";
   const billingParam = searchParams.get("billing") || "monthly";
 
-  const [loading, setLoading] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [email, setEmail] = useState("");
   const [tenantId, setTenantId] = useState<string | null>(null);
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState("");
+  const [loadingTenant, setLoadingTenant] = useState(true);
 
   const plan = PLANS.find((p) => p.id === planId) || PLANS[0];
   const isYearly = billingParam === "yearly";
-  const priceLabel = isYearly ? plan.yearlyMonthlyLabel : plan.priceLabel;
   const periodLabel = isYearly ? `${plan.yearlyPriceLabel}/year` : `${plan.priceLabel}/month`;
 
   useEffect(() => {
@@ -38,48 +32,12 @@ function TrialPaymentContent() {
           setTenantId(list[0].id);
           setEmail(list[0].config?.business_email || "");
         }
-      });
+      })
+      .catch(() => {
+        /* the flow stays hidden and the notice below explains why */
+      })
+      .finally(() => setLoadingTenant(false));
   }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tenantId) return;
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const payload = {
-        tenantId,
-        planId: plan.id,
-        billingInterval: billingParam as "monthly" | "yearly",
-        paymentMethod: "mobile_money",
-        phoneNumber,
-        email,
-      };
-
-      const res = await fetch("/api/payments/initiate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Payment initiation failed");
-      }
-
-      // Mobile money flow
-      toast("Payment initiated! Complete the payment on your phone.", "success");
-      router.push("/dashboard/settings?payment=pending");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Payment failed");
-      toast(err instanceof Error ? err.message : "Payment failed", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6 py-12">
@@ -101,87 +59,46 @@ function TrialPaymentContent() {
           <CardHeader>
             <CardTitle className="text-lg">Payment Details</CardTitle>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Plan Summary */}
-              <div className="rounded-lg bg-gray-50 p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-gray-900">{plan.name} Plan</span>
-                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">30-day guarantee</Badge>
-                </div>
-                <div className="text-sm text-gray-500 space-y-1">
-                  <div>• {plan.messagesLabel}</div>
-                  <div>• {plan.voiceMinutesLabel}</div>
-                  <div>• {periodLabel} (charged immediately)</div>
-                  <div>• Full refund available within 30 days</div>
-                </div>
+          <CardContent className="space-y-6">
+            {/* Plan Summary */}
+            <div className="rounded-lg bg-gray-50 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium text-gray-900">{plan.name} Plan</span>
+                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                  30-day guarantee
+                </Badge>
               </div>
-
-              {/* Payment Method - Mobile Money Only */}
-              <div className="flex items-center gap-3 p-3 border border-emerald-500 bg-emerald-50 rounded-lg">
-                <Smartphone className="h-5 w-5 text-emerald-600" />
-                <div>
-                  <span className="text-sm font-medium text-gray-900">Mobile Money</span>
-                  <p className="text-xs text-gray-500">Pay with Airtel, MTN, or Zamtel</p>
-                </div>
+              <div className="text-sm text-gray-500 space-y-1">
+                <div>• {plan.messagesLabel}</div>
+                <div>• {plan.voiceMinutesLabel}</div>
+                <div>• {periodLabel} (charged immediately)</div>
+                <div>• Full refund available within 30 days</div>
               </div>
+            </div>
 
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  required
-                />
+            {/* Mobile money and card, from the same flow the dashboard uses. */}
+            {loadingTenant ? (
+              <div className="flex items-center justify-center py-8 text-gray-400">
+                <Loader2 className="h-5 w-5 animate-spin" />
               </div>
-
-              {/* Mobile Money Number */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Mobile Money Number
-                </label>
-                <Input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="097 123 4567"
-                  required
-                />
-                <p className="text-xs text-gray-400 mt-1">Airtel, MTN, or Zamtel number</p>
-              </div>
-
-              {/* Error Display */}
-              {error && (
-                <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
-              )}
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full gap-2"
-              >
-                {loading ? (
-                  "Processing..."
-                ) : (
-                  <>
-                    Continue
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </Button>
-
-              <p className="text-xs text-gray-500 text-center">
-                By continuing, you agree to our Terms of Service and Privacy Policy.
-                Not satisfied? Contact us within 30 days for a full refund.
+            ) : tenantId ? (
+              <CheckoutFlow
+                planId={plan.id}
+                tenantId={tenantId}
+                billingInterval={isYearly ? "yearly" : "monthly"}
+                initialEmail={email}
+                onDone={() => router.push("/dashboard")}
+              />
+            ) : (
+              <p className="text-sm text-red-600">
+                We couldn&apos;t load your account. Please refresh, or sign in again.
               </p>
-            </form>
+            )}
+
+            <p className="text-xs text-gray-500 text-center">
+              By continuing, you agree to our Terms of Service and Privacy Policy. Not satisfied?
+              Contact us within 30 days for a full refund.
+            </p>
           </CardContent>
         </Card>
       </div>

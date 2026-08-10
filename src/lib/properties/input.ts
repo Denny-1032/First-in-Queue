@@ -38,6 +38,8 @@ export const BRANDING_DEFAULTS = {
   voice_enabled: false,
   /** Pin one voice agent to this property. Null = the tenant's first active. */
   voice_agent_id: null as string | null,
+  /** Digits only, E.164 without the "+". Null = no WhatsApp button. */
+  whatsapp_number: null as string | null,
 };
 
 /**
@@ -156,6 +158,17 @@ export function sanitizeBranding(
 
   if (typeof input.show_branding === "boolean") out.show_branding = input.show_branding;
   if (typeof input.voice_enabled === "boolean") out.voice_enabled = input.voice_enabled;
+
+  // The number the widget's "Continue on WhatsApp" button dials. Stored
+  // separately from the tenant's `whatsapp_phone_number_id`, which is Meta's
+  // internal id and cannot be dialled. Explicitly clearable.
+  if (input.whatsapp_number === null || input.whatsapp_number === "") {
+    out.whatsapp_number = null;
+  } else if (typeof input.whatsapp_number === "string") {
+    const digits = input.whatsapp_number.replace(/\D/g, "");
+    // E.164 without the +: country code plus subscriber number.
+    if (digits.length >= 8 && digits.length <= 15) out.whatsapp_number = digits;
+  }
 
   // Turning voice on here only makes the offer; plan, remaining minutes and an
   // active agent are still checked on every call.

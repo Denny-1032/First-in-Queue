@@ -20,10 +20,10 @@ import {
 // (§5) for buyers who can't publish HTML themselves.
 const PLATFORMS = [
   { name: "WordPress", note: "Use the First in Queue plugin" },
-  { name: "Shopify", note: "Paste in theme.liquid before </body>" },
-  { name: "Wix", note: "Add via Custom Code (body end)" },
-  { name: "Squarespace", note: "Code Injection → Footer" },
-  { name: "Plain HTML", note: "Before </body> on every page" },
+  { name: "Shopify", note: "Paste in theme.liquid" },
+  { name: "Wix", note: "Add via Custom Code" },
+  { name: "Squarespace", note: "Code Injection → Header or Footer" },
+  { name: "Plain HTML", note: "Anywhere in the HTML, on every page" },
 ];
 
 export default function InstallStep() {

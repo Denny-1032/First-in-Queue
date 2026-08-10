@@ -58,6 +58,17 @@ function voiceDraftOf(p: Property): VoiceDraft {
   };
 }
 
+/**
+ * The number the widget's WhatsApp button dials. Stored on the property rather
+ * than read from the tenant's WhatsApp connection, because what Meta gives us
+ * there is a phone_number_id - an internal identifier, not something wa.me can
+ * open.
+ */
+function whatsappDraftOf(p: Property): string {
+  const b = p.branding || {};
+  return typeof b.whatsapp_number === "string" ? b.whatsapp_number : "";
+}
+
 function lastSeenLabel(iso: string | null): string | null {
   if (!iso) return null;
   const d = new Date(iso);
@@ -102,6 +113,7 @@ export default function PropertiesPage() {
   // Voice lives outside BrandingValue - it is an entitlement, not appearance,
   // and the onboarding wizard (which shares BrandingEditor) has no agents yet.
   const [voiceDraft, setVoiceDraft] = useState<VoiceDraft>({ enabled: false, agentId: "" });
+  const [whatsappDraft, setWhatsappDraft] = useState("");
   const [voiceAgents, setVoiceAgents] = useState<Array<{ id: string; name: string }>>([]);
 
   const load = useCallback(async () => {
@@ -184,6 +196,7 @@ export default function PropertiesPage() {
     setBrandId(p.id);
     setBrandDraft(brandingDraft(p));
     setVoiceDraft(voiceDraftOf(p));
+    setWhatsappDraft(whatsappDraftOf(p));
     setError("");
   };
 
@@ -191,6 +204,11 @@ export default function PropertiesPage() {
     if (!brandDraft) return;
     if (!HEX_RE.test(brandDraft.primary_color)) {
       setError("Enter a valid hex colour, e.g. #03A84E");
+      return;
+    }
+    const whatsappDigits = whatsappDraft.replace(/\D/g, "");
+    if (whatsappDraft.trim() && (whatsappDigits.length < 8 || whatsappDigits.length > 15)) {
+      setError("Enter the WhatsApp number in full international form, e.g. 260971234567");
       return;
     }
     setBusyId(id);
@@ -208,6 +226,7 @@ export default function PropertiesPage() {
             suggested_messages: brandDraft.suggested_messages,
             voice_enabled: voiceDraft.enabled,
             voice_agent_id: voiceDraft.agentId || null,
+            whatsapp_number: whatsappDigits || null,
           },
         }),
       });
@@ -382,7 +401,8 @@ export default function PropertiesPage() {
                   <div className="space-y-2">
                     <Label>Install snippet</Label>
                     <p className="text-xs text-gray-500">
-                      Paste this just before the closing &lt;/body&gt; tag on every page.
+                      Paste this into your site&apos;s HTML, on every page. Anywhere works -
+                      the &lt;head&gt; or the footer.
                     </p>
                     <div className="relative">
                       <pre className="bg-gray-100 p-4 pr-24 rounded-lg text-xs overflow-x-auto">
@@ -482,6 +502,26 @@ export default function PropertiesPage() {
                             )}
                           </div>
                         )}
+                      </div>
+
+                      <div className="space-y-1.5 border-t border-gray-200 pt-4">
+                        <Label htmlFor={`wa-number-${p.id}`} className="text-sm">
+                          WhatsApp number
+                        </Label>
+                        <input
+                          id={`wa-number-${p.id}`}
+                          type="tel"
+                          inputMode="tel"
+                          value={whatsappDraft}
+                          onChange={(e) => setWhatsappDraft(e.target.value)}
+                          placeholder="260971234567"
+                          className="h-9 w-full rounded-md border border-gray-200 bg-white px-2 text-sm"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Adds a WhatsApp button to the chat header, so a visitor can carry on the
+                          conversation on their phone. Full international number, no plus sign.
+                          Leave empty to hide it.
+                        </p>
                       </div>
 
                       <div className="flex gap-2">
