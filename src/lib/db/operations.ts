@@ -1,5 +1,14 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import type { Channel } from "@/lib/channels/transport";
+import {
+  sentimentBreakdown,
+  topTopics,
+  avgFirstReplySeconds,
+  hourlyVolume,
+  aiResolutionRate,
+  type ConversationRow,
+  type MessageRow,
+} from "@/lib/analytics/aggregate";
 import type {
   Conversation,
   Message,
@@ -353,6 +362,21 @@ export async function getAvailableAgent(tenantId: string): Promise<Agent | null>
 }
 
 // --- Analytics Operations ---
+
+/**
+ * How many recent conversations the sentiment / topic / AI-resolution figures
+ * are computed over. Bounded so a tenant with a large history does not pull
+ * their whole table back on every dashboard poll.
+ */
+const ANALYTICS_CONVERSATION_SAMPLE = 500;
+
+/**
+ * Cap on the message rows fetched for the response-time and hourly figures.
+ * The DAILY totals are still counted in the database, so the volume chart stays
+ * exact for any tenant; only the derived averages work off this sample.
+ */
+const ANALYTICS_MESSAGE_SAMPLE = 5000;
+
 export async function getAnalytics(tenantId: string) {
   const db = getSupabaseAdmin();
   const now = new Date();
@@ -365,8 +389,8 @@ export async function getAnalytics(tenantId: string) {
     { count: resolvedConversations },
     { count: messagesToday },
     { count: messagesThisWeek },
-    { data: sentimentData },
-    { data: recentConversations },
+    { data: conversationSample },
+    { data: messageSample },
     { count: voiceCallsToday },
   ] = await Promise.all([
     db.from("conversations").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
@@ -374,24 +398,33 @@ export async function getAnalytics(tenantId: string) {
     db.from("conversations").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "resolved"),
     db.from("messages").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).gte("created_at", todayStart),
     db.from("messages").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).gte("created_at", weekStart),
-    db.from("conversations").select("sentiment").eq("tenant_id", tenantId).not("sentiment", "is", null),
-    db.from("conversations").select("*").eq("tenant_id", tenantId).order("last_message_at", { ascending: false }).limit(100),
+    // One read that answers sentiment, topics AND the AI resolution rate. This
+    // replaced a separate sentiment query plus a select('*') of 100 rows.
+    db.from("conversations")
+      .select("sentiment, tags, status, assigned_agent_id")
+      .eq("tenant_id", tenantId)
+      .order("last_message_at", { ascending: false })
+      .limit(ANALYTICS_CONVERSATION_SAMPLE),
+    // One read that answers hourly volume AND first-reply time. This replaced
+    // 24 per-hour count queries.
+    db.from("messages")
+      .select("conversation_id, direction, created_at")
+      .eq("tenant_id", tenantId)
+      .gte("created_at", weekStart)
+      .order("created_at", { ascending: false })
+      .limit(ANALYTICS_MESSAGE_SAMPLE),
     db.from("voice_calls").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).gte("created_at", todayStart),
   ]);
 
-  const sentimentBreakdown = { positive: 0, neutral: 0, negative: 0 };
-  sentimentData?.forEach((c: { sentiment: string }) => {
-    if (c.sentiment in sentimentBreakdown) {
-      sentimentBreakdown[c.sentiment as keyof typeof sentimentBreakdown]++;
-    }
-  });
+  const conversations = (conversationSample || []) as ConversationRow[];
+  const messages = (messageSample || []) as MessageRow[];
 
-  const aiResolved = recentConversations?.filter(
-    (c: { status: string; assigned_agent_id: string | null }) => c.status === "resolved" && !c.assigned_agent_id
-  ).length || 0;
-  const totalResolved = resolvedConversations || 0;
+  const sentiment = sentimentBreakdown(conversations);
+  const aiResolution = aiResolutionRate(conversations);
+  const firstReply = avgFirstReplySeconds(messages);
 
-  // Build daily volume for last 7 days (parallelized)
+  // Daily volume stays a database count per day: this is the headline chart and
+  // it must be exact even for a tenant past the message sample cap.
   const dayQueries = Array.from({ length: 7 }, (_, idx) => {
     const i = 6 - idx;
     const dayStart = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
@@ -415,41 +448,23 @@ export async function getAnalytics(tenantId: string) {
     count: dayResults[idx].count || 0,
   }));
 
-  // Build hourly volume for today (parallelized)
-  const hourQueries = Array.from({ length: 24 }, (_, hour) => {
-    const hourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour);
-    const hourEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, 59, 59, 999);
-    return { hour, hourStart, hourEnd };
-  });
-
-  const hourResults = await Promise.all(
-    hourQueries.map(({ hourStart, hourEnd }) =>
-      db.from("messages").select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenantId)
-        .gte("created_at", hourStart.toISOString())
-        .lte("created_at", hourEnd.toISOString())
-    )
-  );
-
-  const hourlyVolume = hourQueries.map((q, idx) => ({
-    hour: q.hour,
-    count: hourResults[idx].count || 0,
-  }));
-
   return {
     total_conversations: totalConversations || 0,
     active_conversations: activeConversations || 0,
-    resolved_conversations: totalResolved,
-    avg_response_time_seconds: 0,
+    resolved_conversations: resolvedConversations || 0,
+    avg_response_time_seconds: firstReply.seconds,
+    response_time_sample: firstReply.sampleSize,
     avg_resolution_time_seconds: 0,
-    ai_resolution_rate: totalResolved > 0 ? (aiResolved / totalResolved) * 100 : 0,
-    customer_satisfaction: 0,
+    ai_resolution_rate: aiResolution.rate,
+    ai_resolution_sample: aiResolution.sampleSize,
     messages_today: messagesToday || 0,
     messages_this_week: messagesThisWeek || 0,
     voice_calls_today: voiceCallsToday || 0,
-    top_topics: [],
-    sentiment_breakdown: sentimentBreakdown,
-    hourly_volume: hourlyVolume,
+    top_topics: topTopics(conversations),
+    // Percentages, not counts - see sentimentBreakdown.
+    sentiment_breakdown: sentiment.breakdown,
+    sentiment_sample: sentiment.sampleSize,
+    hourly_volume: hourlyVolume(messages, now),
     daily_volume: dailyVolume,
   };
 }

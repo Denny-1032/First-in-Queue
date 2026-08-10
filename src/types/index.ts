@@ -297,14 +297,19 @@ export interface AnalyticsData {
   active_conversations: number;
   resolved_conversations: number;
   avg_response_time_seconds: number;
+  /** Conversations the response time was averaged over. 0 = nothing to show. */
+  response_time_sample: number;
   avg_resolution_time_seconds: number;
   ai_resolution_rate: number;
-  customer_satisfaction: number;
+  /** Resolved conversations the rate was computed over. */
+  ai_resolution_sample: number;
   messages_today: number;
   messages_this_week: number;
   voice_calls_today: number;
   top_topics: Array<{ topic: string; count: number }>;
+  /** PERCENTAGES of `sentiment_sample`, not counts. */
   sentiment_breakdown: { positive: number; neutral: number; negative: number };
+  sentiment_sample: number;
   hourly_volume: Array<{ hour: number; count: number }>;
   daily_volume: Array<{ date: string; count: number }>;
 }

@@ -33,7 +33,14 @@ import {
   chargeVoiceOverage,
   chargeWhatsAppOverage,
 } from "./credit";
-import { CREDIT_RATES, formatNgwee, kwachaToNgwee } from "./rates";
+import {
+  CREDIT_RATES,
+  TOPUP_PACKS,
+  describePack,
+  formatNgwee,
+  kwachaToNgwee,
+  packUnits,
+} from "./rates";
 
 function consumeRow(allowed: boolean, balance: number, already = false) {
   return { data: [{ allowed, balance_ngwee: balance, already_charged: already }], error: null };
@@ -69,6 +76,29 @@ describe("ngwee arithmetic", () => {
     // something other than what we published.
     expect(formatNgwee(CREDIT_RATES.WHATSAPP_REPLY_NGWEE)).toBe("K1.70");
     expect(formatNgwee(CREDIT_RATES.VOICE_MINUTE_NGWEE)).toBe("K7.00");
+  });
+});
+
+describe("top-up packs", () => {
+  it("derives what a pack buys from the live rates", () => {
+    expect(packUnits(20_000)).toEqual({ whatsappReplies: 117, voiceMinutes: 28 });
+    expect(describePack(20_000)).toBe("117 WhatsApp replies or 28 voice minutes");
+  });
+
+  it("floors rather than rounds up, so the promise is always met", () => {
+    // 20_000 / 170 = 117.6 and 20_000 / 700 = 28.57. Rounding either up would
+    // promise a reply the balance cannot pay for.
+    const u = packUnits(20_000);
+    expect(u.whatsappReplies * CREDIT_RATES.WHATSAPP_REPLY_NGWEE).toBeLessThanOrEqual(20_000);
+    expect(u.voiceMinutes * CREDIT_RATES.VOICE_MINUTE_NGWEE).toBeLessThanOrEqual(20_000);
+  });
+
+  it("states every pack without hedging", () => {
+    for (const pack of TOPUP_PACKS) {
+      expect(pack.description).not.toMatch(/about|around|roughly|approx/i);
+      expect(pack.description).toBe(describePack(pack.ngwee));
+      expect(pack.units).toEqual(packUnits(pack.ngwee));
+    }
   });
 });
 

@@ -62,6 +62,9 @@ function SettingsContent() {
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutPlanId, setCheckoutPlanId] = useState("pro");
+  // Which cycle a purchase from this page is billed on. There is no toggle
+  // here any more - the cycle is chosen when the plan is bought - so an upgrade
+  // simply stays on the cycle the tenant is already paying.
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
   const [cancelling, setCancelling] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("business");
@@ -95,6 +98,17 @@ function SettingsContent() {
     if (payment === "success") {
       toast(`Payment successful! Your ${plan || ""} plan is now active.`, "success");
       // Clean up URL params
+      window.history.replaceState({}, "", "/dashboard/settings");
+      return;
+    }
+
+    // Where /api/payments/confirm sends a customer back after paying for
+    // usage credit by card.
+    const topup = searchParams.get("topup");
+    if (topup) {
+      if (topup === "success") toast("Credit added. WhatsApp and voice are live again.", "success");
+      else if (topup === "pending") toast("Payment received - your credit will appear shortly.", "info");
+      else toast("That top-up did not go through. No money was taken.", "error");
       window.history.replaceState({}, "", "/dashboard/settings");
     }
   }, [searchParams, toast]);
@@ -156,6 +170,15 @@ function SettingsContent() {
             setPeriodEnd(data.subscription.current_period_end);
             setSubscriptionStatus(data.subscription.status);
             setDaysRemaining(data.daysRemaining ?? null);
+            // subscriptions has no billing_interval column (it lives on
+            // payments), so infer it from the period length: anything longer
+            // than two months is an annual cycle.
+            const start = data.subscription.current_period_start;
+            const end = data.subscription.current_period_end;
+            if (start && end) {
+              const days = (new Date(end).getTime() - new Date(start).getTime()) / 86_400_000;
+              setBillingInterval(days > 60 ? "yearly" : "monthly");
+            }
           }
         }
       } catch { /* use defaults */ }
@@ -725,31 +748,6 @@ function SettingsContent() {
                   )}>
                     {new Date(periodEnd).toLocaleDateString("en-ZM", { day: "numeric", month: "short", year: "numeric" })}
                   </span>
-                </div>
-              )}
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div>
-                  <p className="text-sm font-medium text-gray-700">AI Engine</p>
-                  <p className="text-xs text-gray-500">Powered by GPT-4o</p>
-                </div>
-                <Badge variant="secondary">Managed by FiQ</Badge>
-              </div>
-              {(subscriptionStatus === "trialing" || currentPlanId !== "institution") && (
-                <div className="flex items-center justify-between py-3">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Billing Cycle</p>
-                    <p className="text-xs text-gray-500">{billingInterval === "yearly" ? "2 months free with annual billing" : "Switch to yearly and get 2 months free"}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={cn("text-xs font-medium", billingInterval === "monthly" ? "text-gray-900" : "text-gray-400")}>Monthly</span>
-                    <button
-                      onClick={() => setBillingInterval(billingInterval === "monthly" ? "yearly" : "monthly")}
-                      className={cn("relative w-11 h-6 rounded-full transition-colors", billingInterval === "yearly" ? "bg-emerald-500" : "bg-gray-200")}
-                    >
-                      <div className={cn("absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform", billingInterval === "yearly" ? "translate-x-5" : "translate-x-0.5")} />
-                    </button>
-                    <span className={cn("text-xs font-medium", billingInterval === "yearly" ? "text-gray-900" : "text-gray-400")}>Yearly</span>
-                  </div>
                 </div>
               )}
             </CardContent>

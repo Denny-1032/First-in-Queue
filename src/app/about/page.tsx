@@ -10,7 +10,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
 export const metadata: Metadata = {
   title: "About Us - Built in Lusaka. Built for Business.",
   description:
-    "First in Queue is built by Codarti in Lusaka, Zambia. We help African businesses deliver instant WhatsApp & voice customer support - 24/7, in 40+ languages.",
+    "First in Queue is built by Codarti in Lusaka, Zambia. Free website chat for any business, plus WhatsApp and voice support - 24/7, in 40+ languages.",
   alternates: {
     canonical: `${BASE_URL}/about`,
   },
@@ -48,33 +48,43 @@ const stats = [
 const principles = [
   {
     num: "01",
-    title: "The business owner should not need a developer",
-    body: "Every feature in FiQ was designed for someone running a real business - not someone who writes code. The FiQ team handles technical setup. Full stop.",
+    title: "Answering your customers should not cost anything",
+    body: "The website chat widget is free, permanently - not a trial. A business that cannot yet pay for software still loses sales to a slow reply, and that is the part we can fix for nothing. WhatsApp and voice cost real money per message and per minute, so those are what we charge for.",
   },
   {
     num: "02",
+    title: "The business owner should not need a developer",
+    body: "Every feature in FiQ was designed for someone running a real business - not someone who writes code. Setup is one line of HTML you paste anywhere on your site, and the FiQ team handles the rest.",
+  },
+  {
+    num: "03",
     title: "Price in kwacha. Pay in kwacha. Always.",
     body: "Foreign software that charges in USD creates an invisible tax on Zambian businesses. FiQ prices in ZMW and accepts Airtel Money, MTN, Zamtel, and card. No exchange rate surprises.",
   },
   {
-    num: "03",
+    num: "04",
     title: "The AI should never lie to a customer",
     body: "If the answer is not in your knowledge base, FiQ tells the customer a human will follow up - it does not guess or invent. A wrong answer damages your reputation far more than a slight delay.",
   },
   {
-    num: "04",
-    title: "The risk should be on us, not on you",
-    body: "Try it for 30 days. If it does not work, every kwacha comes back. No questions. No forms. We built the product well enough to stake that on it.",
+    num: "05",
+    title: "We use our own product, in public",
+    body: "The chat bubble on this website is not a mock-up. It is the same widget you would install, running on the same platform, answering from our own knowledge base. If it ever breaks, we find out the way you would.",
   },
   {
-    num: "05",
+    num: "06",
+    title: "The risk should be on us, not on you",
+    body: "Paid plans come with 30 days to change your mind. If it does not work, every kwacha comes back. No questions. No forms. We built the product well enough to stake that on it.",
+  },
+  {
+    num: "07",
     title: "Local context is not optional - it is the product",
     body: "FiQ was built in Lusaka. We understand that a clinic in Chelston operates differently to a retail shop in Kitwe. That local understanding is not a feature - it is foundational.",
   },
   {
-    num: "06",
+    num: "08",
     title: "Human agents matter - FiQ works with them",
-    body: "FiQ handles the 80% of conversations that are routine. The moment something needs human judgment, the conversation is handed over immediately with full context. AI and humans work together.",
+    body: "FiQ handles the conversations that are routine. The moment something needs human judgment, the conversation is handed over immediately with full context. AI and humans work together.",
   },
 ];
 
@@ -101,7 +111,7 @@ export default function AboutPage() {
           </ScrollAnimate>
           <ScrollAnimate animation="fade-up" delay={250}>
             <p className="text-lg text-gray-500 mt-6 max-w-2xl mx-auto leading-relaxed">
-              We built FiQ because we watched good Zambian businesses lose customers every night - not because they had a bad product, but because no one answered the WhatsApp at 9pm.
+              We built FiQ because we watched good Zambian businesses lose customers every night - not because they had a bad product, but because no one answered the WhatsApp at 9pm. So we made the answering part free, and put it on your website in one line.
             </p>
           </ScrollAnimate>
         </div>
@@ -190,7 +200,10 @@ export default function AboutPage() {
               The usual solution is to hire someone to manage messages. But a support agent in Zambia costs K3,000–5,000 per month, covers eight hours a day, takes leave, and needs management. You solve one problem and create four more.
             </p>
             <p>
-              <strong className="text-gray-900">We built FiQ because the better solution already existed - it just was not accessible to Zambian businesses.</strong> The technology to handle customer conversations automatically, intelligently, and affordably was available. We connected it to WhatsApp, configured it for the local market, priced it in kwacha, built mobile money payments in, and made it so that any business owner - not just developers - could use it.
+              <strong className="text-gray-900">We built FiQ because the better solution already existed - it just was not accessible to Zambian businesses.</strong> The technology to handle customer conversations automatically, intelligently, and affordably was available. We connected it to WhatsApp and to the phone line, configured it for the local market, priced it in kwacha, built mobile money payments in, and made it so that any business owner - not just developers - could use it.
+            </p>
+            <p>
+              <strong className="text-gray-900">Then we made the website part free, and left it free.</strong> Charging a business to answer its own customers felt like the wrong place to put a paywall. So the chat widget costs nothing: one line of HTML on your site, and it answers questions around the clock from what you have told it about your business. WhatsApp messages and voice minutes cost us real money per use, so those are the parts you pay for - and only once you want them.
             </p>
             <p>
               No foreign currency. No complicated setup. No IT department required. The FiQ team handles the entire technical configuration. You provide your business information. We do everything else.
@@ -212,7 +225,7 @@ export default function AboutPage() {
               The numbers, honestly stated
             </h2>
             <p className="text-emerald-100 leading-relaxed">
-              We do not put made-up statistics on our site. Every number here reflects real performance across actual FiQ customers, as of April 2026. No rounding up. No cherry-picking the best-case scenario.
+              We do not put made-up statistics on our site. Every number here reflects real performance across actual FiQ customers, as of August 2026. No rounding up. No cherry-picking the best-case scenario.
             </p>
           </div>
           </ScrollAnimate>
@@ -239,7 +252,7 @@ export default function AboutPage() {
             How we operate
           </p>
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-12">
-            Six things we believe without compromise
+            Eight things we believe without compromise
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {principles.map((p, i) => (
@@ -291,8 +304,8 @@ export default function AboutPage() {
             </div>
             <div className="mt-6 space-y-3">
               {[
-                "Applies to Basic, Business, and Enterprise paid plans",
-                "No free trial required - start with the permanent free tier or go straight to paid",
+                "Applies to every paid plan - Pro and Institution",
+                "Nothing to claim on the free plan, because there is nothing to pay",
                 "Claim within 30 days of first payment - single email, full refund issued",
                 "No justification required - if it did not work, we refund",
               ].map((term) => (
@@ -319,7 +332,7 @@ export default function AboutPage() {
               See it working on your actual business
             </h2>
             <p className="text-emerald-100 mt-4 max-w-lg mx-auto">
-              Book a free demo. The FiQ team builds the demo around your specific business type - not a generic slideshow.
+              Start free - the widget goes on your site in minutes and costs nothing. Or book a demo and the FiQ team builds it around your specific business type, not a generic slideshow.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
               <Link

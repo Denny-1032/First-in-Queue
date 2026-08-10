@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Bricolage_Grotesque } from "next/font/google";
 import { ToastProvider } from "@/components/ui/toast";
 import { DialogProvider } from "@/components/ui/dialogs";
 import { OrganizationJsonLd, WebSiteJsonLd } from "@/components/seo/json-ld";
-import { FiqSupportWidgetWrapper } from "@/components/voice/fiq-support-widget-wrapper";
+import { FiqWidgetLoader } from "@/components/landing/fiq-widget-loader";
 import "./globals.css";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
@@ -18,13 +18,23 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Headlines only. Geist is a good reading face but a quiet one - at 60px it
+// recedes instead of landing. Bricolage is a variable grotesque with much more
+// character in the display sizes, while staying plain enough not to fight the
+// body text underneath it.
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-display",
+  subsets: ["latin"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: {
-    default: "First in Queue - WhatsApp & Voice Customer Care",
+    default: "First in Queue - Free Customer Care for Your Business",
     template: "%s | First in Queue",
   },
   description:
-    "Never lose a customer to slow responses. First in Queue automates WhatsApp messages and phone calls with AI - 24/7, in 40+ languages. 5-minute setup, no code required.",
+    "A free AI chat widget for your website that answers customers 24/7, in 40+ languages. Add WhatsApp and phone support when you're ready. No code required.",
   metadataBase: new URL(BASE_URL),
   alternates: {
     canonical: BASE_URL,
@@ -96,7 +106,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <OrganizationJsonLd />
@@ -104,7 +114,7 @@ export default function RootLayout({
         <ToastProvider>
           <DialogProvider>
             {children}
-            <FiqSupportWidgetWrapper />
+            <FiqWidgetLoader />
           </DialogProvider>
         </ToastProvider>
       </body>

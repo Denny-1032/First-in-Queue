@@ -28,6 +28,13 @@ export function ScrollAnimate({
       return;
     }
 
+    // Where the browser can drive the reveal from the scroll position itself
+    // (globals.css, @supports animation-timeline), leave it to do that: the
+    // text then uncovers as the reader scrolls instead of playing a fixed
+    // animation once. The observer must stay out of the way, because
+    // .scroll-animate-visible is !important and would snap the element open.
+    if (window.CSS?.supports?.("animation-timeline: view()")) return;
+
     // IntersectionObserver only fires on a change, so an element already in
     // view at mount reports as intersecting on the first callback - that is
     // what reveals content above the fold on a deep link or a refresh

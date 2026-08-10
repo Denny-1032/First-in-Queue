@@ -75,7 +75,18 @@
 
   // ---------------------------------------------------------------- ui
 
+  /**
+   * The launcher mounts on document.body, which does not exist yet if the
+   * snippet sits in <head> and the config fetch comes back from cache before
+   * the parser reaches <body>. Waiting for DOMContentLoaded in that case is
+   * what makes the snippet safe to paste ANYWHERE on the page, rather than
+   * only just before </body>.
+   */
   function build() {
+    if (!document.body) {
+      document.addEventListener('DOMContentLoaded', build, { once: true });
+      return;
+    }
     root = document.createElement('div');
     root.setAttribute('data-fiq-root', '');
     // Shadow DOM keeps the host page's CSS from leaking into the launcher

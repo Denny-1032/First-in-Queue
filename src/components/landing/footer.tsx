@@ -1,11 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
-import { WhatsAppButton } from "./whatsapp-button";
+
+// The floating WhatsApp bubble used to live here. WhatsApp is now a channel
+// inside the FiQ widget itself (see components/landing/fiq-widget-loader.tsx),
+// so the site shows one launcher instead of two competing ones.
 
 export function Footer() {
   return (
     <footer className="py-12 px-6 border-t border-gray-100">
-      <WhatsAppButton />
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           <div>

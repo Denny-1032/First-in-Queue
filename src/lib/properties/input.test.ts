@@ -85,6 +85,28 @@ describe("sanitizeBranding", () => {
     );
   });
 
+  it("keeps a WhatsApp number as digits and lets it be cleared", () => {
+    // Whatever the customer types, wa.me needs bare digits.
+    expect(sanitizeBranding({ whatsapp_number: "+260 97 123 4567" }, {}).whatsapp_number).toBe(
+      "260971234567"
+    );
+    expect(sanitizeBranding({ whatsapp_number: null }, { whatsapp_number: "260971234567" }).whatsapp_number).toBe(null);
+    expect(sanitizeBranding({ whatsapp_number: "" }, { whatsapp_number: "260971234567" }).whatsapp_number).toBe(null);
+  });
+
+  it("ignores a WhatsApp number that could not be dialled, keeping the old one", () => {
+    const kept = { whatsapp_number: "260971234567" };
+    // Too short to be an international number, and a link built from it would
+    // open an empty WhatsApp chat on every visitor's phone.
+    expect(sanitizeBranding({ whatsapp_number: "0971" }, kept).whatsapp_number).toBe("260971234567");
+    expect(sanitizeBranding({ whatsapp_number: "1234567890123456" }, kept).whatsapp_number).toBe(
+      "260971234567"
+    );
+    expect(sanitizeBranding({ whatsapp_number: 260971234567 }, kept).whatsapp_number).toBe(
+      "260971234567"
+    );
+  });
+
   it("rejects non-hex colours — these land in inline styles on the customer's page", () => {
     const out = sanitizeBranding(
       { primary_color: "red; background: url(//evil)", text_color: "#fff" },
