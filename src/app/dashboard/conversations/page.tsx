@@ -34,9 +34,15 @@ import {
   Wifi,
   WifiOff,
   Plus,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { timeAgo, truncate } from "@/lib/utils";
+import {
+  customerInitials,
+  customerLabel,
+  customerSubtitle,
+} from "@/lib/conversations/display";
 import { useToast } from "@/components/ui/toast";
 import {
   Dialog,
@@ -185,7 +191,7 @@ export default function ConversationsPage() {
             .forEach((c) => {
               prevHandoffIds.current.add(c.id);
               const label = c.status === "handoff" ? "🔵 New handoff" : "🟡 Waiting for agent";
-              const name = c.customer_name || c.customer_phone;
+              const name = customerLabel(c);
               // Browser notification
               if (notifPermission.current === "granted") {
                 new Notification(`${label}: ${name}`, {
@@ -268,8 +274,10 @@ export default function ConversationsPage() {
   }, [messages]);
 
   const filteredConversations = conversations.filter((c) => {
-    const matchesSearch = !searchQuery || 
-      c.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    // Search the label too, so typing a visitor's short code finds their chat -
+    // it is the only handle an agent has on an anonymous website visitor.
+    const matchesSearch = !searchQuery ||
+      customerLabel(c).toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.customer_phone.includes(searchQuery);
     const matchesStatus = filterStatus === "all" || c.status === filterStatus;
     return matchesSearch && matchesStatus;
@@ -401,11 +409,6 @@ export default function ConversationsPage() {
     setInitiating(false);
   };
 
-  const getInitials = (name?: string) => {
-    if (!name) return "?";
-    return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-  };
-
   const getLastMessage = (convoId: string) => {
     if (convoId === selectedId && messages.length > 0) {
       return truncate(messages[messages.length - 1].content.text || "[media]", 50);
@@ -510,12 +513,14 @@ export default function ConversationsPage() {
                     )}
                   >
                     <Avatar className="h-10 w-10 shrink-0">
-                      <AvatarFallback>{getInitials(convo.customer_name)}</AvatarFallback>
+                      <AvatarFallback>
+                        {customerInitials(convo) ?? <Globe className="h-4 w-4 text-gray-400" />}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-900 truncate">
-                          {convo.customer_name || convo.customer_phone}
+                          {customerLabel(convo)}
                         </span>
                         <span className="text-[10px] text-gray-400 shrink-0 ml-2">
                           {timeAgo(convo.last_message_at)}
@@ -577,15 +582,23 @@ export default function ConversationsPage() {
                     <ArrowLeft className="h-5 w-5" />
                   </button>
                   <Avatar>
-                    <AvatarFallback>{getInitials(selectedConvo.customer_name)}</AvatarFallback>
+                    <AvatarFallback>
+                      {customerInitials(selectedConvo) ?? <Globe className="h-4 w-4 text-gray-400" />}
+                    </AvatarFallback>
                   </Avatar>
                   <div>
                     <h3 className="text-sm font-semibold text-gray-900">
-                      {selectedConvo.customer_name || selectedConvo.customer_phone}
+                      {customerLabel(selectedConvo)}
                     </h3>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <Phone className="h-3 w-3 text-gray-400" />
-                      <span className="text-xs text-gray-500">{selectedConvo.customer_phone}</span>
+                      {selectedConvo.channel === "web" ? (
+                        <Globe className="h-3 w-3 text-gray-400" />
+                      ) : (
+                        <Phone className="h-3 w-3 text-gray-400" />
+                      )}
+                      <span className="text-xs text-gray-500">
+                        {customerSubtitle(selectedConvo)}
+                      </span>
                     </div>
                     {(() => {
                       const escalationReason = selectedConvo.status === "waiting"
@@ -650,11 +663,11 @@ export default function ConversationsPage() {
                             });
                           } catch { /* best effort */ }
                         }
-                        toast("AI is back in control of this conversation.", "success");
+                        toast("The assistant is handling this conversation again.", "success");
                       }}
                     >
                       <Bot className="h-3.5 w-3.5" />
-                      Return to AI
+                      Hand back
                     </Button>
                   )}
                   {selectedConvo.status !== "resolved" && (
@@ -727,7 +740,7 @@ export default function ConversationsPage() {
                               {msg.sender_type === "agent" && <UserCheck className="h-3 w-3 text-blue-500" />}
                               {msg.sender_type === "customer" && <User className="h-3 w-3 text-gray-400" />}
                               <span className="text-gray-400">
-                                {msg.sender_type === "bot" ? "AI Bot" : msg.sender_type === "agent" ? "Agent" : selectedConvo.customer_name || "Customer"}
+                                {msg.sender_type === "bot" ? "Assistant" : msg.sender_type === "agent" ? "Agent" : customerLabel(selectedConvo)}
                               </span>
                             </div>
                             {/* Message bubble */}
@@ -805,7 +818,7 @@ export default function ConversationsPage() {
                 {selectedConvo.ai_enabled && selectedConvo.status === "active" && (
                   <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
                     <Bot className="h-3 w-3" />
-                    AI is handling this conversation. Sending a message will take over as agent.
+                    The assistant is handling this conversation. Sending a message will take over as agent.
                   </p>
                 )}
               </div>

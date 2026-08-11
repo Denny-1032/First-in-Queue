@@ -43,7 +43,7 @@ export default function ContactPage() {
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">Talk to Support</h2>
             <p className="text-gray-600 text-sm">
-              Speak directly with our AI support agent. No phone number needed - just your browser and microphone.
+              Get an answer right now, out loud. No phone number needed - just your browser and microphone.
             </p>
             <p className="text-emerald-600 font-semibold mt-3 text-sm">Click to start →</p>
           </button>
@@ -115,7 +115,7 @@ export default function ContactPage() {
             </button>
             <WebCallWidget 
               agentId=""
-              greeting="Talk to our AI support agent directly from your browser"
+              greeting="Talk to support right now, straight from your browser"
             />
           </div>
         </div>

@@ -473,7 +473,7 @@ export default function DashboardPage() {
         <QuickAction
           href="/dashboard/voice"
           title="Voice Agent"
-          desc="AI phone calls and scheduled calls"
+          desc="Answered calls and scheduled callbacks"
           icon={Phone}
           color="bg-purple-100 text-purple-600 group-hover:bg-purple-200"
         />

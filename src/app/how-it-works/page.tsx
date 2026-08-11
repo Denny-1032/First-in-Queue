@@ -96,7 +96,7 @@ export default function HowItWorksPage() {
                 Free is not a countdown. There is no trial to expire and nothing
                 switches off on day 14. It is a real plan:{" "}
                 <strong className="text-gray-900">
-                  the website chat widget, 500 AI replies a month, one website,
+                  the website chat widget, 500 answered messages a month, one website,
                   unlimited conversations and unlimited team seats
                 </strong>
                 . The only catch is a small &ldquo;Powered by First in

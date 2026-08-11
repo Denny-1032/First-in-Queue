@@ -239,10 +239,10 @@ export default function WhyFiqPage() {
           <ScrollAnimate animation="fade-up" delay={100}>
             <div className="space-y-5 text-gray-600 text-lg leading-relaxed">
               <p>
-                <strong className="text-gray-900">First in Queue</strong> is an
-                AI assistant that answers your customers across every place they
-                reach you - your website, WhatsApp, and the phone - instantly,
-                accurately, 24 hours a day, 365 days a year.
+                <strong className="text-gray-900">First in Queue</strong> answers
+                your customers everywhere they reach you - your website,
+                WhatsApp, and the phone - instantly, accurately, 24 hours a day,
+                365 days a year.
               </p>
               <p>
                 It&apos;s not a replacement for your team. It&apos;s the team
@@ -283,14 +283,14 @@ export default function WhyFiqPage() {
                 },
                 {
                   icon: Shield,
-                  title: "Honest AI - no guessing",
+                  title: "No guessing, no invented answers",
                   desc: "If the answer isn't in your knowledge base, FiQ says so and hands over. It never invents facts about your business. Your reputation stays intact.",
                   color: "text-amber-600 bg-amber-100",
                 },
                 {
                   icon: Zap,
                   title: "Live in days, not months",
-                  desc: "You tell us about your business. We wire up the channels, train the AI, and switch it on. You watch it work from one dashboard.",
+                  desc: "You tell us about your business. We wire up the channels, teach it your answers, and switch it on. You watch it work from one dashboard.",
                   color: "text-rose-600 bg-rose-100",
                 },
               ].map((item) => (
@@ -532,7 +532,7 @@ export default function WhyFiqPage() {
                 {
                   icon: Sparkles,
                   head: "Costs us almost nothing → it's mostly free",
-                  body: "Your website chat widget, unlimited conversations, unlimited team members, the dashboard. Each AI answer costs us about one ngwee, so the first 500 every month are on us - and there's no third party taking a cut.",
+                  body: "Your website chat widget, unlimited conversations, unlimited team members, the dashboard. Each answer costs us about one ngwee, so the first 500 every month are on us - and there's no third party taking a cut.",
                   tone: "text-emerald-600 bg-emerald-100",
                 },
                 {
@@ -585,14 +585,14 @@ export default function WhyFiqPage() {
                   plan: "Free",
                   price: "K0",
                   tag: "forever, not a trial",
-                  what: "Website chat widget, unlimited conversations, unlimited team seats, 500 AI replies a month, one website. Shows a small “Powered by First in Queue.”",
+                  what: "Website chat widget, unlimited conversations, unlimited team seats, 500 answered messages a month, one website. Shows a small “Powered by First in Queue.”",
                   color: "from-emerald-500 to-teal-600",
                 },
                 {
                   plan: "Pro",
                   price: "K499/mo",
                   tag: "or K4,990/yr - 2 months free",
-                  what: "Everything in Free, branding removed, WhatsApp + voice + automated actions unlocked, unlimited websites & agents, 5,000 web AI replies a month.",
+                  what: "Everything in Free, branding removed, WhatsApp + voice + automated actions unlocked, unlimited websites & agents, 5,000 answered website messages a month.",
                   color: "from-blue-500 to-indigo-600",
                   popular: true,
                 },
@@ -720,7 +720,7 @@ export default function WhyFiqPage() {
               </p>
               <p>
                 The one honest limit: the free tier covers{" "}
-                <strong className="text-gray-900">500 AI answers a month</strong>
+                <strong className="text-gray-900">500 answered messages a month</strong>
                 . Most small sites never come close - but if yours does, it&apos;s
                 just a few ngwee per answer after that, and your dashboard shows
                 you the number long before you ever pay it.

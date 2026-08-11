@@ -78,7 +78,7 @@ export default function SignupPage() {
           <div className="mb-6 text-center">
             <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
             <p className="mt-1 text-sm text-gray-600">
-              Your AI assistant, answering customers in under five minutes.
+              Answering your customers in under five minutes from now.
             </p>
           </div>
 

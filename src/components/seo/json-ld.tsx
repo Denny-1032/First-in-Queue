@@ -8,7 +8,7 @@ export function OrganizationJsonLd() {
     url: BASE_URL,
     logo: `${BASE_URL}/fiq-logo.png`,
     description:
-      "Automated WhatsApp & voice customer support for businesses. Instant AI-powered responses, 24/7.",
+      "Customer messages answered the moment they arrive - website chat, WhatsApp and phone, 24/7.",
     foundingDate: "2024",
     contactPoint: {
       "@type": "ContactPoint",
@@ -34,7 +34,7 @@ export function SoftwareApplicationJsonLd() {
     operatingSystem: "Web",
     url: BASE_URL,
     description:
-      "AI-powered WhatsApp and voice customer care platform. Automate responses, manage conversations, and never miss a customer message.",
+      "Customer care platform for website chat, WhatsApp and phone. Answer instantly, manage conversations, and never miss a customer message.",
     offers: {
       "@type": "AggregateOffer",
       priceCurrency: "ZMW",

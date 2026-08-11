@@ -11,12 +11,12 @@ import {
   Users,
   Zap,
   Globe,
+  CalendarDays,
 } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 import { BookDemoButton } from "@/components/landing/demo-booking-dialog";
-import { InlineWidgetChat } from "@/components/landing/inline-widget-chat";
-import { LiveDemo } from "@/components/landing/live-demo";
+import { HeroChannels } from "@/components/landing/hero-channels";
 import { TwoLaneStory } from "@/components/landing/two-lane-story";
 import { SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 import { ScrollAnimate } from "@/components/ui/scroll-animate";
@@ -26,21 +26,21 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
 export const metadata: Metadata = {
   title: "Free Customer Care for Your Business",
   description:
-    "Put a free AI chat widget on your website in minutes - it answers customers 24/7, in 40+ languages. Add WhatsApp and phone support whenever you're ready. No card required.",
+    "Never miss another customer message. A free chat widget for your website answers them 24/7, in 40+ languages. Add WhatsApp and phone whenever you're ready. No card required.",
   alternates: {
     canonical: BASE_URL,
   },
   openGraph: {
     title: "Free Customer Care for Your Business | First in Queue",
     description:
-      "A free AI chat widget for your website, answering customers 24/7 in 40+ languages. WhatsApp and voice when you need them.",
+      "Never miss another customer message. A free chat widget answers your website, WhatsApp and phone - 24/7, in 40+ languages.",
     url: BASE_URL,
     images: [
       {
         url: `${BASE_URL}/fiq-logo.png`,
         width: 1200,
         height: 630,
-        alt: "First in Queue - AI-Powered Customer Care",
+        alt: "First in Queue - customer care that never sleeps",
       },
     ],
   },
@@ -102,9 +102,10 @@ export default function Home() {
               </p>
             </div>
             {/* The product itself, running - not a form asking for a number
-                first, and not a screenshot of a conversation. */}
+                first, and not a screenshot of a conversation. All three
+                channels sit here so nobody has to scroll to find the other two. */}
             <div className="animate-enter animate-enter-4 lg:pl-8">
-              <InlineWidgetChat />
+              <HeroChannels />
             </div>
           </div>
         </div>
@@ -149,12 +150,18 @@ export default function Home() {
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900">How FiQ solves it</h2>
               <p className="text-gray-500 mt-3 max-w-2xl mx-auto">
-                One platform handles all your customer conversations - WhatsApp and phone - so your team can focus on growing the business.
+                Every way a customer reaches you - your website, WhatsApp, the phone - answered in one place, so your team can focus on growing the business.
               </p>
             </div>
           </ScrollAnimate>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
+              {
+                icon: Globe,
+                title: "Your website answers back",
+                desc: "The chat widget replies to visitors while they are still on the page - the moment they would otherwise leave.",
+                color: "bg-emerald-100 text-emerald-600",
+              },
               {
                 icon: MessageSquare,
                 title: "WhatsApp on autopilot",
@@ -164,14 +171,14 @@ export default function Home() {
               {
                 icon: Phone,
                 title: "Answers the phone for you",
-                desc: "Handles inbound calls, makes follow-ups, and schedules appointments - no extra staff needed.",
+                desc: "Takes inbound calls and makes follow-ups, day or night - no extra staff needed.",
                 color: "bg-purple-100 text-purple-600",
               },
               {
-                icon: Users,
-                title: "Hands off to humans when needed",
-                desc: "Complex issues get escalated to your team with full context. Nothing falls through the cracks.",
-                color: "bg-blue-100 text-blue-600",
+                icon: CalendarDays,
+                title: "Fills your calendar",
+                desc: "Offers the slots you actually have free, books the appointment, and sends the reminder before it.",
+                color: "bg-amber-100 text-amber-600",
               },
             ].map((s) => (
               <div key={s.title} className="rounded-2xl border border-gray-200 p-8 hover:shadow-lg transition-all">
@@ -183,25 +190,10 @@ export default function Home() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* LIVE DEMO - the real product, not a screenshot of it */}
-      <section className="pb-20 px-6">
-        <div className="max-w-4xl mx-auto">
-          <ScrollAnimate animation="fade-up">
-            <div className="text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-                The other two channels
-              </h2>
-              <p className="text-gray-500 mt-3">
-                Watch a WhatsApp conversation play out, or pick up the phone and talk to it
-                yourself.
-              </p>
-            </div>
-            <LiveDemo />
-            <p className="text-center text-sm text-gray-500 mt-6">
-              The website chat is at the top of this page - that one you can type into.
+          <ScrollAnimate animation="fade-in" delay={150}>
+            <p className="text-center text-gray-500 mt-8 text-sm max-w-2xl mx-auto">
+              And anything it should not decide alone goes straight to your team, with the whole
+              conversation attached. Nothing falls through the cracks.
             </p>
           </ScrollAnimate>
         </div>

@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     template: "%s | First in Queue",
   },
   description:
-    "A free AI chat widget for your website that answers customers 24/7, in 40+ languages. Add WhatsApp and phone support when you're ready. No code required.",
+    "Never miss another customer message. A free chat widget answers your website visitors 24/7, in 40+ languages. Add WhatsApp and phone when you're ready. No code required.",
   metadataBase: new URL(BASE_URL),
   alternates: {
     canonical: BASE_URL,
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
         url: `${BASE_URL}/fiq-logo.png`,
         width: 1200,
         height: 630,
-        alt: "First in Queue - AI-Powered Customer Care",
+        alt: "First in Queue - customer care that never sleeps",
       },
     ],
   },

@@ -256,8 +256,8 @@ export default function AIConfigPage() {
     <div className="space-y-6 w-full pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Configuration</h1>
-          <p className="text-gray-500 mt-1 text-sm">Configure your AI assistant</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Chat Agent</h1>
+          <p className="text-gray-500 mt-1 text-sm">Decide how your customers get answered</p>
         </div>
         <div className="flex gap-2">
           {activeTab === "voice" && (
@@ -297,7 +297,7 @@ export default function AIConfigPage() {
                   }),
                 });
                 if (res.ok) {
-                  toast("AI configuration saved successfully");
+                  toast("Chat agent settings saved");
                   // Auto-sync voice agent prompts so they use latest knowledge base
                   try {
                     const agentsRes = await fetch("/api/voice/agents");

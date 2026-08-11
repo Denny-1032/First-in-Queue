@@ -18,7 +18,7 @@ const faqs = [
   },
   {
     question: "What do I get when I sign up?",
-    answer: "The Free plan, forever, with no card. That is the website chat widget with unlimited conversations and team seats, 500 AI replies a month and one website. Pro removes the FiQ branding and unlocks WhatsApp, voice and automated actions.",
+    answer: "The Free plan, forever, with no card. That is the website chat widget with unlimited conversations and team seats, 500 answered messages a month and one website. Pro removes the FiQ branding and unlocks WhatsApp, voice and automated actions.",
   },
   {
     question: "What counts as a WhatsApp conversation?",
@@ -49,8 +49,8 @@ const faqs = [
     answer: "No. WhatsApp and voice only ever spend credit you have already bought, so there is nothing to run up. On Institution plans, usage past the contracted allowance is billed at the rates agreed in your contract.",
   },
   {
-    question: "What are AI voice call minutes?",
-    answer: "Your AI assistant can make and receive phone calls - handling customer enquiries, scheduling callbacks, and more. Voice is unlocked by Pro and paid by the minute from your usage credit, tracked separately from WhatsApp.",
+    question: "What are voice call minutes?",
+    answer: "FiQ can answer and make phone calls for you - handling customer enquiries, scheduling callbacks, and more. Voice is unlocked by Pro and paid by the minute from your usage credit, tracked separately from WhatsApp.",
   },
 ];
 

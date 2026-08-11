@@ -6,10 +6,13 @@ import { PLANS, type PlanDefinition } from "@/lib/lipila/plans";
 import {
   PaymentMethodPicker,
   PayerFields,
+  SavedMethodPicker,
   payerComplete,
+  payerFromSaved,
   emptyPayer,
   type PaymentMethod,
   type PayerDetails,
+  type SavedPaymentMethod,
 } from "./payment-fields";
 
 // The plan purchase flow itself - method, details, mobile-money polling,
@@ -47,6 +50,13 @@ export function CheckoutFlow({
   const [referenceId, setReferenceId] = useState("");
   const [pollCount, setPollCount] = useState(0);
 
+  // Saved payer profiles: contact details the tenant asked us to remember, so
+  // paying again is one tap instead of four fields. Never card data.
+  const [saved, setSaved] = useState<SavedPaymentMethod[]>([]);
+  const [showNewMethod, setShowNewMethod] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [remember, setRemember] = useState(true);
+
   const plan: PlanDefinition | undefined = PLANS.find((p) => p.id === planId);
 
   const setStep = useCallback(
@@ -63,6 +73,71 @@ export function CheckoutFlow({
     if (!initialEmail) return;
     setPayer((p) => (p.email ? p : { ...p, email: initialEmail }));
   }, [initialEmail]);
+
+  // A failure here is not worth surfacing: the customer just sees the ordinary
+  // "choose a method" screen, which is where they would have ended up anyway.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/payments/methods")
+      .then((r) => (r.ok ? r.json() : { methods: [] }))
+      .then((d) => {
+        if (cancelled) return;
+        const list: SavedPaymentMethod[] = d.methods || [];
+        setSaved(list);
+        // Nothing saved yet, so the "remember this" tick is the useful default.
+        // Once they have profiles, do not silently add another every time.
+        setRemember(list.length === 0);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const useSaved = (m: SavedPaymentMethod) => {
+    setPaymentMethod(m.method);
+    setPayer(payerFromSaved(m));
+    setRemember(false);
+    setStep("details");
+  };
+
+  const removeSaved = async (m: SavedPaymentMethod) => {
+    setRemovingId(m.id);
+    try {
+      const res = await fetch(`/api/payments/methods/${m.id}`, { method: "DELETE" });
+      if (res.ok) {
+        setSaved((prev) => {
+          const next = prev.filter((s) => s.id !== m.id);
+          if (next.length === 0) setRemember(true);
+          return next;
+        });
+      }
+    } catch {
+      /* leaving the entry in place is the safe failure */
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  /** Best effort - a payment must never fail because remembering it did. */
+  async function rememberPayer(type?: string) {
+    try {
+      await fetch("/api/payments/methods", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          method: paymentMethod,
+          phoneNumber: payer.phoneNumber,
+          email: payer.email,
+          firstName: payer.firstName || undefined,
+          lastName: payer.lastName || undefined,
+          paymentType: type,
+        }),
+      });
+    } catch {
+      /* ignore */
+    }
+  }
 
   // Poll payment status for mobile money.
   const pollStatus = useCallback(async () => {
@@ -137,6 +212,10 @@ export function CheckoutFlow({
         return;
       }
 
+      // Lipila accepted the details, so they are worth keeping. Awaited before
+      // the card redirect below - that navigation kills any in-flight request.
+      if (remember) await rememberPayer(data.paymentType);
+
       // Instant activation (e.g. admin override)
       if (data.status === "active") {
         setStep("success");
@@ -167,26 +246,62 @@ export function CheckoutFlow({
 
   return (
     <>
-      {step === "method" && (
-        <PaymentMethodPicker
-          onSelect={(m) => {
-            setPaymentMethod(m);
-            setStep("details");
-          }}
-        />
-      )}
+      {step === "method" &&
+        (saved.length > 0 && !showNewMethod ? (
+          <SavedMethodPicker
+            methods={saved}
+            onUse={useSaved}
+            onRemove={removeSaved}
+            onAddNew={() => setShowNewMethod(true)}
+            removingId={removingId}
+          />
+        ) : (
+          <div className="space-y-4">
+            <PaymentMethodPicker
+              onSelect={(m) => {
+                setPaymentMethod(m);
+                setStep("details");
+              }}
+            />
+            {saved.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowNewMethod(false)}
+                className="text-xs font-medium text-emerald-600 hover:text-emerald-700"
+              >
+                &larr; Back to saved details
+              </button>
+            )}
+          </div>
+        ))}
 
       {step === "details" && (
         <div className="space-y-4">
           <button
             type="button"
-            onClick={() => setStep("method")}
+            onClick={() => {
+              setShowNewMethod(false);
+              setStep("method");
+            }}
             className="text-xs text-emerald-600 hover:text-emerald-700 font-medium mb-2"
           >
             &larr; Change payment method
           </button>
 
           <PayerFields method={paymentMethod} value={payer} onChange={setPayer} />
+
+          <label className="flex items-start gap-2 text-xs text-gray-600">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-emerald-600"
+            />
+            <span>
+              Remember these details for next time.
+              {paymentMethod === "card" && " Your card number is never stored - only the details on this form."}
+            </span>
+          </label>
 
           <div className="rounded-xl bg-gray-50 p-4 mt-2">
             <div className="flex items-center justify-between text-sm">
@@ -211,12 +326,14 @@ export function CheckoutFlow({
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Processing...
               </>
+            ) : paymentMethod === "card" ? (
+              // The card number is entered on the bank's checkout, not here, so
+              // this button does not charge anything yet - say so.
+              `Continue to secure checkout - ${priceLabel}`
             ) : (
               `Pay ${priceLabel}`
             )}
           </button>
-
-          <p className="text-xs text-center text-gray-400">Payments processed securely by Lipila</p>
         </div>
       )}
 

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "About First in Queue",
     description:
-      "Built in Zambia. AI-powered WhatsApp & voice customer care for African businesses.",
+      "Built in Zambia. Website chat, WhatsApp and voice customer care for African businesses.",
     url: `${BASE_URL}/about`,
   },
 };
@@ -26,7 +26,7 @@ const stats = [
   {
     value: "78%",
     label: "Auto-resolution rate",
-    context: "78 out of 100 customer conversations fully resolved by AI with zero human involvement.",
+    context: "78 out of 100 customer conversations fully resolved without a single person touching them.",
   },
   {
     value: "<10s",

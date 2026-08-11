@@ -6,10 +6,13 @@ import { TOPUP_MIX_NOTE, type TopupPack } from "@/lib/credit/rates";
 import {
   PaymentMethodPicker,
   PayerFields,
+  SavedMethodPicker,
   payerComplete,
+  payerFromSaved,
   emptyPayer,
   type PaymentMethod,
   type PayerDetails,
+  type SavedPaymentMethod,
 } from "./payment-fields";
 
 // Buying usage credit. Kept out of the settings page itself so the panel there
@@ -44,6 +47,13 @@ export function TopupModal({
   const [referenceId, setReferenceId] = useState("");
   const [pollCount, setPollCount] = useState(0);
 
+  // Same saved payer profiles the plan checkout uses - contact details only,
+  // never card data. See migration 023.
+  const [saved, setSaved] = useState<SavedPaymentMethod[]>([]);
+  const [showNewMethod, setShowNewMethod] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [remember, setRemember] = useState(true);
+
   // Reset whenever the modal is reopened.
   useEffect(() => {
     if (!isOpen) return;
@@ -55,7 +65,52 @@ export function TopupModal({
     setErrorMsg("");
     setReferenceId("");
     setPollCount(0);
+    setShowNewMethod(false);
   }, [isOpen, defaultPhone]);
+
+  // Refetched per open, so details saved during a plan upgrade show up here
+  // without a page reload.
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    fetch("/api/payments/methods")
+      .then((r) => (r.ok ? r.json() : { methods: [] }))
+      .then((d) => {
+        if (cancelled) return;
+        const list: SavedPaymentMethod[] = d.methods || [];
+        setSaved(list);
+        setRemember(list.length === 0);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
+  const useSaved = (m: SavedPaymentMethod) => {
+    setMethod(m.method);
+    setPayer(payerFromSaved(m));
+    setRemember(false);
+    setStep("details");
+  };
+
+  const removeSaved = async (m: SavedPaymentMethod) => {
+    setRemovingId(m.id);
+    try {
+      const res = await fetch(`/api/payments/methods/${m.id}`, { method: "DELETE" });
+      if (res.ok) {
+        setSaved((prev) => {
+          const next = prev.filter((s) => s.id !== m.id);
+          if (next.length === 0) setRemember(true);
+          return next;
+        });
+      }
+    } catch {
+      /* leaving the entry in place is the safe failure */
+    } finally {
+      setRemovingId(null);
+    }
+  };
 
   const pollStatus = useCallback(async () => {
     if (!referenceId || step !== "processing") return;
@@ -115,6 +170,23 @@ export function TopupModal({
         setErrorMsg(data.error || "Could not start the top-up.");
         setStep("error");
         return;
+      }
+
+      // Awaited before the card redirect below - that navigation kills any
+      // in-flight request. Best effort: never fail a top-up over this.
+      if (remember) {
+        await fetch("/api/payments/methods", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            method,
+            phoneNumber: payer.phoneNumber,
+            email: payer.email,
+            firstName: payer.firstName || undefined,
+            lastName: payer.lastName || undefined,
+            paymentType: data.paymentType,
+          }),
+        }).catch(() => {});
       }
 
       // Card - Lipila's own checkout takes it from here, and sends the customer
@@ -188,13 +260,23 @@ export function TopupModal({
               >
                 &larr; Change amount
               </button>
-              <PaymentMethodPicker
-                onSelect={(m) => {
-                  setMethod(m);
-                  setStep("details");
-                }}
-                prompt="How would you like to pay?"
-              />
+              {saved.length > 0 && !showNewMethod ? (
+                <SavedMethodPicker
+                  methods={saved}
+                  onUse={useSaved}
+                  onRemove={removeSaved}
+                  onAddNew={() => setShowNewMethod(true)}
+                  removingId={removingId}
+                />
+              ) : (
+                <PaymentMethodPicker
+                  onSelect={(m) => {
+                    setMethod(m);
+                    setStep("details");
+                  }}
+                  prompt="How would you like to pay?"
+                />
+              )}
             </>
           )}
 
@@ -209,6 +291,19 @@ export function TopupModal({
               </button>
 
               <PayerFields method={method} value={payer} onChange={setPayer} />
+
+              <label className="flex items-start gap-2 text-xs text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-emerald-600"
+                />
+                <span>
+                  Remember these details for next time.
+                  {method === "card" && " Your card number is never stored - only the details on this form."}
+                </span>
+              </label>
 
               <div className="rounded-xl bg-gray-50 p-4 mt-2">
                 <div className="flex items-center justify-between text-sm">
@@ -229,12 +324,12 @@ export function TopupModal({
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Starting...
                   </>
+                ) : method === "card" ? (
+                  `Continue to secure checkout - ${pack?.label}`
                 ) : (
                   `Pay ${pack?.label}`
                 )}
               </button>
-
-              <p className="text-xs text-center text-gray-400">Payments processed securely by Lipila</p>
             </div>
           )}
 

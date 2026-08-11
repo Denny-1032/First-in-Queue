@@ -11,7 +11,6 @@ import {
   BarChart3,
   Settings,
   Users,
-  Code,
   Home,
   Bot,
   Workflow,
@@ -31,18 +30,21 @@ import {
 const navItems = [
   { href: "/dashboard", label: "Home", icon: Home },
   { href: "/dashboard/conversations", label: "Conversations", icon: MessageSquare },
-  { href: "/dashboard/bookings", label: "Bookings", icon: CalendarDays },
   { href: "/dashboard/voice", label: "Voice Agent", icon: Phone },
   { href: "/dashboard/ai-config", label: "Chat Agent", icon: Bot },
+  { href: "/dashboard/bookings", label: "Bookings", icon: CalendarDays },
   { href: "/dashboard/properties", label: "Websites", icon: Globe },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
+// "Website Widget" used to live here. It configured a separate, voice-only
+// "Call Us" bubble, which the chat widget absorbed - install snippet, colours,
+// welcome message, the call button and the WhatsApp button are all on Websites
+// now. Two entries for one widget only ever sent people to the wrong page.
 const advancedNavItems = [
   { href: "/dashboard/flows", label: "Flows", icon: Workflow },
   { href: "/dashboard/team", label: "Team", icon: Users },
-  { href: "/dashboard/integrations/widget", label: "Website Widget", icon: Code },
 ];
 
 export function Sidebar() {
