@@ -238,6 +238,16 @@ export interface MessageContent {
   text?: string;
   media_url?: string;
   media_id?: string;
+  /**
+   * Object key inside the private `chat-media` bucket (migration 024), for
+   * attachments a web visitor uploaded. The bucket is private, so `media_url`
+   * is NOT stored for these — readers mint a short-lived signed URL at fetch
+   * time (see src/lib/widget/media-storage.ts). A stored URL would either be a
+   * permanent public link to a customer's document, or an expired one.
+   */
+  media_path?: string;
+  /** Byte size of the attachment, shown next to a document link. */
+  media_size?: number;
   caption?: string;
   mime_type?: string;
   /** Original filename for document attachments (web widget renders it as the download name). */

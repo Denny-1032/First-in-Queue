@@ -308,6 +308,18 @@ All under `/api/widget/`. All public. See §6 for how each is authorized.
 
 `/api/widget/embed` (existing, `route.ts`) is rewritten to key off `properties` instead of requiring a `voice_agents` row, and to return the one-attribute snippet.
 
+### C5. Attachments (implemented)
+
+Images and documents, plus an emoji palette, in the composer. Rules live in `src/lib/widget/media.ts` and are enforced on both sides — the browser's copy is a courtesy, the route's is the control.
+
+**Flow.** Pick or paste or drop a file → the browser downscales photos to 1600px (`image-resize.ts`) → `POST /api/widget/upload` stores the bytes and returns an object path → `POST /api/widget/message` is sent with that path, and the visitor's typed text rides along as the attachment's `caption`. Two steps, so a failed upload never produces a message pointing at nothing, and so the caption can still be edited after the file is chosen.
+
+**Storage.** Private bucket `chat-media` (migration 024), keys shaped `<tenant_id>/<conversation_id>/<uuid>.<ext>`. Messages persist `content.media_path`, never a URL: readers mint a 6-hour signed URL at fetch time (`media-storage.ts`, used by `/api/widget/history` and the dashboard's messages route). A public bucket would be an open file host for anyone who guesses a key, and a stored URL would be either permanent or expired.
+
+**Checks at the boundary.** Declared MIME against an allowlist (no SVG — it is scriptable and we render attachments inline), size against `MAX_UPLOAD_BYTES` (4 MB, set by Vercel's 4.5 MB request-body cap), and magic-byte sniffing so a renamed executable cannot be stored as a PDF. On send, the supplied path must sit under the caller's own `<tenant>/<conversation>/` prefix and must resolve to an object that exists — otherwise a visitor could attach another business's file to their own conversation and have it signed back to them. Uploads get their own rate buckets, tighter than messages.
+
+**The model sees them.** `getRecentMessageHistory()` already renders inbound media as `[Customer sent an image with caption: "…"]`, so no engine change was needed — the same path WhatsApp media has always taken.
+
 ---
 
 ## 5. Deliverable D — Install verification

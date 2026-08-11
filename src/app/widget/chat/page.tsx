@@ -5,6 +5,17 @@ import { useSearchParams } from "next/navigation";
 import { renderMarkdown } from "@/lib/widget/markdown";
 import { useVoiceCall } from "@/lib/widget/use-voice-call";
 import { CallOverlay } from "@/components/widget/call-overlay";
+import { EMOJI_GROUPS } from "@/lib/widget/emoji";
+import { downscaleImage } from "@/lib/widget/image-resize";
+import {
+  DOCUMENT_ACCEPT,
+  IMAGE_ACCEPT,
+  MAX_PICK_BYTES,
+  MAX_UPLOAD_BYTES,
+  checkUpload,
+  formatBytes,
+  type MediaKind,
+} from "@/lib/widget/media";
 
 // Text web-chat widget (Phase 1, Block 7).
 //
@@ -20,6 +31,13 @@ interface ChatMessage {
   type: string;
   content: {
     text?: string;
+    /** Signed, short-lived URL minted by /api/widget/history. */
+    media_url?: string;
+    media_path?: string;
+    media_size?: number;
+    mime_type?: string;
+    filename?: string;
+    caption?: string;
     interactive?: {
       buttons?: Array<{ id: string; title: string }>;
       sections?: Array<{ rows: Array<{ id: string; title: string; description?: string }> }>;
@@ -27,6 +45,24 @@ interface ChatMessage {
   };
   created_at: string;
   pending?: boolean;
+}
+
+/** A file the visitor has picked but not sent yet. */
+interface Attachment {
+  file: File;
+  kind: MediaKind;
+  /** Object URL for the local preview; revoked when the attachment is cleared. */
+  previewUrl: string | null;
+}
+
+/** What /api/widget/upload hands back once the object is stored. */
+interface UploadedMedia {
+  path: string;
+  kind: MediaKind;
+  filename: string;
+  mime_type: string;
+  size: number;
+  url: string | null;
 }
 
 interface Branding {
@@ -77,14 +113,30 @@ function ChatContent() {
   const [booted, setBooted] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [whatsappNumber, setWhatsappNumber] = useState<string | null>(null);
+  const [attachment, setAttachment] = useState<Attachment | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+  const emojiRef = useRef<HTMLDivElement>(null);
   const tokenRef = useRef<string | null>(null);
   const seenIds = useRef<Set<string>>(new Set());
   const isOpenRef = useRef(true);
   // Read by the poll timer, which closes over its own render's state.
   const sendingRef = useRef(false);
+  /**
+   * message id → the attachment URL first seen for it.
+   *
+   * Every poll signs the private object again, producing a different URL for
+   * the same file. Rendering that straight through would make the browser
+   * re-download each image every three seconds and flash it on screen, so the
+   * first URL for a message is the one that sticks for the session.
+   */
+  const mediaUrls = useRef<Map<string, string>>(new Map());
 
   const post = useCallback((type: string, payload?: unknown) => {
     window.parent?.postMessage({ source: "fiq-widget", type, payload }, "*");
@@ -165,7 +217,15 @@ function ChatContent() {
       });
       if (!res.ok) return;
       const data = await res.json();
-      const incoming: ChatMessage[] = data.messages || [];
+      // Pin each message to the first signed URL we saw for it; see mediaUrls.
+      const incoming: ChatMessage[] = ((data.messages || []) as ChatMessage[]).map((m) => {
+        const url = m.content?.media_url;
+        if (!url) return m;
+        const cached = mediaUrls.current.get(m.id);
+        if (cached) return { ...m, content: { ...m.content, media_url: cached } };
+        mediaUrls.current.set(m.id, url);
+        return m;
+      });
 
       setMessages((prev) => {
         // While a send is still in flight the optimistic row is all the visitor
@@ -226,17 +286,111 @@ function ChatContent() {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, typing]);
 
+  // ---------------------------------------------------------------- attachments
+
+  /**
+   * @param revoke false when the preview URL is still on screen (an optimistic
+   *        bubble is showing it) and the caller will release it later.
+   */
+  const clearAttachment = useCallback((revoke = true) => {
+    setAttachment((prev) => {
+      if (prev?.previewUrl && revoke) URL.revokeObjectURL(prev.previewUrl);
+      return null;
+    });
+    // Reset the inputs, or picking the same file twice in a row fires no
+    // change event and nothing appears to happen.
+    if (imageInputRef.current) imageInputRef.current.value = "";
+    if (docInputRef.current) docInputRef.current.value = "";
+  }, []);
+
+  /** Validate, shrink if it's a photo, and stage the file for the next send. */
+  const pickFile = useCallback(
+    async (file: File | null | undefined) => {
+      if (!file) return;
+      setError(null);
+
+      if (file.size > MAX_PICK_BYTES) {
+        setError(`That file is too large (max ${formatBytes(MAX_PICK_BYTES)}).`);
+        return;
+      }
+
+      // Check the declared type first, so an unsupported file is rejected
+      // before we spend time decoding it. Size is re-checked after downscaling.
+      const typeCheck = checkUpload(
+        { name: file.name, type: file.type, size: file.size },
+        MAX_PICK_BYTES
+      );
+      if (!typeCheck.ok || !typeCheck.kind) {
+        setError(typeCheck.error || "That file type isn't supported.");
+        return;
+      }
+
+      const prepared = typeCheck.kind === "image" ? await downscaleImage(file) : file;
+      if (prepared.size > MAX_UPLOAD_BYTES) {
+        setError(`That file is too large (max ${formatBytes(MAX_UPLOAD_BYTES)}).`);
+        return;
+      }
+
+      clearAttachment();
+      setAttachment({
+        file: prepared,
+        kind: typeCheck.kind,
+        previewUrl: typeCheck.kind === "image" ? URL.createObjectURL(prepared) : null,
+      });
+      setShowEmoji(false);
+      inputRef.current?.focus();
+    },
+    [clearAttachment]
+  );
+
+  /** Insert an emoji at the caret rather than at the end of the message. */
+  const insertEmoji = useCallback((emoji: string) => {
+    const el = inputRef.current;
+    setInput((prev) => {
+      if (!el) return prev + emoji;
+      const start = el.selectionStart ?? prev.length;
+      const end = el.selectionEnd ?? prev.length;
+      const next = prev.slice(0, start) + emoji + prev.slice(end);
+      // Restore the caret after React has written the new value.
+      requestAnimationFrame(() => {
+        el.focus();
+        const at = start + emoji.length;
+        el.setSelectionRange(at, at);
+      });
+      return next;
+    });
+  }, []);
+
+  // Close the emoji panel on outside click or Escape.
+  useEffect(() => {
+    if (!showEmoji) return;
+    function onDown(e: MouseEvent) {
+      if (!emojiRef.current?.contains(e.target as Node)) setShowEmoji(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setShowEmoji(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [showEmoji]);
+
   // ---------------------------------------------------------------- sending
 
   const send = useCallback(
     async (text: string, replyId?: string) => {
       const t = tokenRef.current;
       const body = text.trim();
-      if (!t || (!body && !replyId) || sending) return;
+      const pendingFile = attachment;
+      if (!t || (!body && !replyId && !pendingFile) || sending) return;
 
       setSending(true);
       sendingRef.current = true;
       setShowSuggestions(false);
+      setShowEmoji(false);
       setInput("");
       setError(null);
 
@@ -244,8 +398,18 @@ function ChatContent() {
         id: `local-${Date.now()}`,
         direction: "inbound",
         sender_type: "customer",
-        type: "text",
-        content: { text: body },
+        type: pendingFile ? pendingFile.kind : "text",
+        content: pendingFile
+          ? {
+              // The local object URL stands in until the send settles and the
+              // real, signed one arrives with the refetched history.
+              media_url: pendingFile.previewUrl || undefined,
+              filename: pendingFile.file.name,
+              mime_type: pendingFile.file.type,
+              media_size: pendingFile.file.size,
+              ...(body && { caption: body }),
+            }
+          : { text: body },
         created_at: new Date().toISOString(),
         pending: true,
       };
@@ -253,10 +417,51 @@ function ChatContent() {
       setTyping(true);
 
       try {
+        // Store the file first. Only its returned path goes into the message,
+        // so a failed upload never produces a message pointing at nothing.
+        let uploaded: UploadedMedia | null = null;
+        if (pendingFile) {
+          setUploading(true);
+          const form = new FormData();
+          form.append("file", pendingFile.file, pendingFile.file.name);
+          const upRes = await fetch("/api/widget/upload", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${t}` },
+            body: form,
+          });
+          setUploading(false);
+
+          if (!upRes.ok) {
+            const detail = await upRes.json().catch(() => ({}));
+            setError(detail.error || "That file didn't upload. Please try again.");
+            setTyping(false);
+            // Leave the picked file in place so they can retry without
+            // choosing it again, and drop the optimistic bubble.
+            setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+            setInput(body);
+            return;
+          }
+          uploaded = (await upRes.json()) as UploadedMedia;
+          // The optimistic bubble is still showing this preview, so the object
+          // URL is released further down instead of here.
+          clearAttachment(false);
+        }
+
         const res = await fetch("/api/widget/message", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
-          body: JSON.stringify({ text: body, reply_id: replyId }),
+          body: JSON.stringify({
+            text: body,
+            reply_id: replyId,
+            ...(uploaded && {
+              media: {
+                path: uploaded.path,
+                filename: uploaded.filename,
+                mime_type: uploaded.mime_type,
+                size: uploaded.size,
+              },
+            }),
+          }),
         });
         if (res.status === 429) {
           setError("You're sending messages too quickly. Please wait a moment.");
@@ -274,17 +479,22 @@ function ChatContent() {
         // still see what they typed. Awaited so the `finally` below cannot
         // resume polling mid-flight.
         await fetchHistory(res.ok);
+
+        // History now carries the server's own copy of the attachment, so the
+        // local preview can go.
+        if (res.ok && pendingFile?.previewUrl) URL.revokeObjectURL(pendingFile.previewUrl);
       } catch {
         setError("That message didn't send. Please try again.");
         setTyping(false);
       } finally {
         setSending(false);
+        setUploading(false);
         // Cleared last: polling must stay paused until history has been
         // refetched above, or the poll can race the optimistic row back in.
         sendingRef.current = false;
       }
     },
-    [sending, fetchHistory]
+    [sending, fetchHistory, attachment, clearAttachment]
   );
 
   // ---------------------------------------------------------------- render
@@ -421,11 +631,48 @@ function ChatContent() {
         </p>
       )}
 
+      {attachment && (
+        <div className="fiq-attachment">
+          {attachment.previewUrl ? (
+            <img src={attachment.previewUrl} alt="" className="fiq-attachment-thumb" />
+          ) : (
+            <span className="fiq-attachment-icon" aria-hidden="true">
+              <FileIcon />
+            </span>
+          )}
+          <span className="fiq-attachment-meta">
+            <strong>{attachment.file.name}</strong>
+            <em>{formatBytes(attachment.file.size)}</em>
+          </span>
+          <button
+            type="button"
+            className="fiq-attachment-remove"
+            aria-label={`Remove ${attachment.file.name}`}
+            onClick={() => clearAttachment()}
+            disabled={sending}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <form
-        className="fiq-composer"
+        className={`fiq-composer${dragging ? " dragover" : ""}`}
         onSubmit={(e) => {
           e.preventDefault();
           send(input);
+        }}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          if (!e.dataTransfer.files?.length) return;
+          e.preventDefault();
+          setDragging(false);
+          pickFile(e.dataTransfer.files[0]);
         }}
       >
         <label htmlFor="fiq-input" className="fiq-sr">
@@ -437,9 +684,20 @@ function ChatContent() {
           value={input}
           rows={1}
           maxLength={4000}
-          placeholder="Type your message…"
+          placeholder={attachment ? "Add a message (optional)…" : "Type your message…"}
           disabled={!token || sending}
           onChange={(e) => setInput(e.target.value)}
+          onPaste={(e) => {
+            // Screenshots pasted straight from the clipboard.
+            const item = Array.from(e.clipboardData.items).find((i) =>
+              i.type.startsWith("image/")
+            );
+            const file = item?.getAsFile();
+            if (file) {
+              e.preventDefault();
+              pickFile(file);
+            }
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -447,11 +705,112 @@ function ChatContent() {
             }
           }}
         />
-        <button type="submit" disabled={!token || sending || !input.trim()} aria-label="Send message">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" />
-          </svg>
-        </button>
+
+        <div className="fiq-tools">
+          {/* Hidden from assistive tech: the labelled buttons below are the
+              real controls, so announcing these too would be a duplicate. */}
+          <input
+            ref={docInputRef}
+            type="file"
+            className="fiq-sr"
+            accept={DOCUMENT_ACCEPT}
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={(e) => pickFile(e.target.files?.[0])}
+          />
+          <input
+            ref={imageInputRef}
+            type="file"
+            className="fiq-sr"
+            accept={IMAGE_ACCEPT}
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={(e) => pickFile(e.target.files?.[0])}
+          />
+
+          <button
+            type="button"
+            className="fiq-tool"
+            aria-label="Attach a document"
+            title="Attach a document"
+            disabled={!token || sending}
+            onClick={() => docInputRef.current?.click()}
+          >
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <path d="M21.44 11.05 12.25 20.24a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.2 9.19a1 1 0 0 1-1.41-1.41l8.49-8.49" />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            className="fiq-tool"
+            aria-label="Send an image"
+            title="Send an image"
+            disabled={!token || sending}
+            onClick={() => imageInputRef.current?.click()}
+          >
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="m21 15-5-5L5 21" />
+            </svg>
+          </button>
+
+          <div className="fiq-emoji-wrap" ref={emojiRef}>
+            <button
+              type="button"
+              className="fiq-tool"
+              aria-label="Insert an emoji"
+              title="Emoji"
+              aria-expanded={showEmoji}
+              disabled={!token || sending}
+              onClick={() => setShowEmoji((v) => !v)}
+            >
+              <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M8.5 14.5a4.5 4.5 0 0 0 7 0" strokeLinecap="round" />
+                <path d="M9 9.5h.01M15 9.5h.01" strokeLinecap="round" />
+              </svg>
+            </button>
+
+            {showEmoji && (
+              <div className="fiq-emoji" role="dialog" aria-label="Emoji">
+                {EMOJI_GROUPS.map((group) => (
+                  <div key={group.label} className="fiq-emoji-group">
+                    <p>{group.label}</p>
+                    <div className="fiq-emoji-grid">
+                      {group.emoji.map((e) => (
+                        <button
+                          key={e}
+                          type="button"
+                          aria-label={e}
+                          onClick={() => insertEmoji(e)}
+                        >
+                          {e}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            className="fiq-send"
+            disabled={!token || sending || (!input.trim() && !attachment)}
+            aria-label={uploading ? "Uploading attachment" : "Send message"}
+          >
+            {uploading ? (
+              <span className="fiq-spinner" aria-hidden="true" />
+            ) : (
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" />
+              </svg>
+            )}
+          </button>
+        </div>
       </form>
 
       {b.show_branding && !brandInHost && (
@@ -491,8 +850,14 @@ function ChatContent() {
         }
         .fiq-logo { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
         .fiq-head-text { flex: 1; min-width: 0; }
-        .fiq-header h1 { margin: 0; font-size: 15px; font-weight: 600; }
-        .fiq-header p { margin: 2px 0 0; font-size: 12px; opacity: .9; display: flex; align-items: center; gap: 6px; }
+        /* The assistant's name is the widget's identity - it leads the panel,
+           so it is set clearly larger than the status line under it. */
+        .fiq-header h1 {
+          margin: 0; font-size: 19px; font-weight: 700; line-height: 1.2;
+          letter-spacing: -.01em;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .fiq-header p { margin: 3px 0 0; font-size: 12px; opacity: .9; display: flex; align-items: center; gap: 6px; }
         .fiq-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
         .fiq-dot.on { background: #4ade80; }
         .fiq-dot.off { background: #d1d5db; }
@@ -546,20 +911,107 @@ function ChatContent() {
         }
         .fiq-chips button:hover { background: #f6fbf8; }
         .fiq-error { margin: 0 14px 8px; color: #a32d2d; font-size: 13px; }
+
+        /* --- Composer: message on top, tools underneath, all in one field --- */
         .fiq-composer {
-          display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px;
-          border-top: 1px solid #e5e7eb; flex: 0 0 auto;
+          display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto;
+          margin: 0 12px 12px; padding: 6px 8px 6px 10px;
+          border: 1px solid #d1d5db; border-radius: 14px; background: #fff;
         }
+        .fiq-composer:focus-within { border-color: var(--fiq-primary); }
+        .fiq-composer.dragover { border-color: var(--fiq-primary); background: #f6fbf8; }
         .fiq-composer textarea {
-          flex: 1; resize: none; border: 1px solid #d1d5db; border-radius: 10px;
-          padding: 9px 12px; font: inherit; max-height: 120px; min-height: 40px;
+          resize: none; border: none; outline: none; background: transparent;
+          padding: 6px 2px; font: inherit; max-height: 120px; min-height: 34px;
         }
-        .fiq-composer button {
-          background: var(--fiq-primary); color: #fff; border: none; border-radius: 10px;
-          width: 40px; height: 40px; cursor: pointer; display: flex;
-          align-items: center; justify-content: center; flex: 0 0 auto;
+        .fiq-tools { display: flex; align-items: center; gap: 2px; }
+        .fiq-tool {
+          background: transparent; border: none; color: #6b7280; cursor: pointer;
+          width: 32px; height: 32px; border-radius: 8px; display: flex;
+          align-items: center; justify-content: center; flex: 0 0 auto; padding: 0;
         }
-        .fiq-composer button:disabled { opacity: .45; cursor: not-allowed; }
+        .fiq-tool:hover:not(:disabled) { background: #f3f4f6; color: #111; }
+        .fiq-tool:disabled { opacity: .4; cursor: not-allowed; }
+        .fiq-send {
+          margin-left: auto; background: var(--fiq-primary); color: #fff; border: none;
+          border-radius: 999px; width: 36px; height: 36px; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+        }
+        .fiq-send:disabled { opacity: .45; cursor: not-allowed; }
+        .fiq-tool:focus-visible, .fiq-send:focus-visible { outline: 3px solid #111; outline-offset: 2px; }
+        .fiq-spinner {
+          width: 16px; height: 16px; border-radius: 50%; display: block;
+          border: 2px solid rgba(255, 255, 255, .45); border-top-color: #fff;
+          animation: fiq-spin .7s linear infinite;
+        }
+        @keyframes fiq-spin { to { transform: rotate(360deg); } }
+
+        /* --- Staged attachment, above the composer --- */
+        .fiq-attachment {
+          display: flex; align-items: center; gap: 10px; margin: 0 12px 8px;
+          padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 12px;
+          background: #f9fafb;
+        }
+        .fiq-attachment-thumb {
+          width: 40px; height: 40px; border-radius: 8px; object-fit: cover; flex: 0 0 auto;
+        }
+        .fiq-attachment-icon { color: var(--fiq-primary); display: flex; flex: 0 0 auto; }
+        .fiq-attachment-meta { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+        .fiq-attachment-meta strong {
+          font-size: 13px; font-weight: 600; overflow: hidden;
+          text-overflow: ellipsis; white-space: nowrap;
+        }
+        .fiq-attachment-meta em { font-style: normal; font-size: 11px; color: #6b7280; }
+        .fiq-attachment-remove {
+          margin-left: auto; background: transparent; border: none; color: #6b7280;
+          font-size: 22px; line-height: 1; cursor: pointer; padding: 0 4px;
+        }
+        .fiq-attachment-remove:hover { color: #111; }
+
+        /* --- Attachments inside bubbles --- */
+        .fiq-bubble.media { padding: 6px 6px 8px; }
+        .fiq-bubble.media > span:not(.fiq-media-missing) { display: block; padding: 2px 6px 0; }
+        .fiq-bubble.media .fiq-time { padding: 0 6px; }
+        .fiq-media-link { display: block; }
+        .fiq-media-img {
+          display: block; max-width: 100%; max-height: 240px; border-radius: 10px;
+          object-fit: cover;
+        }
+        .fiq-media-missing { display: block; padding: 4px 6px; font-size: 13px; opacity: .7; }
+        .fiq-doc {
+          display: flex; align-items: center; gap: 10px; padding: 8px;
+          border-radius: 10px; background: rgba(0, 0, 0, .05);
+          color: inherit; text-decoration: none;
+        }
+        .fiq-bubble.me .fiq-doc { background: rgba(255, 255, 255, .18); }
+        .fiq-doc:hover { background: rgba(0, 0, 0, .09); }
+        .fiq-bubble.me .fiq-doc:hover { background: rgba(255, 255, 255, .28); }
+        .fiq-doc-meta { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+        .fiq-doc-meta strong {
+          font-size: 13px; font-weight: 600; overflow-wrap: anywhere;
+        }
+        .fiq-doc-meta em { font-style: normal; font-size: 11px; opacity: .7; }
+
+        /* --- Emoji panel --- */
+        .fiq-emoji-wrap { position: relative; display: flex; }
+        .fiq-emoji {
+          position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 5;
+          width: 268px; max-height: 232px; overflow-y: auto; padding: 8px;
+          background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, .16);
+        }
+        .fiq-emoji-group + .fiq-emoji-group { margin-top: 6px; }
+        .fiq-emoji-group p {
+          margin: 0 0 4px; font-size: 11px; text-transform: uppercase;
+          letter-spacing: .04em; color: #9ca3af;
+        }
+        .fiq-emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; }
+        .fiq-emoji-grid button {
+          background: transparent; border: none; cursor: pointer; font-size: 19px;
+          line-height: 1; padding: 4px 0; border-radius: 6px;
+        }
+        .fiq-emoji-grid button:hover { background: #f3f4f6; }
+        .fiq-emoji-grid button:focus-visible { outline: 2px solid #111; outline-offset: 1px; }
         .fiq-brandbar {
           display: flex; justify-content: center; flex: 0 0 auto;
           background: #f7f8f9; padding: 8px 0 10px;
@@ -577,7 +1029,7 @@ function ChatContent() {
         .fiq-brand strong { color: #03A84E; font-weight: 700; }
         .fiq-brand-logo { width: 14px; height: 14px; object-fit: contain; display: block; }
         @media (prefers-reduced-motion: reduce) {
-          .fiq-typing span { animation: none; }
+          .fiq-typing span, .fiq-spinner { animation: none; }
           .fiq-list { scroll-behavior: auto; }
         }
       `}</style>
@@ -585,16 +1037,66 @@ function ChatContent() {
   );
 }
 
+/** Paperclip-free document glyph, used in bubbles and the pending-file chip. */
+function FileIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+    </svg>
+  );
+}
+
 function Bubble({ msg }: { msg: ChatMessage }) {
   const mine = msg.direction === "inbound";
-  const text = msg.content?.text || "";
+  const c = msg.content || {};
+  const isMedia = msg.type === "image" || msg.type === "document";
+  // Media messages carry their typed-alongside text as a caption; plain ones
+  // use `text`. Bot-sent media (WhatsApp parity) can use either.
+  const text = (isMedia ? c.caption : c.text) || (isMedia ? "" : c.text || "");
+
   return (
-    <div className={`fiq-bubble ${mine ? "me" : "bot"}${msg.pending ? " pending" : ""}`}>
-      {mine ? (
-        <span>{text}</span>
-      ) : (
-        <span dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }} />
-      )}
+    <div
+      className={`fiq-bubble ${mine ? "me" : "bot"}${msg.pending ? " pending" : ""}${
+        isMedia ? " media" : ""
+      }`}
+    >
+      {msg.type === "image" &&
+        (c.media_url ? (
+          <a href={c.media_url} target="_blank" rel="noopener noreferrer" className="fiq-media-link">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={c.media_url} alt={c.caption || c.filename || "Attached image"} className="fiq-media-img" />
+          </a>
+        ) : (
+          <span className="fiq-media-missing">Image unavailable</span>
+        ))}
+
+      {msg.type === "document" &&
+        (c.media_url ? (
+          <a
+            className="fiq-doc"
+            href={c.media_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            download={c.filename || undefined}
+          >
+            <FileIcon />
+            <span className="fiq-doc-meta">
+              <strong>{c.filename || "Document"}</strong>
+              {c.media_size ? <em>{formatBytes(c.media_size)}</em> : null}
+            </span>
+          </a>
+        ) : (
+          <span className="fiq-media-missing">{c.filename || "Attachment"}</span>
+        ))}
+
+      {text &&
+        (mine ? (
+          <span>{text}</span>
+        ) : (
+          <span dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }} />
+        ))}
+
       <time className="fiq-time" dateTime={msg.created_at}>
         {formatTime(msg.created_at)}
       </time>

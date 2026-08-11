@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveByToken, widgetJson, corsHeaders, checkBurst } from "@/lib/properties/guard";
 import { getMessages } from "@/lib/db/operations";
+import { withSignedMedia } from "@/lib/widget/media-storage";
 
 // Replay a visitor's conversation after a page reload.
 // The conversation id comes from the signed token — accepting it from the
@@ -20,7 +21,9 @@ export async function GET(request: NextRequest) {
       return widgetJson({ error: "Too many requests" }, origin, { status: 429 });
     }
 
-    const messages = await getMessages(token.conversationId, 50);
+    // Attachments live in a private bucket, so each replay mints fresh signed
+    // URLs for them (see media-storage.ts).
+    const messages = await withSignedMedia(await getMessages(token.conversationId, 50));
 
     return widgetJson(
       {

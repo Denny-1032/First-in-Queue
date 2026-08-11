@@ -10,7 +10,15 @@ import { createWebTransport } from "@/lib/channels/web-transport";
 import { processIncomingMessage, isOutsideOperatingHours } from "@/lib/engine/handler";
 import { getTenantById, saveMessage } from "@/lib/db/operations";
 import { getWebReplyCeiling } from "@/lib/lipila/usage";
+import {
+  isPathInConversation,
+  mediaKindFor,
+  sanitizeFilename,
+  type MediaKind,
+} from "@/lib/widget/media";
+import { mediaObjectExists } from "@/lib/widget/media-storage";
 import type { NormalizedInboundMessage } from "@/lib/channels/transport";
+import type { MessageContent } from "@/types";
 import crypto from "crypto";
 
 // Inbound visitor message → the shared engine (handler.ts) via WebTransport.
@@ -31,12 +39,50 @@ export async function POST(request: NextRequest) {
     const body = (await request.json().catch(() => ({}))) as {
       text?: string;
       reply_id?: string;
+      media?: {
+        path?: string;
+        filename?: string;
+        mime_type?: string;
+        size?: number;
+      };
     };
 
     const text = typeof body.text === "string" ? body.text.trim() : "";
     const replyId = typeof body.reply_id === "string" ? body.reply_id.slice(0, 200) : undefined;
 
-    if (!text && !replyId) {
+    // --- Attachment, uploaded moments ago via /api/widget/upload ---
+    //
+    // The kind is re-derived from the mime type and the path is re-checked
+    // against THIS token's conversation prefix. Trusting either from the body
+    // would let a visitor attach another business's uploaded document to their
+    // own conversation and have it signed back to them.
+    let media: { path: string; kind: MediaKind; filename: string; mimeType: string; size?: number } | null =
+      null;
+
+    if (body.media && typeof body.media.path === "string") {
+      const path = body.media.path;
+      const mimeType = (body.media.mime_type || "").split(";")[0].trim().toLowerCase();
+      const kind = mediaKindFor(mimeType);
+
+      if (!kind || !isPathInConversation(path, token.tenantId, token.conversationId)) {
+        return widgetJson({ error: "Invalid attachment" }, origin, { status: 400 });
+      }
+      if (!(await mediaObjectExists(path))) {
+        return widgetJson({ error: "That attachment is no longer available" }, origin, {
+          status: 410,
+        });
+      }
+
+      media = {
+        path,
+        kind,
+        filename: sanitizeFilename(body.media.filename || "attachment"),
+        mimeType,
+        size: typeof body.media.size === "number" ? body.media.size : undefined,
+      };
+    }
+
+    if (!text && !replyId && !media) {
       return widgetJson({ error: "Empty message" }, origin, { status: 400 });
     }
     // Cap before tokenization so an oversized body can't drive up cost.
@@ -91,13 +137,28 @@ export async function POST(request: NextRequest) {
         typeof branding.response_delay_ms === "number" ? branding.response_delay_ms : undefined,
     });
 
+    // An attachment carries its typed-alongside text as the caption, matching
+    // how WhatsApp media arrives — which is what getRecentMessageHistory()
+    // already knows how to describe to the model ("[Customer sent an image
+    // with caption: …]"). media_url is deliberately absent: the bucket is
+    // private and readers sign the path on the way out.
+    const content: MessageContent = media
+      ? {
+          media_path: media.path,
+          filename: media.filename,
+          mime_type: media.mimeType,
+          ...(media.size !== undefined && { media_size: media.size }),
+          ...(text && { caption: text }),
+        }
+      : { text };
+
     const msg: NormalizedInboundMessage = {
       externalId: crypto.randomUUID(),
       // Identity comes from the signed token, never the request body.
       customerRef: token.visitorId,
-      type: replyId ? "interactive" : "text",
-      content: { text },
-      ...(replyId && { interactiveReplyId: replyId, interactiveReplyKind: "button" as const }),
+      type: media ? media.kind : replyId ? "interactive" : "text",
+      content,
+      ...(replyId && !media && { interactiveReplyId: replyId, interactiveReplyKind: "button" as const }),
       raw: { source: "web", propertyId: property.id },
     };
 

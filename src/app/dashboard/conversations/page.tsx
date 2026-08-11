@@ -411,7 +411,15 @@ export default function ConversationsPage() {
 
   const getLastMessage = (convoId: string) => {
     if (convoId === selectedId && messages.length > 0) {
-      return truncate(messages[messages.length - 1].content.text || "[media]", 50);
+      const last = messages[messages.length - 1];
+      const c = last.content;
+      const preview =
+        c.text ||
+        c.caption ||
+        (last.message_type === "image" ? "📷 Photo" : "") ||
+        (c.filename ? `📎 ${c.filename}` : "") ||
+        "[media]";
+      return truncate(preview, 50);
     }
     return "Tap to view";
   };
@@ -963,13 +971,22 @@ function MessageBubbleContent({ msg, isInbound }: { msg: Message; isInbound: boo
           <FileText className="h-5 w-5 shrink-0 opacity-80" />
           <div className="min-w-0">
             {c.media_url ? (
-              <a href={c.media_url} target="_blank" rel="noopener noreferrer" className={linkColor}>
-                {c.caption || "Document"}
+              <a
+                href={c.media_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                download={c.filename || undefined}
+                className={linkColor}
+              >
+                {c.filename || c.caption || "Document"}
               </a>
             ) : (
-              <span className="text-xs opacity-70">{c.caption || "Document received"}</span>
+              <span className="text-xs opacity-70">{c.filename || c.caption || "Document received"}</span>
             )}
             {c.mime_type && <p className={cn("text-[10px]", textColor)}>{c.mime_type}</p>}
+            {/* A widget attachment carries the visitor's message as its caption,
+                which is separate from the filename shown above. */}
+            {c.caption && c.filename && <p className="mt-1">{c.caption}</p>}
           </div>
         </div>
       );

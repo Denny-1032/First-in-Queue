@@ -4,6 +4,7 @@ import { createWhatsAppClient } from "@/lib/whatsapp/client";
 import { getTenantById } from "@/lib/db/operations";
 import { consumeConversation, incrementMessageUsage } from "@/lib/lipila/usage";
 import { chargeWhatsAppOverage } from "@/lib/credit/credit";
+import { withSignedMedia } from "@/lib/widget/media-storage";
 
 export async function GET(
   request: NextRequest,
@@ -13,7 +14,9 @@ export async function GET(
     const { id } = await params;
     const limit = parseInt(request.nextUrl.searchParams.get("limit") || "50");
     const offset = parseInt(request.nextUrl.searchParams.get("offset") || "0");
-    const messages = await getMessages(id, limit, offset);
+    // Widget attachments are stored as private object keys; sign them so the
+    // agent's transcript can render the image or offer the download.
+    const messages = await withSignedMedia(await getMessages(id, limit, offset));
     return NextResponse.json(messages);
   } catch (error) {
     console.error("[API] Error fetching messages:", error);
