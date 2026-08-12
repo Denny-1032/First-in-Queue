@@ -16,7 +16,8 @@ import {
   sanitizeFilename,
   type MediaKind,
 } from "@/lib/widget/media";
-import { mediaObjectExists } from "@/lib/widget/media-storage";
+import { downloadMediaObject, mediaObjectExists } from "@/lib/widget/media-storage";
+import { extractDocumentText } from "@/lib/widget/media-extract";
 import type { NormalizedInboundMessage } from "@/lib/channels/transport";
 import type { MessageContent } from "@/types";
 import crypto from "crypto";
@@ -137,6 +138,19 @@ export async function POST(request: NextRequest) {
         typeof branding.response_delay_ms === "number" ? branding.response_delay_ms : undefined,
     });
 
+    // Read the document, once, here.
+    //
+    // Deliberately after the AI-ceiling check above: a message that will not be
+    // answered must not pay for parsing. The bytes come back from storage
+    // rather than from the request, so what the model reads is what was
+    // actually stored. Extraction never throws; an unreadable file just arrives
+    // without text, exactly as before.
+    let mediaText: string | null = null;
+    if (media?.kind === "document") {
+      const bytes = await downloadMediaObject(media.path);
+      if (bytes) mediaText = await extractDocumentText(bytes, media.mimeType);
+    }
+
     // An attachment carries its typed-alongside text as the caption, matching
     // how WhatsApp media arrives — which is what getRecentMessageHistory()
     // already knows how to describe to the model ("[Customer sent an image
@@ -148,6 +162,7 @@ export async function POST(request: NextRequest) {
           filename: media.filename,
           mime_type: media.mimeType,
           ...(media.size !== undefined && { media_size: media.size }),
+          ...(mediaText && { media_text: mediaText }),
           ...(text && { caption: text }),
         }
       : { text };

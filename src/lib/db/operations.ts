@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import type { Channel } from "@/lib/channels/transport";
+import { MAX_HISTORY_EXTRACT_CHARS } from "@/lib/widget/media";
 import {
   sentimentBreakdown,
   topTopics,
@@ -306,6 +307,12 @@ export async function getRecentMessageHistory(
     if (!text && msg.direction === "inbound") {
       const msgType = (msg as { message_type?: string }).message_type;
       const caption = c?.caption as string || "";
+      const filename = c?.filename as string || "";
+      // Extracted at send time for web uploads (see media-extract.ts). Quoting
+      // it here is what lets the assistant answer questions ABOUT a document
+      // instead of saying it cannot open one. Capped per message so a long PDF
+      // cannot crowd the rest of the conversation out of the window.
+      const extract = (c?.media_text as string || "").slice(0, MAX_HISTORY_EXTRACT_CHARS);
       switch (msgType) {
         case "image":
           text = caption ? `[Customer sent an image with caption: "${caption}"]` : "[Customer sent an image]";
@@ -316,9 +323,16 @@ export async function getRecentMessageHistory(
         case "video":
           text = caption ? `[Customer sent a video with caption: "${caption}"]` : "[Customer sent a video]";
           break;
-        case "document":
-          text = caption ? `[Customer sent a document: "${caption}"]` : "[Customer sent a document]";
+        case "document": {
+          const label = filename || caption || "a document";
+          text = caption
+            ? `[Customer sent a document "${label}" with the message: "${caption}"]`
+            : `[Customer sent a document "${label}"]`;
+          if (extract) {
+            text += `\nThe document's text follows. Answer from it directly - do not tell the customer you cannot open files.\n"""\n${extract}\n"""`;
+          }
           break;
+        }
         case "location":
           text = "[Customer shared their location]";
           break;

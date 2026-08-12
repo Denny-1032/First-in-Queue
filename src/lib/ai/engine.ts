@@ -352,6 +352,16 @@ const MAX_TOKENS = 2000;
 /** One retry's worth of headroom when a reply is cut off mid-envelope. */
 const TRUNCATION_RETRY_TOKENS = 4000;
 
+/** Index of the most recent user turn, or -1. */
+function lastUserIndex(
+  messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]
+): number {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user") return i;
+  }
+  return -1;
+}
+
 export class AIEngine {
   private openai: OpenAI;
   private model: string;
@@ -385,6 +395,23 @@ export class AIEngine {
       });
     }
 
+    // The customer attached a picture to the message we are answering. Attach
+    // it to that turn so the model actually looks at it instead of being told
+    // "[Customer sent an image]" and guessing.
+    //
+    // Only the last user turn, and only this reply - see AIContext.attachment.
+    const visionIndex = context.attachment ? lastUserIndex(messages) : -1;
+    if (context.attachment && visionIndex >= 0) {
+      const prior = messages[visionIndex].content;
+      messages[visionIndex] = {
+        role: "user",
+        content: [
+          { type: "text", text: typeof prior === "string" && prior ? prior : "[Customer sent an image]" },
+          { type: "image_url", image_url: { url: context.attachment.url } },
+        ],
+      };
+    }
+
     // Add customer context if available
     if (context.customer_name) {
       messages[0].content += `\n\nCurrent customer name: ${context.customer_name}`;
@@ -413,6 +440,23 @@ export class AIEngine {
     let createdBookingId: string | undefined;
     let maxTokens = MAX_TOKENS;
     let retriedTruncation = false;
+    let visionStripped = false;
+
+    /**
+     * Put the turn back the way it was, text only. A tenant can point
+     * OPENAI_MODEL at something that cannot see, and that must cost them a
+     * slightly worse answer - not the generic "something went wrong" fallback.
+     */
+    const stripVision = (): boolean => {
+      if (visionIndex < 0 || visionStripped) return false;
+      visionStripped = true;
+      const parts = messages[visionIndex].content;
+      const text = Array.isArray(parts)
+        ? parts.map((p) => ("text" in p ? p.text : "")).join(" ").trim()
+        : String(parts ?? "");
+      messages[visionIndex] = { role: "user", content: text || "[Customer sent an image]" };
+      return true;
+    };
 
     try {
       // Tool passes are counted separately from loop turns: a truncation retry
@@ -421,14 +465,26 @@ export class AIEngine {
       for (let toolPass = 0; ; ) {
         // On the last allowed pass, withhold tools to force a final answer
         const allowTools = bookingEnabled && toolPass < MAX_TOOL_ITERATIONS;
-        const completion = await this.openai.chat.completions.create({
-          model: this.model,
-          messages,
-          temperature: 0.7,
-          max_tokens: maxTokens,
-          response_format: { type: "json_object" },
-          ...(allowTools && { tools: BOOKING_TOOLS }),
-        });
+
+        let completion;
+        try {
+          completion = await this.openai.chat.completions.create({
+            model: this.model,
+            messages,
+            temperature: 0.7,
+            max_tokens: maxTokens,
+            response_format: { type: "json_object" },
+            ...(allowTools && { tools: BOOKING_TOOLS }),
+          });
+        } catch (err) {
+          // The image is the only new thing in this request; if the model
+          // rejected it, drop it and ask again rather than losing the reply.
+          if (stripVision()) {
+            console.warn("[AIEngine] Model rejected the image part - retrying without it:", err);
+            continue;
+          }
+          throw err;
+        }
 
         const choice = completion.choices[0];
         const message = choice?.message;

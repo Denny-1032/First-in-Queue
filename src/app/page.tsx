@@ -172,7 +172,7 @@ export default function Home() {
                 icon: Phone,
                 title: "Answers the phone for you",
                 desc: "Takes inbound calls and makes follow-ups, day or night - no extra staff needed.",
-                color: "bg-purple-100 text-purple-600",
+                color: "bg-emerald-100 text-emerald-600",
               },
               {
                 icon: CalendarDays,
@@ -295,8 +295,8 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { step: "01", title: "Sign up free", desc: "Email and business name. You are in the dashboard in a minute, no card needed.", color: "from-emerald-500 to-teal-600" },
-              { step: "02", title: "Point it at your website", desc: "FiQ reads your pages and builds the knowledge it answers from. Add anything it missed.", color: "from-blue-500 to-indigo-600" },
-              { step: "03", title: "Paste one script tag", desc: "The chat widget goes live on your site. Add WhatsApp and voice whenever you are ready.", color: "from-purple-500 to-violet-600" },
+              { step: "02", title: "Point it at your website", desc: "FiQ reads your pages and builds the knowledge it answers from. Add anything it missed.", color: "from-sky-500 to-blue-600" },
+              { step: "03", title: "Paste one script tag", desc: "The chat widget goes live on your site. Add WhatsApp and voice whenever you are ready.", color: "from-teal-500 to-emerald-600" },
             ].map((item) => (
               <div key={item.step} className="rounded-2xl bg-white border border-gray-200 p-8 shadow-sm">
                 <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${item.color} text-white font-bold text-lg mb-6`}>

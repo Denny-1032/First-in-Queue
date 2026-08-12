@@ -21,6 +21,7 @@ import { extractBookingFromCollectedData } from "@/lib/booking/extract";
 import { trackOnce } from "@/lib/analytics/track";
 import { consumeConversation, incrementMessageUsage } from "@/lib/lipila/usage";
 import { chargeWhatsAppOverage } from "@/lib/credit/credit";
+import { signMediaPath, VISION_URL_TTL_SECONDS } from "@/lib/widget/media-storage";
 import type {
   WhatsAppWebhookPayload,
   Tenant,
@@ -492,6 +493,18 @@ async function handleAIResponse(
   const flowState = getFlowState(conversation);
   const activeFlow = flowState ? tenant.config.flows.find((f) => f.id === flowState.flow_id) : undefined;
 
+  // A web visitor's image goes to the model as a real picture, not as the
+  // string "[Customer sent an image]". The URL is signed for minutes, not
+  // hours: OpenAI fetches it immediately.
+  //
+  // Web only. WhatsApp media arrives as a Meta media_id that would have to be
+  // downloaded from Graph first, which is a separate job.
+  let attachment: AIContext["attachment"];
+  if (msg.type === "image" && content.media_path) {
+    const url = await signMediaPath(content.media_path, VISION_URL_TTL_SECONDS);
+    if (url) attachment = { kind: "image", url, filename: content.filename };
+  }
+
   const aiContext: AIContext = {
     tenant_config: tenant.config,
     tenant_id: tenant.id,
@@ -503,6 +516,7 @@ async function handleAIResponse(
     booking_context: tenant.config.booking_settings?.enabled
       ? { customer_phone: msg.customerRef, conversation_id: conversation.id }
       : undefined,
+    attachment,
   };
 
   const aiResponse: AIResponse = await aiEngine.generateResponse(aiContext);

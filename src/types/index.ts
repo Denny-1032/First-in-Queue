@@ -248,6 +248,12 @@ export interface MessageContent {
   media_path?: string;
   /** Byte size of the attachment, shown next to a document link. */
   media_size?: number;
+  /**
+   * Text pulled out of an uploaded document (PDF/txt/csv) when the message was
+   * sent, so the assistant can answer questions about it. Extracted once —
+   * see src/lib/widget/media-extract.ts.
+   */
+  media_text?: string;
   caption?: string;
   mime_type?: string;
   /** Original filename for document attachments (web widget renders it as the download name). */
@@ -487,6 +493,17 @@ export interface AIContext {
   booking_context?: {
     customer_phone: string;
     conversation_id: string;
+  };
+  /**
+   * An image the customer attached to the message being answered RIGHT NOW,
+   * as a short-lived signed URL. Only the current turn carries one: history
+   * stays plain text, so an image is charged as vision tokens once rather than
+   * on every subsequent reply in the conversation.
+   */
+  attachment?: {
+    kind: "image";
+    url: string;
+    filename?: string;
   };
 }
 

@@ -27,6 +27,19 @@ export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
  */
 export const MAX_PICK_BYTES = 25 * 1024 * 1024;
 
+/**
+ * How much extracted document text is kept on the message row. Generous enough
+ * for a quote, an invoice or a form, small enough that one upload cannot
+ * dominate the 20-message window the model is given.
+ */
+export const MAX_EXTRACT_CHARS = 8000;
+
+/** Pages read out of a PDF. Past this it is a manual, not a support question. */
+export const MAX_EXTRACT_PAGES = 10;
+
+/** Slice of that text quoted back to the model per history entry. */
+export const MAX_HISTORY_EXTRACT_CHARS = 2000;
+
 export type MediaKind = "image" | "document";
 
 /**

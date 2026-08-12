@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import {
   ChevronLeft,
   CheckCheck,
@@ -9,9 +8,14 @@ import {
   MessageSquare,
   Mic,
   MicOff,
+  MoreVertical,
+  Paperclip,
   Phone,
   PhoneOff,
+  Pin,
   Search,
+  Smile,
+  SquarePen,
 } from "lucide-react";
 import { useVoiceCall, formatCallTime } from "@/lib/widget/use-voice-call";
 
@@ -124,8 +128,47 @@ interface WaThread {
   initials: string;
   color: string;
   time: string;
+  /** Green count pill on the right of the row, as WhatsApp shows it. */
+  unread?: number;
+  pinned?: boolean;
   lines: WaLine[];
 }
+
+// WhatsApp's own palette, so the panel reads as WhatsApp at a glance rather
+// than as "a green chat app".
+const WA = {
+  green: "#25d366",
+  deepGreen: "#046a49",
+  chipActive: "#d9fdd3",
+  outgoing: "#d9fdd3",
+  tick: "#53bdeb",
+  wallpaper: "#efeae2",
+  searchBg: "#f0f2f5",
+};
+
+/**
+ * The doodle wallpaper, inlined.
+ *
+ * A data URI rather than an asset: it is decorative, it must not cost a request
+ * on the landing page's critical path, and there is no licensed WhatsApp
+ * background to ship anyway - this is a suggestion of one.
+ */
+const WA_DOODLE =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+      <g fill="none" stroke="#7d7259" stroke-width="1.4" stroke-linecap="round" opacity="0.28">
+        <path d="M14 20h12v9h-8l-4 4z"/>
+        <circle cx="86" cy="18" r="6"/>
+        <path d="M80 44l6 6 10-12"/>
+        <path d="M20 70c4-6 12-6 16 0"/>
+        <path d="M52 92h14v9h-9l-5 4z"/>
+        <path d="M100 78v10M95 83h10"/>
+        <path d="M34 108c3-4 9-4 12 0"/>
+        <circle cx="66" cy="56" r="4"/>
+      </g>
+    </svg>`
+  );
 
 const WA_THREADS: WaThread[] = [
   {
@@ -134,6 +177,7 @@ const WA_THREADS: WaThread[] = [
     initials: "MB",
     color: "bg-emerald-500",
     time: "21:14",
+    pinned: true,
     lines: [
       { from: "customer", text: "Good evening, are you still open?", time: "21:08" },
       {
@@ -161,6 +205,7 @@ const WA_THREADS: WaThread[] = [
     initials: "CP",
     color: "bg-blue-500",
     time: "20:02",
+    unread: 2,
     lines: [
       { from: "customer", text: "How much is delivery to Kabulonga?", time: "19:58" },
       {
@@ -182,7 +227,7 @@ const WA_THREADS: WaThread[] = [
     id: "grace",
     name: "Grace T.",
     initials: "GT",
-    color: "bg-purple-500",
+    color: "bg-teal-600",
     time: "18:47",
     lines: [
       { from: "customer", text: "Can I book for Saturday morning?", time: "18:44" },
@@ -206,6 +251,7 @@ const WA_THREADS: WaThread[] = [
     initials: "JM",
     color: "bg-amber-500",
     time: "17:20",
+    unread: 1,
     lines: [
       { from: "customer", text: "Bwanji, muli na ma solar panel?", time: "17:16" },
       {
@@ -223,18 +269,25 @@ const WA_THREADS: WaThread[] = [
   },
 ];
 
+/**
+ * A stand-in for WhatsApp itself.
+ *
+ * Everything except opening a thread is deliberately inert - the search box,
+ * the filter chips, the composer are `aria-hidden` decoration, not controls, so
+ * nothing here can be tabbed into and then do nothing.
+ */
 function WhatsAppInbox() {
   const [openId, setOpenId] = useState<string | null>(null);
   const open = WA_THREADS.find((t) => t.id === openId) || null;
 
   return (
-    <div className={`${PANEL_H} flex flex-col`}>
+    <div className={`${PANEL_H} flex flex-col bg-white`}>
       {open ? (
         <>
-          <div className="flex items-center gap-3 bg-[#075E54] px-3 py-3">
+          <div className="flex items-center gap-3 border-b border-gray-100 px-3 py-2.5">
             <button
               onClick={() => setOpenId(null)}
-              className="text-white/80 hover:text-white transition-colors"
+              className="text-gray-500 transition-colors hover:text-gray-900"
               aria-label="Back to chats"
             >
               <ChevronLeft className="h-5 w-5" />
@@ -244,84 +297,150 @@ function WhatsAppInbox() {
             >
               {open.initials}
             </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-white">{open.name}</p>
-              <p className="text-[11px] text-emerald-200">answered in seconds</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-gray-900">{open.name}</p>
+              <p className="text-[11px] text-gray-500">online</p>
+            </div>
+            <div className="flex items-center gap-3 text-gray-400" aria-hidden="true">
+              <Search className="h-4 w-4" />
+              <MoreVertical className="h-4 w-4" />
             </div>
           </div>
 
-          <div className="flex-1 space-y-2.5 overflow-y-auto bg-[#ECE5DD] p-4">
+          <div
+            className="flex-1 space-y-2 overflow-y-auto px-3 py-3"
+            style={{ backgroundColor: WA.wallpaper, backgroundImage: `url("${WA_DOODLE}")` }}
+          >
+            <div className="flex justify-center pb-1">
+              <span className="rounded-md bg-white/90 px-2.5 py-1 text-[11px] text-gray-500 shadow-sm">
+                Today
+              </span>
+            </div>
+
             {open.lines.map((line, i) => (
               <div
                 key={i}
                 className={`flex ${line.from === "business" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[80%] rounded-2xl px-3 py-2 text-[13px] leading-snug shadow-sm ${
-                    line.from === "business"
-                      ? "rounded-tr-sm bg-[#DCF8C6] text-gray-900"
-                      : "rounded-tl-sm bg-white text-gray-900"
+                  className={`max-w-[80%] rounded-lg px-2.5 py-1.5 text-[13px] leading-snug shadow-sm ${
+                    line.from === "business" ? "rounded-tr-none text-gray-900" : "rounded-tl-none bg-white text-gray-900"
                   }`}
+                  style={line.from === "business" ? { backgroundColor: WA.outgoing } : undefined}
                 >
                   {line.text}
                   <span className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-gray-500">
                     {line.time}
-                    {line.from === "business" && <CheckCheck className="h-3 w-3 text-sky-500" />}
+                    {line.from === "business" && (
+                      <CheckCheck className="h-3 w-3" style={{ color: WA.tick }} />
+                    )}
                   </span>
                 </div>
               </div>
             ))}
+
             <div className="flex justify-center pt-1">
-              <span className="rounded-full bg-white/80 px-3 py-1 text-[11px] text-gray-500">
+              <span className="rounded-full bg-white/85 px-3 py-1 text-[11px] text-gray-500 shadow-sm">
                 Handled without staff
               </span>
             </div>
           </div>
+
+          {/* Composer: appearance only, so the panel does not end in mid-air. */}
+          <div
+            className="flex items-center gap-2 border-t border-gray-100 px-3 py-2"
+            style={{ backgroundColor: WA.searchBg }}
+            aria-hidden="true"
+          >
+            <Smile className="h-5 w-5 shrink-0 text-gray-500" />
+            <Paperclip className="h-5 w-5 shrink-0 text-gray-500" />
+            <span className="flex-1 rounded-full bg-white px-3 py-2 text-[13px] text-gray-400">
+              Type a message
+            </span>
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+              style={{ backgroundColor: WA.green }}
+            >
+              <Mic className="h-4 w-4 text-white" />
+            </span>
+          </div>
         </>
       ) : (
         <>
-          <div className="bg-[#075E54] px-4 py-3">
-            <div className="flex items-center gap-3">
-              <Image
-                src="/fiq-logo.png?v=2"
-                alt=""
-                width={200}
-                height={200}
-                className="h-8 w-8 rounded-full bg-white/10 object-contain p-0.5"
-              />
-              <p className="flex-1 text-sm font-medium text-white">Your WhatsApp, last night</p>
+          <div className="px-4 pt-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[19px] font-bold tracking-tight text-gray-900">WhatsApp</h3>
+              <div className="flex items-center gap-3 text-gray-500" aria-hidden="true">
+                <SquarePen className="h-[18px] w-[18px]" />
+                <MoreVertical className="h-[18px] w-[18px]" />
+              </div>
             </div>
-            <div className="mt-3 flex items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5">
-              <Search className="h-3.5 w-3.5 text-white/60" />
-              <span className="text-xs text-white/60">Search</span>
+
+            <div
+              className="mt-2.5 flex items-center gap-2 rounded-full px-3 py-2"
+              style={{ backgroundColor: WA.searchBg }}
+              aria-hidden="true"
+            >
+              <Search className="h-4 w-4 text-gray-500" />
+              <span className="text-[13px] text-gray-500">Search or start a new chat</span>
+            </div>
+
+            <div className="mt-2.5 flex gap-2 pb-2 text-[12px]" aria-hidden="true">
+              {["All", "Unread", "Favourites", "Groups"].map((chip, i) => (
+                <span
+                  key={chip}
+                  className="rounded-full px-3 py-1"
+                  style={
+                    i === 0
+                      ? { backgroundColor: WA.chipActive, color: WA.deepGreen }
+                      : { backgroundColor: WA.searchBg, color: "#54656f" }
+                  }
+                >
+                  {chip}
+                </span>
+              ))}
             </div>
           </div>
 
-          <div className="flex-1 divide-y divide-gray-100 overflow-y-auto bg-white">
+          <div className="flex-1 overflow-y-auto">
             {WA_THREADS.map((t) => {
               const last = t.lines[t.lines.length - 1];
               return (
                 <button
                   key={t.id}
                   onClick={() => setOpenId(t.id)}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50"
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-gray-50"
                 >
                   <span
-                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ${t.color}`}
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ${t.color}`}
                   >
                     {t.initials}
                   </span>
-                  <span className="min-w-0 flex-1">
+                  <span className="min-w-0 flex-1 border-b border-gray-100 pb-2.5">
                     <span className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-medium text-gray-900">{t.name}</span>
-                      <span className="shrink-0 text-[10px] text-gray-400">{t.time}</span>
+                      <span className="truncate text-[15px] text-gray-900">{t.name}</span>
+                      <span
+                        className="shrink-0 text-[11px]"
+                        style={{ color: t.unread ? WA.deepGreen : "#667781" }}
+                      >
+                        {t.time}
+                      </span>
                     </span>
                     <span className="mt-0.5 flex items-center gap-1">
                       {/* Read receipts only belong on messages we sent. */}
                       {last.from === "business" && (
-                        <CheckCheck className="h-3.5 w-3.5 shrink-0 text-sky-500" />
+                        <CheckCheck className="h-4 w-4 shrink-0" style={{ color: WA.tick }} />
                       )}
-                      <span className="truncate text-xs text-gray-500">{last.text}</span>
+                      <span className="truncate text-[13px] text-gray-500">{last.text}</span>
+                      {t.pinned && <Pin className="ml-auto h-3.5 w-3.5 shrink-0 rotate-45 text-gray-400" />}
+                      {t.unread && (
+                        <span
+                          className="ml-auto flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1 text-[11px] font-medium text-white"
+                          style={{ backgroundColor: WA.green }}
+                        >
+                          {t.unread}
+                        </span>
+                      )}
                     </span>
                   </span>
                 </button>
@@ -347,13 +466,13 @@ function VoiceDemo() {
 
   return (
     <div className={`${PANEL_H} flex flex-col`}>
-      <div className="flex items-center gap-3 bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4">
+      <div className="flex items-center gap-3 bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-4">
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15">
           <Phone className="h-4 w-4 text-white" />
         </span>
         <div>
           <p className="text-sm font-medium text-white">Your phone line</p>
-          <p className="text-xs text-purple-200">
+          <p className="text-xs text-emerald-100">
             {voice.state === "active"
               ? voice.agentTalking
                 ? "Speaking…"
@@ -366,8 +485,8 @@ function VoiceDemo() {
       <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
         {voice.state === "idle" || voice.state === "ended" ? (
           <>
-            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-purple-100">
-              <Phone className="h-8 w-8 text-purple-600" />
+            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
+              <Phone className="h-8 w-8 text-emerald-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900">
               {voice.state === "ended" ? "Call ended" : "This one is real"}
@@ -378,7 +497,7 @@ function VoiceDemo() {
             </p>
             <button
               onClick={voice.start}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/25 transition-all hover:from-purple-700 hover:to-indigo-700"
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 transition-all hover:from-emerald-700 hover:to-emerald-800"
             >
               <Phone className="h-4 w-4" />
               {voice.state === "ended" ? "Call again" : "Start the call"}
@@ -403,14 +522,14 @@ function VoiceDemo() {
           <>
             <div
               className={`mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full transition-colors ${
-                voice.agentTalking ? "bg-purple-200" : "bg-purple-100"
+                voice.agentTalking ? "bg-emerald-200" : "bg-emerald-100"
               }`}
             >
               {voice.state === "connecting" ? (
-                <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
               ) : (
                 <Phone
-                  className={`h-8 w-8 text-purple-600 ${
+                  className={`h-8 w-8 text-emerald-600 ${
                     voice.agentTalking ? "animate-pulse motion-reduce:animate-none" : ""
                   }`}
                 />

@@ -17,7 +17,14 @@ export async function GET(request: NextRequest) {
     if (!guard.ok) return guard.response;
     const { origin, token } = guard;
 
-    if (!(await checkBurst(`hist:${token.visitorId}`, 60, 300))) {
+    // 300, not 60: the widget polls every 3s while a visitor has the panel
+    // open, and a single page can carry two widget documents sharing one
+    // visitor token (our own homepage embeds the panel inline AND runs the
+    // launcher). At 60 the poll outran its own budget within ~90 seconds, every
+    // subsequent poll 429'd, and the chat silently stopped showing replies.
+    // Replay costs no model call, so this is not a spend surface — the
+    // per-property AI ceiling still bounds that.
+    if (!(await checkBurst(`hist:${token.visitorId}`, 300, 300))) {
       return widgetJson({ error: "Too many requests" }, origin, { status: 429 });
     }
 

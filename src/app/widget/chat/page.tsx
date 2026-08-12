@@ -77,6 +77,14 @@ interface Branding {
 }
 
 const POLL_MS = 3000;
+/** Panel collapsed or tab in the background: only the unread badge depends on it. */
+const IDLE_POLL_MS = 15000;
+/** Ceiling for the 429 backoff. */
+const MAX_BACKOFF_MS = 30000;
+/** An optimistic row older than this has lost its send; never keep it on screen. */
+const STALE_PENDING_MS = 20000;
+/** Longest the typing dots may run without a reply landing. */
+const TYPING_WATCHDOG_MS = 60000;
 
 /**
  * Seed text for the WhatsApp handoff. Deliberately generic: the widget's
@@ -125,9 +133,21 @@ function ChatContent() {
   const emojiRef = useRef<HTMLDivElement>(null);
   const tokenRef = useRef<string | null>(null);
   const seenIds = useRef<Set<string>>(new Set());
-  const isOpenRef = useRef(true);
+  /**
+   * Is the visitor actually looking at this panel?
+   *
+   * An inline or native embed is on screen from the moment it loads. The
+   * launcher's panel is NOT: widget.js builds its iframe eagerly and only posts
+   * "open" when the bubble is clicked, so defaulting to true meant a collapsed
+   * launcher polled at full speed - and, on a page that also embeds the widget
+   * inline, doubled the poll rate against a shared rate-limit bucket.
+   */
+  const isOpenRef = useRef(!dismissable);
   // Read by the poll timer, which closes over its own render's state.
   const sendingRef = useRef(false);
+  /** Set by the poll effect; lets the host bridge force an immediate refresh. */
+  const pokeRef = useRef<(() => void) | null>(null);
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   /**
    * message id → the attachment URL first seen for it.
    *
@@ -199,6 +219,19 @@ function ChatContent() {
   // ---------------------------------------------------------------- polling
 
   /**
+   * Typing dots, with a deadline. Nothing else clears them but the arrival of a
+   * reply, so a poll that fails - or an engine that never answers - used to
+   * leave them running for the rest of the session.
+   */
+  const showTyping = useCallback((on: boolean) => {
+    clearTimeout(typingTimer.current);
+    setTyping(on);
+    if (on) typingTimer.current = setTimeout(() => setTyping(false), TYPING_WATCHDOG_MS);
+  }, []);
+
+  useEffect(() => () => clearTimeout(typingTimer.current), []);
+
+  /**
    * @param settled true when called right after a successful send. /api/widget/message
    *        only returns once the engine has run and the inbound row is saved, so the
    *        history we just fetched already contains the visitor's message and every
@@ -208,14 +241,16 @@ function ChatContent() {
    *        equal a server UUID - so matching them against the server's ids kept them
    *        forever and every sent message left a faded duplicate behind.
    */
-  const fetchHistory = useCallback(async (settled = false) => {
+  const fetchHistory = useCallback(async (settled = false): Promise<number> => {
     const t = tokenRef.current;
-    if (!t) return;
+    if (!t) return 0;
     try {
       const res = await fetch("/api/widget/history", {
         headers: { Authorization: `Bearer ${t}` },
       });
-      if (!res.ok) return;
+      // Status is returned, not swallowed: the poll loop backs off on 429, and
+      // a silent failure here is what used to leave the typing dots spinning.
+      if (!res.ok) return res.status;
       const data = await res.json();
       // Pin each message to the first signed URL we saw for it; see mediaUrls.
       const incoming: ChatMessage[] = ((data.messages || []) as ChatMessage[]).map((m) => {
@@ -229,8 +264,13 @@ function ChatContent() {
 
       setMessages((prev) => {
         // While a send is still in flight the optimistic row is all the visitor
-        // has, so keep it; once the send has settled the server list is complete.
-        const keptPending = settled ? [] : prev.filter((m) => m.pending);
+        // has, so keep it; once the send has settled the server list is
+        // complete. The age check is the safety net: a poll that fails while a
+        // send is in flight used to strand the optimistic row forever, and the
+        // next successful poll then rendered it BESIDE the server's own copy.
+        const keptPending = settled
+          ? []
+          : prev.filter((m) => m.pending && Date.now() - Date.parse(m.created_at) < STALE_PENDING_MS);
         const merged = [...incoming, ...keptPending];
 
         const fresh = incoming.filter(
@@ -240,27 +280,75 @@ function ChatContent() {
         if (fresh.length && !isOpenRef.current) {
           post("unread", { count: fresh.length });
         }
-        if (fresh.length) setTyping(false);
+        if (fresh.length) showTyping(false);
         return merged;
       });
+      return 200;
     } catch {
       /* transient network error - next tick retries */
+      return 0;
     }
-  }, [post]);
+  }, [post, showTyping]);
 
+  /**
+   * Self-rescheduling poll.
+   *
+   * A fixed 3s interval spends 100 requests per the history route's 300s
+   * window, which only allows 60 - and a page can carry two widget documents
+   * (our own homepage embeds the panel inline AND runs the launcher), which
+   * share one visitor token and therefore one bucket. Every poll then 429s,
+   * replies stop arriving, and the visitor sees a chat that has silently died.
+   *
+   * So: full speed only when the panel is open and the tab is in front, a slow
+   * badge-freshness cadence otherwise, and exponential backoff if the server
+   * does push back.
+   */
   useEffect(() => {
     if (!token) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let backoff = 0;
+    let stopped = false;
+
+    const baseDelay = () =>
+      isOpenRef.current && document.visibilityState === "visible" ? POLL_MS : IDLE_POLL_MS;
+
+    const tick = async () => {
+      // Skip polls while a send is in flight. The server saves the visitor's
+      // message immediately but /api/widget/message does not respond until the
+      // engine has produced a reply, so a poll landing in that window would
+      // fetch the real row while the optimistic one is still on screen.
+      // Nothing is missed: the settled send fetches history itself.
+      if (!sendingRef.current) {
+        const status = await fetchHistory();
+        backoff = status === 429 ? Math.min(backoff ? backoff * 2 : POLL_MS * 2, MAX_BACKOFF_MS) : 0;
+      }
+      if (!stopped) timer = setTimeout(tick, Math.max(baseDelay(), backoff));
+    };
+
     fetchHistory();
-    // Skip polls while a send is in flight. The server saves the visitor's
-    // message immediately but /api/widget/message does not respond until the
-    // engine has produced a reply, so a poll landing in that window would fetch
-    // the real row while the optimistic one is still on screen - the message
-    // appearing twice for the whole generation delay. Nothing is missed: the
-    // settled send fetches history itself.
-    const id = setInterval(() => {
-      if (!sendingRef.current) fetchHistory();
-    }, POLL_MS);
-    return () => clearInterval(id);
+    timer = setTimeout(tick, baseDelay());
+
+    // Coming back to the tab - or opening the panel - should feel instant, not
+    // "up to 15 seconds".
+    const poke = () => {
+      if (stopped) return;
+      clearTimeout(timer);
+      backoff = 0;
+      timer = setTimeout(tick, 0);
+    };
+    pokeRef.current = poke;
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") poke();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      pokeRef.current = null;
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [token, fetchHistory]);
 
   // ---------------------------------------------------------------- host bridge
@@ -272,6 +360,8 @@ function ChatContent() {
       if (msg.type === "open") {
         isOpenRef.current = true;
         post("unread", { count: 0 });
+        // The panel was polling at the idle cadence while collapsed; catch up now.
+        pokeRef.current?.();
         setTimeout(() => inputRef.current?.focus(), 60);
       } else if (msg.type === "close") {
         isOpenRef.current = false;
@@ -414,7 +504,7 @@ function ChatContent() {
         pending: true,
       };
       setMessages((prev) => [...prev, optimistic]);
-      setTyping(true);
+      showTyping(true);
 
       try {
         // Store the file first. Only its returned path goes into the message,
@@ -434,7 +524,7 @@ function ChatContent() {
           if (!upRes.ok) {
             const detail = await upRes.json().catch(() => ({}));
             setError(detail.error || "That file didn't upload. Please try again.");
-            setTyping(false);
+            showTyping(false);
             // Leave the picked file in place so they can retry without
             // choosing it again, and drop the optimistic bubble.
             setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
@@ -465,19 +555,26 @@ function ChatContent() {
         });
         if (res.status === 429) {
           setError("You're sending messages too quickly. Please wait a moment.");
-          setTyping(false);
+          showTyping(false);
         } else if (!res.ok) {
           setError("That message didn't send. Please try again.");
-          setTyping(false);
+          showTyping(false);
         } else {
           const data = await res.json();
-          if (data.status === "limit_reached") setTyping(false);
+          if (data.status === "limit_reached") showTyping(false);
           if (typeof data.online === "boolean") setOnline(data.online);
         }
         // Only a delivered message is on the server, so only then is it safe to
         // drop the optimistic row. On failure it stays put, so the visitor can
-        // still see what they typed. Awaited so the `finally` below cannot
-        // resume polling mid-flight.
+        // still see what they typed.
+        //
+        // Dropped HERE rather than being left to the refetch below: the history
+        // request can fail (a rate-limited poll window, a network blip) and a
+        // stranded optimistic row is exactly what produced the faded duplicate
+        // sitting under the assistant's reply.
+        if (res.ok) setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+
+        // Awaited so the `finally` below cannot resume polling mid-flight.
         await fetchHistory(res.ok);
 
         // History now carries the server's own copy of the attachment, so the
@@ -485,7 +582,7 @@ function ChatContent() {
         if (res.ok && pendingFile?.previewUrl) URL.revokeObjectURL(pendingFile.previewUrl);
       } catch {
         setError("That message didn't send. Please try again.");
-        setTyping(false);
+        showTyping(false);
       } finally {
         setSending(false);
         setUploading(false);
@@ -494,7 +591,7 @@ function ChatContent() {
         sendingRef.current = false;
       }
     },
-    [sending, fetchHistory, attachment, clearAttachment]
+    [sending, fetchHistory, attachment, clearAttachment, showTyping]
   );
 
   // ---------------------------------------------------------------- render

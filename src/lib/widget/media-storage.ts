@@ -20,6 +20,13 @@ import type { Message, MessageContent } from "@/types";
 /** How long a minted URL stays valid. Long enough to outlive an open panel. */
 const SIGNED_URL_TTL_SECONDS = 60 * 60 * 6;
 
+/**
+ * Much shorter, for the URL handed to OpenAI so it can look at an image. The
+ * model fetches it within seconds; there is no reason for that link to stay
+ * live for hours.
+ */
+export const VISION_URL_TTL_SECONDS = 60 * 15;
+
 /** Server-side truth for whether the bucket is reachable, for clearer errors. */
 export class MediaBucketMissingError extends Error {
   constructor() {
@@ -39,10 +46,13 @@ export function isBucketMissing(message: string | undefined): boolean {
  * not exist — callers render the message without its attachment rather than
  * failing the whole transcript.
  */
-export async function signMediaPath(path: string): Promise<string | null> {
+export async function signMediaPath(
+  path: string,
+  ttlSeconds: number = SIGNED_URL_TTL_SECONDS
+): Promise<string | null> {
   const { data, error } = await getSupabaseAdmin()
     .storage.from(MEDIA_BUCKET)
-    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+    .createSignedUrl(path, ttlSeconds);
 
   if (error || !data?.signedUrl) {
     console.error("[Media] sign failed:", path, error?.message);
@@ -54,6 +64,27 @@ export async function signMediaPath(path: string): Promise<string | null> {
 /** Does this object actually exist? Used before a path is written to a message. */
 export async function mediaObjectExists(path: string): Promise<boolean> {
   return (await signMediaPath(path)) !== null;
+}
+
+/**
+ * Pull an object's bytes back out of the bucket, service-role side.
+ *
+ * Used for document text extraction. Deliberately re-downloads rather than
+ * trusting anything the browser sends: what the model reads must be what was
+ * stored, not what the client says was stored.
+ */
+export async function downloadMediaObject(path: string): Promise<Uint8Array | null> {
+  try {
+    const { data, error } = await getSupabaseAdmin().storage.from(MEDIA_BUCKET).download(path);
+    if (error || !data) {
+      console.error("[Media] download failed:", path, error?.message);
+      return null;
+    }
+    return new Uint8Array(await data.arrayBuffer());
+  } catch (e) {
+    console.error("[Media] download threw:", path, e);
+    return null;
+  }
 }
 
 type ContentCarrier = { content?: MessageContent | null };
