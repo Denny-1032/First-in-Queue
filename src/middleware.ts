@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/api/rate-limit";
 import { getAuthSecret } from "@/lib/auth/secret";
 import { frameAncestorsFor } from "@/lib/properties/allowlist";
-import { DEMO_SUBDOMAINS } from "@/lib/demo/decks";
 
 // Edge-compatible base64url helpers
 function base64urlEncode(buf: ArrayBuffer): string {
@@ -79,23 +78,6 @@ async function lookupAllowedDomains(key: string): Promise<string[]> {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  // --- Proposal demo subdomains ---
-  //
-  // zra.firstinqueue.com serves the ZRA mock-up at its root. A rewrite, not a
-  // redirect: the address bar has to keep saying the prospect's subdomain, which
-  // is half the point of them having one.
-  //
-  // Root path only. Anything else on these hosts falls through to the normal
-  // app, so /widget/chat still resolves for the iframe on the page.
-  if (pathname === "/") {
-    const host = request.headers.get("host") ?? "";
-    const label = host.split(":")[0].split(".")[0].toLowerCase();
-    const slug = DEMO_SUBDOMAINS[label];
-    if (slug) {
-      return NextResponse.rewrite(new URL(`/demo/${slug}`, request.url));
-    }
-  }
 
   // --- Widget documents: framable, but only by the property's own domains ---
   //
@@ -203,9 +185,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Root is matched only so the demo subdomains can be rewritten; on every
-    // other host the request falls straight through to NextResponse.next().
-    "/",
     "/dashboard/:path*",
     "/admin/:path*",
     "/onboarding/:path*",

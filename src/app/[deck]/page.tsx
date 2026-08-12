@@ -14,20 +14,25 @@ import { DEMO_DECKS, findDeck, isExpired, type DemoDeck } from "@/lib/demo/decks
 // demonstrated. Do not reintroduce their chrome.
 //
 // Adding a prospect is one entry in decks.ts plus one env var. No new route.
+//
+// This is a dynamic segment at the ROOT, so firstinqueue.com/pacra is the whole
+// address - nothing to set up per prospect. Static routes (/pricing, /login)
+// still win over it, and `dynamicParams = false` means any path that is not a
+// deck 404s exactly as it did before, rather than rendering an empty demo.
 
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return DEMO_DECKS.map((d) => ({ slug: d.slug }));
+  return DEMO_DECKS.map((d) => ({ deck: d.path }));
 }
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ deck: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
-  const deck = findDeck(slug);
+  const { deck: path } = await params;
+  const deck = findDeck(path);
   if (!deck) return { title: "Not found", robots: { index: false, follow: false } };
 
   return {
@@ -37,9 +42,9 @@ export async function generateMetadata({
   };
 }
 
-export default async function DemoPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const deck = findDeck(slug);
+export default async function DemoPage({ params }: { params: Promise<{ deck: string }> }) {
+  const { deck: path } = await params;
+  const deck = findDeck(path);
   // An expired deck 404s rather than lingering as apparent guidance.
   if (!deck || isExpired(deck)) notFound();
 

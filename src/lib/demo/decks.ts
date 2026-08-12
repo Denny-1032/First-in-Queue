@@ -11,8 +11,8 @@
 // is a phishing kit waiting for the link to leak. Do not reintroduce their
 // chrome, their logos, or their layout.
 //
-// What stays regardless: noindex on the page, a Disallow in robots.txt on the
-// demo subdomains, an expiry after which the page 404s rather than ageing into
+// What stays regardless: noindex on the page, a Disallow per deck path in
+// robots.txt, an expiry after which the page 404s rather than ageing into
 // apparent guidance, and no field anywhere that accepts input. The assistant in
 // the corner is the only working control.
 //
@@ -26,10 +26,14 @@ export interface DemoStat {
 }
 
 export interface DemoDeck {
-  /** URL segment, including its unguessable suffix. */
-  slug: string;
-  /** Host label this deck answers on: `zra` serves at zra.firstinqueue.com. */
-  subdomain: string;
+  /**
+   * Top-level path this deck answers on: `pacra` serves at
+   * firstinqueue.com/pacra. A path rather than a subdomain because a path costs
+   * nothing to add - no DNS record, no domain to register in Vercel, no
+   * certificate to wait on. Sending a prospect a link should not be an
+   * infrastructure task.
+   */
+  path: string;
   /** Full legal name, used in the disclaimer. */
   institution: string;
   /** Short name for headings. */
@@ -55,13 +59,12 @@ export interface DemoDeck {
 }
 
 /**
- * Keyed by slug. Add a prospect by adding an entry and an env var - no new
+ * Keyed by path. Add a prospect by adding an entry and an env var - no new
  * page, no new route.
  */
 export const DEMO_DECKS: DemoDeck[] = [
   {
-    slug: "zra-preview-8f3ac91d",
-    subdomain: "zra",
+    path: "zra",
     institution: "the Zambia Revenue Authority",
     shortName: "ZRA",
     officialUrl: "https://www.zra.org.zm",
@@ -93,8 +96,7 @@ export const DEMO_DECKS: DemoDeck[] = [
     expiresOn: "2026-11-30",
   },
   {
-    slug: "pacra-preview-2d7be540",
-    subdomain: "pacra",
+    path: "pacra",
     institution: "the Patents and Companies Registration Agency",
     shortName: "PACRA",
     officialUrl: "https://www.pacra.org.zm",
@@ -127,13 +129,11 @@ export const DEMO_DECKS: DemoDeck[] = [
   },
 ];
 
-/** Host label to slug, for the subdomain rewrite in middleware. */
-export const DEMO_SUBDOMAINS: Record<string, string> = Object.fromEntries(
-  DEMO_DECKS.map((d) => [d.subdomain, d.slug])
-);
+/** Every path a deck answers on, for robots.txt and the widget loader. */
+export const DEMO_PATHS: string[] = DEMO_DECKS.map((d) => `/${d.path}`);
 
-export function findDeck(slug: string): DemoDeck | undefined {
-  return DEMO_DECKS.find((d) => d.slug === slug);
+export function findDeck(path: string): DemoDeck | undefined {
+  return DEMO_DECKS.find((d) => d.path === path);
 }
 
 /** Past its expiry a deck stops serving; see the module comment. */
