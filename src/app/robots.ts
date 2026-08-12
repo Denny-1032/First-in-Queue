@@ -16,6 +16,10 @@ export default function robots(): MetadataRoute.Robots {
           "/invite/",
           "/trial-payment",
           "/widget/",
+          // Proposal demos carry a prospect's name and colours. They are
+          // unlisted by design - see src/lib/demo/decks.ts. The pages also
+          // send their own noindex; this is the belt to that pair of braces.
+          "/demo/",
         ],
       },
     ],
