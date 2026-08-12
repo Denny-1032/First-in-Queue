@@ -13,11 +13,13 @@ import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 
-// Minimal .env.local loader - this is a one-off script, not worth a dependency.
-const envPath = path.join(process.cwd(), ".env.local");
-if (fs.existsSync(envPath)) {
+// Minimal env loader - this is a one-off script, not worth a dependency.
+// .env.local first so it wins, then .env, matching how Next.js resolves them.
+for (const name of [".env.local", ".env"]) {
+  const envPath = path.join(process.cwd(), name);
+  if (!fs.existsSync(envPath)) continue;
   for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
-    const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+    const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
     if (match && !process.env[match[1]]) {
       process.env[match[1]] = match[2].replace(/^["']|["']$/g, "");
     }
