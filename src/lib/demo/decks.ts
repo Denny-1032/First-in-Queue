@@ -82,9 +82,12 @@ export const DEMO_DECKS: DemoDeck[] = [
         detail: "Filing deadlines, TPIN and registration questions, answered the moment they are asked.",
       },
       {
-        label: "Languages",
-        value: "40+",
-        detail: "Bemba, Nyanja, Tonga, Lozi and English, from the same knowledge base.",
+        // Local-language support is held back until it's ready for daily use -
+        // see the note where this deck's copy is edited. Until then this slot
+        // carries reach instead.
+        label: "Reaches every province",
+        value: "No travel",
+        detail: "The same answers in Ndola, Kitwe or Livingstone as at the Lusaka banking hall.",
       },
       {
         label: "Handover to an officer",

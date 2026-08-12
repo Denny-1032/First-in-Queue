@@ -180,25 +180,35 @@ function ChatContent() {
 
     (async () => {
       try {
-        const cfgRes = await fetch(`/api/widget/config?key=${encodeURIComponent(widgetKey)}`);
-        if (!cfgRes.ok) throw new Error("config");
-        const cfg = await cfgRes.json();
+        // Config and session are independent - the session route resolves the
+        // property from the key itself - so they run together. Sequentially
+        // they were two round-trips stacked before the chat could open, which
+        // is what made the first open feel slow. The visitor id is keyed by the
+        // widget key (known up front) rather than the property id (which only
+        // arrived with the config response, and was the only reason these were
+        // ordered).
+        const storeKey = `fiq_visitor_${widgetKey}`;
+        const stored = localStorage.getItem(storeKey);
+        const [cfgRes, sessRes] = await Promise.all([
+          fetch(`/api/widget/config?key=${encodeURIComponent(widgetKey)}`),
+          fetch("/api/widget/session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key: widgetKey, visitor_id: stored || undefined }),
+          }),
+        ]);
         if (cancelled) return;
+        if (!cfgRes.ok) throw new Error("config");
+        if (!sessRes.ok) throw new Error("session");
+
+        const cfg = await cfgRes.json();
+        const sess = await sessRes.json();
+        if (cancelled) return;
+
         setBranding(cfg.branding);
         setOnline(cfg.online !== false);
         setVoiceEnabled(cfg.voice?.enabled === true);
         setWhatsappNumber(cfg.whatsapp?.enabled ? cfg.whatsapp.number : null);
-
-        const storeKey = `fiq_visitor_${cfg.property_id}`;
-        const stored = localStorage.getItem(storeKey);
-        const sessRes = await fetch("/api/widget/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key: widgetKey, visitor_id: stored || undefined }),
-        });
-        if (!sessRes.ok) throw new Error("session");
-        const sess = await sessRes.json();
-        if (cancelled) return;
 
         localStorage.setItem(storeKey, sess.visitor_id);
         tokenRef.current = sess.token;

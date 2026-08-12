@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { DEMO_DECKS, findDeck, isExpired, type DemoDeck } from "@/lib/demo/decks";
+import { DemoWidget, TimeGreeting } from "./client";
 
 // Staging page for a proposal: a First in Queue help centre carrying the
 // prospect's name, with their assistant live on it.
@@ -54,7 +55,7 @@ export default async function DemoPage({ params }: { params: Promise<{ deck: str
       <Categories deck={deck} />
       <Pitch deck={deck} />
       <Footer deck={deck} />
-      <ChatPanel deck={deck} />
+      {deck.widgetKey && <DemoWidget widgetKey={deck.widgetKey} title={`${deck.shortName} Assistant`} />}
     </div>
   );
 }
@@ -104,7 +105,7 @@ function Hero({ deck }: { deck: DemoDeck }) {
 
       <div className="relative z-10 mx-auto max-w-3xl px-6 pb-24 pt-10 text-center">
         <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-          Hello. How can we help {deck.shortName}?
+          <TimeGreeting />
         </h1>
         <p className="mt-4 text-lg text-white/85">{deck.painline}</p>
 
@@ -195,32 +196,5 @@ function Footer({ deck }: { deck: DemoDeck }) {
         </p>
       </div>
     </footer>
-  );
-}
-
-/** The widget where it would actually sit. The one thing here that does anything. */
-function ChatPanel({ deck }: { deck: DemoDeck }) {
-  if (!deck.widgetKey) {
-    return (
-      <div className="fixed bottom-6 right-6 z-40 flex h-[420px] w-[360px] items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white px-8 text-center shadow-2xl">
-        <p className="text-sm text-gray-400">
-          This demonstration is not configured yet. Set the widget key for {deck.shortName} and
-          redeploy.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="fixed bottom-6 right-6 z-40 w-[380px] max-w-[calc(100vw-2rem)]">
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-black/25">
-        <iframe
-          src={`/widget/chat?key=${encodeURIComponent(deck.widgetKey)}&embed=inline`}
-          title={`Assistant demonstration for ${deck.shortName}`}
-          className="block h-[540px] max-h-[70vh] w-full border-0"
-        />
-      </div>
-      <p className="mt-2 text-center text-[11px] text-gray-500">Live assistant - not a recording.</p>
-    </div>
   );
 }
