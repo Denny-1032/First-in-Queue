@@ -1,8 +1,19 @@
 import type { MetadataRoute } from "next";
+import { headers } from "next/headers";
+import { DEMO_SUBDOMAINS } from "@/lib/demo/decks";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
 
-export default function robots(): MetadataRoute.Robots {
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  // On a demo subdomain the mock-up is served at the root, so a path Disallow
+  // cannot reach it - the whole host has to be closed. Nothing else lives on
+  // these hosts, so blanket-denying them costs nothing.
+  const host = (await headers()).get("host") ?? "";
+  const label = host.split(":")[0].split(".")[0].toLowerCase();
+  if (DEMO_SUBDOMAINS[label]) {
+    return { rules: [{ userAgent: "*", disallow: "/" }] };
+  }
+
   return {
     rules: [
       {

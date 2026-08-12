@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Copy, Globe, KeyRound, Loader2, Palette, Pencil, Phone, Plus, Trash2 } from "lucide-react";
 import { useConfirm } from "@/components/ui/dialogs";
@@ -15,6 +14,7 @@ import {
   HEX_RE,
   type BrandingValue,
 } from "@/components/onboarding/branding-editor";
+import { cn } from "@/lib/utils";
 
 // Property management: create, copy the one-line snippet, edit name + allowed
 // domains, customize widget branding, rotate the key, delete (§9 block 13).
@@ -88,13 +88,42 @@ const STATUS_LABEL: Record<Property["install_status"], string> = {
   stale: "Not connected recently",
 };
 
-// "Connected but gone quiet" is a different problem from "never connected", so it
-// gets amber rather than sharing the grey badge with pending.
-const STATUS_VARIANT: Record<Property["install_status"], "default" | "secondary" | "warning"> = {
-  pending: "secondary",
-  verified: "default",
-  stale: "warning",
+// A status pill rather than the generic Badge: the labels are long enough to wrap
+// inside a pill built for one word, and a solid fill shouts at you from the corner
+// of every card. Tinted background, hairline ring, and a dot doing the colour work
+// - so the eye finds the row that is wrong without the page turning into traffic
+// lights. "Connected but gone quiet" is a different problem from "never connected",
+// hence amber rather than sharing grey with pending.
+const STATUS_STYLE: Record<Property["install_status"], { pill: string; dot: string }> = {
+  verified: {
+    pill: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+    dot: "bg-emerald-500",
+  },
+  pending: {
+    pill: "bg-slate-50 text-slate-600 ring-slate-500/20",
+    dot: "bg-slate-300",
+  },
+  stale: {
+    pill: "bg-amber-50 text-amber-700 ring-amber-600/20",
+    dot: "bg-amber-500",
+  },
 };
+
+function StatusPill({ status }: { status: Property["install_status"] }) {
+  const style = STATUS_STYLE[status];
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1",
+        "text-xs font-medium ring-1 ring-inset",
+        style.pill
+      )}
+    >
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", style.dot)} aria-hidden="true" />
+      {STATUS_LABEL[status]}
+    </span>
+  );
+}
 
 function snippetFor(widgetKey: string): string {
   const origin = typeof window === "undefined" ? "" : window.location.origin;
@@ -398,9 +427,7 @@ export default function PropertiesPage() {
                       <CardDescription>{p.site_url || "No address set"}</CardDescription>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <Badge variant={STATUS_VARIANT[p.install_status]}>
-                        {STATUS_LABEL[p.install_status]}
-                      </Badge>
+                      <StatusPill status={p.install_status} />
                       {lastSeenLabel(p.last_seen_at) && (
                         <span className="text-[11px] text-gray-400">{lastSeenLabel(p.last_seen_at)}</span>
                       )}
