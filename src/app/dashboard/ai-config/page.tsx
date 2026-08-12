@@ -26,6 +26,7 @@ import {
   Phone,
   Building2,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { parseMarkdownToKnowledgeEntries, parseKnowledgeEntriesJson } from "@/lib/knowledge-parser";
@@ -432,64 +433,68 @@ export default function AIConfigPage() {
 
           <div>
             <label className="text-sm font-medium text-gray-700 mb-3 block">Tone of Voice</label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {toneOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setPersonality({ ...personality, tone: opt.value })}
-                  className={cn(
-                    "rounded-xl border-2 p-4 text-left transition-all",
-                    personality.tone === opt.value
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  )}
-                >
-                  <p className="text-sm font-medium text-gray-900">{opt.label}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
-                </button>
-              ))}
-            </div>
+            <Select
+              value={personality.tone}
+              onValueChange={(v) =>
+                setPersonality({ ...personality, tone: v as BotPersonality["tone"] })
+              }
+            >
+              <SelectTrigger className="max-w-md">
+                <SelectValue placeholder="Select a tone" />
+              </SelectTrigger>
+              <SelectContent>
+                {toneOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value} description={opt.desc}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
             <label className="text-sm font-medium text-gray-700 mb-3 block">Emoji Usage</label>
-            <div className="flex gap-2 flex-wrap">
-              {emojiOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setPersonality({ ...personality, emoji_usage: opt.value })}
-                  className={cn(
-                    "px-4 py-2 rounded-lg text-sm font-medium transition-all",
-                    personality.emoji_usage === opt.value
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            <Select
+              value={personality.emoji_usage}
+              onValueChange={(v) =>
+                setPersonality({ ...personality, emoji_usage: v as BotPersonality["emoji_usage"] })
+              }
+            >
+              <SelectTrigger className="max-w-md">
+                <SelectValue placeholder="Select emoji usage" />
+              </SelectTrigger>
+              <SelectContent>
+                {emojiOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
             <label className="text-sm font-medium text-gray-700 mb-3 block">Response Style</label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {styleOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setPersonality({ ...personality, response_style: opt.value })}
-                  className={cn(
-                    "rounded-xl border-2 p-4 text-left transition-all",
-                    personality.response_style === opt.value
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  )}
-                >
-                  <p className="text-sm font-medium text-gray-900">{opt.label}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
-                </button>
-              ))}
-            </div>
+            <Select
+              value={personality.response_style}
+              onValueChange={(v) =>
+                setPersonality({
+                  ...personality,
+                  response_style: v as BotPersonality["response_style"],
+                })
+              }
+            >
+              <SelectTrigger className="max-w-md">
+                <SelectValue placeholder="Select a response style" />
+              </SelectTrigger>
+              <SelectContent>
+                {styleOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value} description={opt.desc}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>

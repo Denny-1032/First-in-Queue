@@ -592,18 +592,23 @@ function ChatContent() {
           if (data.status === "limit_reached") showTyping(false);
           if (typeof data.online === "boolean") setOnline(data.online);
         }
-        // Only a delivered message is on the server, so only then is it safe to
-        // drop the optimistic row. On failure it stays put, so the visitor can
-        // still see what they typed.
-        //
-        // Dropped HERE rather than being left to the refetch below: the history
-        // request can fail (a rate-limited poll window, a network blip) and a
-        // stranded optimistic row is exactly what produced the faded duplicate
-        // sitting under the assistant's reply.
-        if (res.ok) setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
-
         // Awaited so the `finally` below cannot resume polling mid-flight.
-        await fetchHistory(res.ok);
+        //
+        // The optimistic row is NOT dropped before this call. fetchHistory(true)
+        // clears pending rows in the same setMessages that installs the server
+        // list, so the visitor's bubble is replaced in a single commit. Dropping
+        // it first meant one render with neither the optimistic row nor the
+        // server's copy on screen - the message blinked out and then reappeared
+        // alongside the reply.
+        const historyStatus = await fetchHistory(res.ok);
+
+        // Only a FAILED refetch can strand the optimistic row, and a stranded row
+        // is what used to render as a faded duplicate under the assistant's reply
+        // once polling resumed. The message is already saved server-side (res.ok),
+        // so the next successful poll brings it back.
+        if (res.ok && historyStatus !== 200) {
+          setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+        }
 
         // History now carries the server's own copy of the attachment, so the
         // local preview can go.
