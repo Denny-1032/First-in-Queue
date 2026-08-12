@@ -24,11 +24,18 @@ const MIN_ENTRY_CHARS = 120;
  *
  * buildSystemPrompt() concatenates every entry into the system prompt on every
  * single request - there is no retrieval step - so the knowledge base is a
- * per-message cost, not a stored asset. 30k characters is roughly 7.5k tokens
- * before the conversation even starts, which is as far as this should be pushed
- * until the engine can select entries instead of sending all of them.
+ * per-message cost, not a stored asset. At 30k (~7.5k tokens) the old builds
+ * dropped roughly half of the material actually captured from zra.org.zm and
+ * pacra.org.zm - customs, tax incentives, mineral royalty, the PAYE band table
+ * itself - which is the difference between the assistant answering and saying it
+ * does not know. 72k (~18k tokens) fits the entire curated capture for both
+ * institutions with headroom, and is a per-tenant cost only (one KB per tenant,
+ * not both at once). 72k covers ZRA once its Withholding Tax rate schedule is
+ * included. This is still the interim answer until the engine can
+ * SELECT entries per question instead of sending all of them; once retrieval
+ * exists this ceiling comes back down.
  */
-const MAX_TOTAL_CHARS = Number(process.env.KB_MAX_CHARS || 30000);
+const MAX_TOTAL_CHARS = Number(process.env.KB_MAX_CHARS || 72000);
 
 function decodeEntities(s) {
   return String(s || "")
@@ -59,9 +66,13 @@ function clean(s) {
  */
 function applyBudget(entries) {
   const kept = [];
-  let total = 0;
+  const seen = new Set(); // drop verbatim duplicates - the same paragraph is
+  let total = 0; // captured under several headings and each copy wastes budget.
   for (const e of entries) {
+    const key = e.content.trim().toLowerCase();
+    if (seen.has(key)) continue;
     if (total + e.content.length > MAX_TOTAL_CHARS) continue;
+    seen.add(key);
     kept.push(e);
     total += e.content.length;
   }
@@ -82,8 +93,22 @@ function splitIntoSections(text) {
   let current = { heading: "", body: [] };
 
   for (const line of lines) {
+    // A heading is a short, self-contained label. The crude test below used to
+    // promote mid-sentence body lines ("K12,000 up to K800,000", "c) remit tax
+    // deducted to ZRA", "Energy Minerals; and") into their own sections, which
+    // produced garbage topics AND split real answers across entries. Tighten it:
+    // reject data lines (currency/percent), list continuations, and fragments
+    // that open or close mid-thought. Content is never altered - a rejected
+    // line simply stays in the body of the section it belongs to.
     const looksLikeHeading =
-      line.length <= 70 && !/[.:;,]$/.test(line) && /[A-Za-z]/.test(line) && line.split(" ").length <= 10;
+      line.length <= 70 &&
+      !/[.:;,]$/.test(line) && // ends in sentence punctuation
+      /[A-Za-z]/.test(line) &&
+      line.split(" ").length <= 10 &&
+      /^[A-Z(]/.test(line) && // real headings start uppercase (or a paren)
+      !/\b(and|or|the|of|to|a|an|but|with|for)$/i.test(line) && // trails mid-thought
+      !/(K\s?[\d,]|\d%|\bper cent\b)/i.test(line) && // a figure line, not a label
+      !/^(a|b|c|d|e|i|ii|iii|iv|v)\)/i.test(line); // list continuation, e.g. "c)"
     if (looksLikeHeading && current.body.length) {
       sections.push(current);
       current = { heading: line, body: [] };
