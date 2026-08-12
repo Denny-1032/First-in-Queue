@@ -125,6 +125,8 @@ function ChatContent() {
   const [uploading, setUploading] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
   const [dragging, setDragging] = useState(false);
+  /** Whether new messages should pull the view down. False while reading back. */
+  const [stickToBottom, setStickToBottom] = useState(true);
 
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -371,10 +373,26 @@ function ChatContent() {
     return () => window.removeEventListener("message", onMessage);
   }, [post]);
 
-  // Keep the newest message in view.
+  // Keep the newest message in view - but only while the reader is already at
+  // the bottom. Scrolling unconditionally on every message and every typing tick
+  // yanked people back down mid-sentence whenever they scrolled up to re-read
+  // something, which during a streamed reply is continuous.
   useEffect(() => {
+    if (!stickToBottom) return;
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, typing]);
+  }, [messages, typing, stickToBottom]);
+
+  /**
+   * Re-arm auto-scroll when the reader returns to the bottom, disarm the moment
+   * they leave it. The threshold is generous because smooth scrolling lands a
+   * pixel or two short and would otherwise disarm itself.
+   */
+  const onListScroll = useCallback(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setStickToBottom(distanceFromBottom < 48);
+  }, []);
 
   // ---------------------------------------------------------------- attachments
 
@@ -667,6 +685,7 @@ function ChatContent() {
       <div
         className="fiq-list"
         ref={listRef}
+        onScroll={onListScroll}
         role="log"
         aria-live="polite"
         aria-label="Conversation"

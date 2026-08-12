@@ -24,6 +24,7 @@ import {
   Loader2,
   RefreshCw,
   Phone,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -58,6 +59,10 @@ export default function AIConfigPage() {
   const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeEntry[]>(defaultKnowledge);
   const [faqs, setFaqs] = useState<FAQ[]>(defaultFaqs);
   const [customInstructions, setCustomInstructions] = useState("");
+  // One sentence naming what this organisation actually is. Onboarding seeds it
+  // from an industry template and, until this field existed, nothing could
+  // change it - so tenants ran with a description of somebody else's business.
+  const [description, setDescription] = useState("");
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [businessDescription, setBusinessDescription] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -179,6 +184,7 @@ export default function AIConfigPage() {
             if (cfg.personality) setPersonality(cfg.personality);
             if (cfg.knowledge_base?.length) setKnowledgeBase(cfg.knowledge_base);
             if (cfg.faqs?.length) setFaqs(cfg.faqs);
+            if (cfg.description) setDescription(cfg.description);
             if (cfg.custom_instructions) setCustomInstructions(cfg.custom_instructions);
             if (cfg.voice_callback_enabled !== undefined) setVoiceCallbackEnabled(cfg.voice_callback_enabled);
             if (cfg.voice_callback_agent_id) setVoiceCallbackAgentId(cfg.voice_callback_agent_id);
@@ -307,6 +313,7 @@ export default function AIConfigPage() {
                   body: JSON.stringify({
                     config: {
                       personality,
+                      description,
                       knowledge_base: knowledgeBase,
                       faqs,
                       custom_instructions: customInstructions,
@@ -1003,6 +1010,33 @@ export default function AIConfigPage() {
               />
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* What this business is */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-emerald-600" />
+            <CardTitle>Business Description</CardTitle>
+          </div>
+          <CardDescription>
+            One or two sentences on what your organisation actually does. Both the chat and voice
+            agents read this before anything else, so a wrong description here colours every answer.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g., The national companies registry. We register businesses, handle annual returns and name searches, and administer intellectual property."
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[90px] resize-y"
+          />
+          <p className="mt-2 text-xs text-gray-500">
+            New workspaces start with example text from an industry template. If this still describes
+            a business that is not yours, replace it - the agents ignore the template wording, but
+            they cannot guess what belongs there instead.
+          </p>
         </CardContent>
       </Card>
 
