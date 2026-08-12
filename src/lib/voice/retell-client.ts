@@ -88,8 +88,16 @@ export function buildVoiceSystemPrompt(config: BusinessConfig, transferNumber?: 
     balanced: "Balance brevity with helpfulness. Be informative but not verbose.",
   };
 
+  // The knowledge base is NOT inlined here. It is uploaded to Retell as a native
+  // Knowledge Base (syncKnowledgeBaseToRetell) and attached to the LLM, so Retell
+  // retrieves the relevant part per turn instead of us shipping every entry in a
+  // static prompt - which does not fit once a tenant has a few hundred entries.
+  //
+  // Consequence worth remembering: if that sync fails, the agent has no knowledge
+  // at all rather than a large prompt. The callers surface sync failures as
+  // warnings for exactly that reason.
   const knowledgeBlock = config.knowledge_base.length > 0
-    ? `\n\nBUSINESS KNOWLEDGE BASE:\n${config.knowledge_base.map((k) => `- ${k.topic}: ${k.content}`).join("\n")}`
+    ? `\n\nKNOWLEDGE BASE: You have an attached knowledge base covering this organisation's services, fees and requirements. Search it before answering any factual question, and answer only from what it returns.`
     : "";
 
   // Drop a description the tenant never wrote. The seed sentence from the
@@ -110,7 +118,7 @@ export function buildVoiceSystemPrompt(config: BusinessConfig, transferNumber?: 
 
 ROLE: You are a dedicated customer care representative handling phone calls. Your ONLY purpose is to help customers of ${config.business_name} with their questions, issues, and needs.
 
-GROUNDING: Everything you say about ${config.business_name} - what it does, what it charges, what it requires, how long it takes - must come from the knowledge base and FAQs below. They are the only description of this organisation you have. Never infer what kind of business this is from its name or from anything else you know; if the answer is not below, say you do not have it and offer to put the caller through.${descriptionBlock}
+GROUNDING: Everything you say about ${config.business_name} - what it does, what it charges, what it requires, how long it takes - must come from your attached knowledge base and the FAQs below. They are the only description of this organisation you have. Never infer what kind of business this is from its name or from anything else you know; if you cannot find the answer, say you do not have it and offer to put the caller through.${descriptionBlock}
 
 PERSONALITY & STYLE:
 - ${toneMap[personality.tone] || toneMap.friendly}

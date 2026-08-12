@@ -3,6 +3,7 @@ import { requireSession, AuthError } from "@/lib/auth/session";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { mergeTenantConfig } from "@/lib/onboarding/state";
 import { cleanFaqs, cleanKnowledge, FREE_KB_CAP_BYTES } from "@/lib/onboarding/knowledge-input";
+import { syncTenantKbIndexSafe } from "@/lib/ai/kb-index";
 
 // =============================================
 // Commit the reviewed FAQs + knowledge base into the tenant config (§7 step 5).
@@ -32,6 +33,10 @@ export async function POST(request: NextRequest) {
     const { kept: knowledge_base, dropped } = cleanKnowledge(body.knowledge_base);
 
     await mergeTenantConfig(getSupabaseAdmin(), session.tenantId, { faqs, knowledge_base });
+
+    // Keep the retrieval index in step with what was just committed. Non-fatal:
+    // retrieval falls back to the whole base if the index is missing or stale.
+    await syncTenantKbIndexSafe({ tenantId: session.tenantId, entries: knowledge_base });
 
     return NextResponse.json({
       committed: { faqs: faqs.length, knowledge_base: knowledge_base.length },

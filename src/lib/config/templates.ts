@@ -1,4 +1,4 @@
-import type { BusinessConfig } from "@/types";
+import type { BusinessConfig, Industry } from "@/types";
 
 export const templates: Record<string, BusinessConfig> = {
   ecommerce: {
@@ -844,6 +844,42 @@ export function getTemplate(industry: string): BusinessConfig | null {
 }
 
 /**
+ * What a brand new tenant starts with.
+ *
+ * Signup used to clone `templates.ecommerce`, so every account - a companies
+ * registry, a tax authority - began life owning eight knowledge entries about
+ * order tracking and returns, ten e-commerce FAQs, and an industry it never
+ * picked. The AI then answered from that seed data as if it were true.
+ *
+ * So: real defaults for the things every tenant needs (a personality, a
+ * greeting), and empty for everything that describes a specific business.
+ * Industry stays null until someone chooses one, which is what makes the
+ * wizard's skip path leave no trace.
+ */
+export const BLANK_CONFIG: BusinessConfig = {
+  business_name: "",
+  industry: null,
+  description: "",
+  personality: {
+    name: "Assistant",
+    tone: "friendly",
+    emoji_usage: "minimal",
+    response_style: "balanced",
+  },
+  welcome_message: "Hi {customer_name}! How can I help you today?",
+  fallback_message:
+    "Sorry, something went wrong on our end. Please try again in a moment.",
+  languages: ["en"],
+  default_language: "en",
+  knowledge_base: [],
+  faqs: [],
+  quick_replies: [],
+  flows: [],
+  escalation_rules: [],
+  custom_instructions: "",
+};
+
+/**
  * Every description shipped as seed data above.
  *
  * Onboarding copies a whole template into the tenant's config, and nothing in
@@ -864,7 +900,7 @@ export function isTemplateDescription(description: string | null | undefined): b
   return TEMPLATE_DESCRIPTIONS.has(description.trim().toLowerCase());
 }
 
-export function getAvailableTemplates(): Array<{ id: string; name: string; industry: string }> {
+export function getAvailableTemplates(): Array<{ id: string; name: string; industry: Industry | null }> {
   return Object.entries(templates).map(([key, config]) => ({
     id: key,
     name: config.business_name,

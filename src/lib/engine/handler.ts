@@ -1100,7 +1100,7 @@ function checkUrgentEscalation(
   return null;
 }
 
-function getUrgentSafetyMessage(industry: string, keyword: string): string {
+function getUrgentSafetyMessage(industry: string | null, keyword: string): string {
   // Industry-specific immediate safety responses
   const safetyMessages: Record<string, Record<string, string>> = {
     healthcare: {
@@ -1148,7 +1148,9 @@ function getUrgentSafetyMessage(industry: string, keyword: string): string {
     },
   };
 
-  const industryMessages = safetyMessages[industry];
+  // No industry chosen falls through to the generic urgency message below,
+  // exactly as an unrecognised industry already did.
+  const industryMessages = industry ? safetyMessages[industry] : undefined;
   if (industryMessages) {
     // Try exact match first, then partial match
     if (industryMessages[keyword]) return industryMessages[keyword];

@@ -114,7 +114,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to save voice agent" }, { status: 500 });
     }
 
-    return NextResponse.json({ agent }, { status: 201 });
+    // Attach the knowledge base. The system prompt no longer carries the entries
+    // themselves, so without this the new agent knows nothing about the business.
+    const createWarnings: string[] = [];
+    if (tenant.config.knowledge_base?.length || tenant.config.faqs?.length) {
+      try {
+        const kbResult = await syncKnowledgeBaseToRetell({
+          config: tenant.config,
+          tenantName: tenant.config.business_name || "FiQ Business",
+          existingKbId: null,
+        });
+        await supabase
+          .from("voice_agents")
+          .update({ retell_kb_id: kbResult.knowledgeBaseId })
+          .eq("id", agent.id);
+      } catch (kbError) {
+        const errorMsg = kbError instanceof Error ? kbError.message : String(kbError);
+        console.error("[Voice Agents] KB sync FAILED on create (non-fatal):", kbError);
+        createWarnings.push(
+          `Voice agent "${agentName}": knowledge base sync failed - ${errorMsg}. The agent will not be able to answer questions about your business until you save it again.`
+        );
+      }
+    }
+
+    return NextResponse.json(
+      { agent, ...(createWarnings.length > 0 && { warnings: createWarnings }) },
+      { status: 201 }
+    );
   } catch (error) {
     if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     const msg = error instanceof Error ? error.message : String(error);

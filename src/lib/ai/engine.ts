@@ -1,12 +1,14 @@
 import OpenAI from "openai";
-import type { AIContext, AIResponse, BookingSettings, BusinessConfig, Industry, OperatingHours } from "@/types";
+import type { AIContext, AIResponse, BookingSettings, BusinessConfig, Industry, KnowledgeEntry, OperatingHours } from "@/types";
+import { retrieveKnowledge } from "@/lib/ai/kb-retrieval";
 import { BOOKING_TOOLS, executeBookingTool, type BookingToolContext } from "@/lib/ai/booking-tools";
 import { nowInTimezone } from "@/lib/booking/availability";
 import { isTemplateDescription } from "@/lib/config/templates";
 
 // --- Industry-Specific Prompt Blocks ---
 
-function getIndustryPrompt(industry: Industry): string {
+function getIndustryPrompt(industry: Industry | null): string {
+  if (!industry) return "";
   const prompts: Record<string, string> = {
     ecommerce: `INDUSTRY CONTEXT - E-COMMERCE:
 You are a shopping assistant. Most customers want quick answers about their orders.
@@ -169,7 +171,9 @@ DATA TO COLLECT:
   return prompts[industry] || "";
 }
 
-function getIndustryIntents(industry: Industry): string {
+function getIndustryIntents(industry: Industry | null): string {
+  const GENERIC = "greeting|inquiry|complaint|support|feedback|other";
+  if (!industry) return GENERIC;
   const intents: Record<string, string> = {
     ecommerce: "greeting|order_status|return_request|product_inquiry|payment_issue|shipping_inquiry|account_help|promotion_inquiry|complaint|feedback|other",
     healthcare: "greeting|appointment_booking|appointment_change|prescription_refill|lab_results|insurance_inquiry|urgent_triage|general_health_question|billing|complaint|feedback|other",
@@ -180,7 +184,7 @@ function getIndustryIntents(industry: Industry): string {
     finance: "greeting|fraud_report|account_access|loan_inquiry|account_inquiry|transfer_help|card_issue|investment_question|billing|complaint|feedback|other",
     saas: "greeting|onboarding_help|bug_report|feature_question|billing_inquiry|account_management|integration_help|cancellation|complaint|feedback|other",
   };
-  return intents[industry] || "greeting|inquiry|complaint|support|feedback|other";
+  return intents[industry] || GENERIC;
 }
 
 function buildEscalationPrompt(config: BusinessConfig): string {
@@ -230,7 +234,16 @@ When you detect that the customer's request matches a flow, suggest it via sugge
 Prefer triggering a flow over giving a generic answer when the customer's intent clearly matches. Flows collect structured data and provide better service.`;
 }
 
-function buildSystemPrompt(config: BusinessConfig, tenantId?: string): string {
+/**
+ * `kbOverride` is the subset of the knowledge base retrieval picked for this
+ * message. Undefined means "no selection was made" - send the whole base, which
+ * is the behaviour every caller had before retrieval existed.
+ */
+function buildSystemPrompt(
+  config: BusinessConfig,
+  tenantId?: string,
+  kbOverride?: KnowledgeEntry[]
+): string {
   const personality = config.personality;
   const toneMap = {
     professional: "Maintain a professional, polished tone at all times.",
@@ -255,8 +268,9 @@ function buildSystemPrompt(config: BusinessConfig, tenantId?: string): string {
   const escalationBlock = buildEscalationPrompt(config);
   const flowBlock = buildFlowSuggestionPrompt(config);
 
-  const knowledgeBlock = config.knowledge_base.length > 0
-    ? `\n\nBUSINESS KNOWLEDGE BASE:\n${config.knowledge_base.map((k) => `- ${k.topic}: ${k.content}`).join("\n")}`
+  const knowledgeEntries = kbOverride ?? config.knowledge_base;
+  const knowledgeBlock = knowledgeEntries.length > 0
+    ? `\n\nBUSINESS KNOWLEDGE BASE:\n${knowledgeEntries.map((k) => `- ${k.topic}: ${k.content}`).join("\n")}`
     : "";
 
   const faqBlock = config.faqs.length > 0
@@ -382,8 +396,29 @@ export class AIEngine {
     this.model = model || process.env.OPENAI_MODEL || "gpt-4o";
   }
 
+  /**
+   * The entries worth sending for THIS message, or undefined to send them all.
+   *
+   * Never throws: retrieveKnowledge swallows its own failures and returns null,
+   * and null here means the prompt keeps the pre-retrieval behaviour.
+   */
+  private async selectKnowledge(context: AIContext): Promise<KnowledgeEntry[] | undefined> {
+    if (!context.tenant_id) return undefined;
+    const lastUser = [...context.conversation_history].reverse().find((m) => m.role === "user");
+    if (!lastUser?.content) return undefined;
+
+    const selected = await retrieveKnowledge({
+      tenantId: context.tenant_id,
+      query: lastUser.content,
+      entries: context.tenant_config.knowledge_base,
+      openai: this.openai,
+    });
+    return selected ?? undefined;
+  }
+
   async generateResponse(context: AIContext): Promise<AIResponse> {
-    let systemPrompt = buildSystemPrompt(context.tenant_config, context.tenant_id);
+    const retrievedKnowledge = await this.selectKnowledge(context);
+    let systemPrompt = buildSystemPrompt(context.tenant_config, context.tenant_id, retrievedKnowledge);
 
     const bookingSettings = context.tenant_config.booking_settings;
     const bookingEnabled = !!(bookingSettings?.enabled && context.booking_context);

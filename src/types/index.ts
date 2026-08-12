@@ -20,7 +20,10 @@ export interface Tenant {
 // --- Business Configuration ---
 export interface BusinessConfig {
   business_name: string;
-  industry: Industry;
+  // null until the owner picks one. A tenant used to be born as an e-commerce
+  // store, which put a shopping assistant's instincts in front of registries
+  // and tax authorities. "Not chosen yet" has to be representable.
+  industry: Industry | null;
   description: string;
   personality: BotPersonality;
   welcome_message: string;

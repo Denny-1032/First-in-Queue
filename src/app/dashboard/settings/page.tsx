@@ -18,13 +18,55 @@ import {
   MessageSquare,
   Wallet,
   CalendarCheck,
+  ChevronDown,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/dialogs";
 import { CheckoutModal } from "@/components/dashboard/checkout-modal";
 import { CreditPanel } from "@/components/dashboard/credit-panel";
 import { PLANS } from "@/lib/lipila/plans";
+
+const INDUSTRY_OPTIONS = [
+  "ecommerce",
+  "healthcare",
+  "restaurant",
+  "realestate",
+  "education",
+  "travel",
+  "finance",
+  "saas",
+];
+
+const LANGUAGE_OPTIONS = [
+  { code: "en", name: "English" },
+  { code: "es", name: "Spanish" },
+  { code: "fr", name: "French" },
+  { code: "pt", name: "Portuguese" },
+  { code: "de", name: "German" },
+  { code: "it", name: "Italian" },
+  { code: "ar", name: "Arabic" },
+  { code: "zh", name: "Chinese" },
+  { code: "ja", name: "Japanese" },
+  { code: "hi", name: "Hindi" },
+];
+
+/** Names while they fit on the trigger, a count once they do not. */
+function languageSummary(codes: string[]): string {
+  if (codes.length === 0) return "Select languages";
+  const names = codes
+    .map((c) => LANGUAGE_OPTIONS.find((l) => l.code === c)?.name)
+    .filter(Boolean) as string[];
+  if (names.length <= 3) return names.join(", ");
+  return `${names.length} languages selected`;
+}
 
 const TABS = [
   { id: "business", label: "Business", icon: Building2 },
@@ -47,12 +89,16 @@ function SettingsContent() {
   const confirm = useConfirm();
   const [saving, setSaving] = useState(false);
   const [tenantId, setTenantId] = useState<string | null>(null);
-  const [businessName, setBusinessName] = useState("My Store");
-  const [industry, setIndustry] = useState("ecommerce");
-  const [welcomeMessage, setWelcomeMessage] = useState("Hey {customer_name}! Welcome to {business_name} 🛍️\nHow can I help you today?");
-  const [fallbackMessage, setFallbackMessage] = useState("Sorry, something went wrong. Please try again or email support@mystore.com");
-  const [outsideHoursMsg, setOutsideHoursMsg] = useState("Thanks for reaching out! We're currently closed. Our hours are Mon-Fri 9AM-6PM. We'll get back to you first thing!");
-  const [languages, setLanguages] = useState(["en", "es"]);
+  // Placeholders only until the saved config loads. They start empty rather than
+  // as a fictional online store: whatever sits here is what an owner who never
+  // touched the field ends up saving, and "My Store" selling with a shopping-bag
+  // emoji is not true of a companies registry or a tax authority.
+  const [businessName, setBusinessName] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [welcomeMessage, setWelcomeMessage] = useState("");
+  const [fallbackMessage, setFallbackMessage] = useState("");
+  const [outsideHoursMsg, setOutsideHoursMsg] = useState("Thanks for reaching out! We're currently closed. We'll get back to you as soon as we're open.");
+  const [languages, setLanguages] = useState<string[]>([]);
   const [whatsappConnected, setWhatsappConnected] = useState(false);
   const [currentPlanId, setCurrentPlanId] = useState("free");
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("active");
@@ -294,56 +340,52 @@ function SettingsContent() {
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1.5 block">Industry</label>
-              <div className="flex gap-2 flex-wrap">
-                {["ecommerce", "healthcare", "restaurant", "realestate", "education", "travel", "finance", "saas"].map((ind) => (
-                  <button
-                    key={ind}
-                    onClick={() => setIndustry(ind)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize",
-                      industry === ind
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-gray-100 text-gray-600 hover:bg-emerald-100 hover:text-emerald-700"
-                    )}
-                  >
-                    {ind}
-                  </button>
-                ))}
-              </div>
+              <Select value={industry} onValueChange={setIndustry}>
+                <SelectTrigger className="max-w-md capitalize">
+                  <SelectValue placeholder="Select an industry" />
+                </SelectTrigger>
+                <SelectContent>
+                  {INDUSTRY_OPTIONS.map((ind) => (
+                    <SelectItem key={ind} value={ind} className="capitalize">
+                      {ind}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1.5 block">Languages</label>
-              <div className="flex gap-2 flex-wrap">
-                {[
-                  { code: "en", name: "English" },
-                  { code: "es", name: "Spanish" },
-                  { code: "fr", name: "French" },
-                  { code: "pt", name: "Portuguese" },
-                  { code: "de", name: "German" },
-                  { code: "it", name: "Italian" },
-                  { code: "ar", name: "Arabic" },
-                  { code: "zh", name: "Chinese" },
-                  { code: "ja", name: "Japanese" },
-                  { code: "hi", name: "Hindi" },
-                ].map((lang) => (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <button
-                    key={lang.code}
-                    onClick={() => {
-                      setLanguages((prev) =>
-                        prev.includes(lang.code) ? prev.filter((l) => l !== lang.code) : [...prev, lang.code]
-                      );
-                    }}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                      languages.includes(lang.code)
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                    )}
+                    type="button"
+                    className="flex h-10 w-full max-w-md items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
                   >
-                    {lang.name}
+                    <span className={cn("truncate", languages.length === 0 && "text-gray-400")}>
+                      {languageSummary(languages)}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
                   </button>
-                ))}
-              </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
+                  {LANGUAGE_OPTIONS.map((lang) => (
+                    <DropdownMenuCheckboxItem
+                      key={lang.code}
+                      checked={languages.includes(lang.code)}
+                      // Radix closes on select by default; keep it open so several
+                      // languages can be ticked in one go.
+                      onSelect={(e) => e.preventDefault()}
+                      onCheckedChange={(checked) =>
+                        setLanguages((prev) =>
+                          checked ? [...prev, lang.code] : prev.filter((l) => l !== lang.code)
+                        )
+                      }
+                    >
+                      {lang.name}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* WhatsApp connection. A status line, not a section - the number is

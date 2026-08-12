@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { hashPassword, generateAuthToken } from "@/lib/auth/password";
-import { templates } from "@/lib/config/templates";
+import { BLANK_CONFIG } from "@/lib/config/templates";
 import { trackEvent } from "@/lib/analytics/track";
 
 export async function POST(request: NextRequest) {
@@ -47,8 +47,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create tenant for this business owner
-    const template = templates.ecommerce;
+    // Create tenant for this business owner. Starts blank - an industry and its
+    // sample data are only seeded once the owner picks one in the wizard.
     const { data: tenant, error: tenantError } = await db
       .from("tenants")
       .insert({
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
         whatsapp_access_token: "",
         whatsapp_business_account_id: "",
         openai_api_key: "",
-        config: { ...template, business_name: name + "'s Business", onboarding: { step: 1 } },
+        config: { ...BLANK_CONFIG, business_name: name + "'s Business", onboarding: { step: 1 } },
         is_active: true,
       })
       .select()

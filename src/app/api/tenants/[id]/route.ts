@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantById } from "@/lib/db/operations";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { syncTenantKbIndexSafe } from "@/lib/ai/kb-index";
 
 export async function GET(
   request: NextRequest,
@@ -56,6 +57,18 @@ export async function PATCH(
       console.error("[API] Error updating tenant:", error);
       return NextResponse.json({ error: "Failed to update tenant" }, { status: 500 });
     }
+
+    // Refresh the retrieval index when the knowledge base itself changed.
+    // Non-fatal by design: a failed index degrades to sending the whole base,
+    // whereas failing the response would lose the edit the user just made.
+    if (body.config?.knowledge_base) {
+      await syncTenantKbIndexSafe({
+        tenantId: id,
+        entries: mergedConfig.knowledge_base || [],
+        apiKey: existing.openai_api_key || undefined,
+      });
+    }
+
     return NextResponse.json(data);
   } catch (error) {
     console.error("[API] Error updating tenant:", error);

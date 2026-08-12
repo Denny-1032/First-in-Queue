@@ -739,11 +739,7 @@ export default function VoiceConfigPage() {
                   )}
 
                   {/* Save button */}
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Retell Agent ID: {editAgent.retell_agent_id.slice(0, 12)}...
-                    </div>
+                  <div className="flex items-center justify-end pt-2 border-t border-gray-100">
                     <Button
                       onClick={handleSave}
                       disabled={saving}
