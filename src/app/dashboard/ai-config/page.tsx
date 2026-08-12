@@ -27,8 +27,17 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
-import { parseMarkdownToKnowledgeEntries } from "@/lib/knowledge-parser";
+import { parseMarkdownToKnowledgeEntries, parseKnowledgeEntriesJson } from "@/lib/knowledge-parser";
 import type { BotPersonality, FAQ, KnowledgeEntry } from "@/types";
+
+// buildSystemPrompt() sends the *entire* knowledge base with every single message,
+// so size here is a per-reply cost, not just storage. Warn past this, don't block:
+// a big knowledge base is a legitimate thing to want.
+const KB_SIZE_WARN_CHARS = 30_000;
+
+function knowledgeBaseChars(entries: KnowledgeEntry[]): number {
+  return entries.reduce((sum, e) => sum + e.topic.length + e.content.length, 0);
+}
 
 const defaultPersonality: BotPersonality = {
   name: "Alex",
@@ -202,6 +211,16 @@ export default function AIConfigPage() {
 
   const addKnowledgeEntry = () => {
     setKnowledgeBase([...knowledgeBase, { id: Date.now().toString(), topic: "", content: "", keywords: [] }]);
+  };
+
+  const warnIfKnowledgeBaseOversized = (entries: KnowledgeEntry[]) => {
+    const chars = knowledgeBaseChars(entries);
+    if (chars > KB_SIZE_WARN_CHARS) {
+      toast(
+        `Knowledge base is now ~${Math.round(chars / 1000)}k characters. All of it is sent with every message, so replies will cost more and may slow down.`,
+        "warning"
+      );
+    }
   };
 
   const removeKnowledgeEntry = (id: string) => {
@@ -605,7 +624,7 @@ export default function AIConfigPage() {
                 <p className="text-sm font-semibold">Quick Knowledge Setup</p>
               </div>
               <p className="text-xs text-purple-600">
-                Paste a description or upload a file (.txt, .csv, .md) with your business info. We&apos;ll organize it into knowledge entries.
+                Paste a description or upload a file (.txt, .csv, .md, .json) with your business info. We&apos;ll organize it into knowledge entries. A .json file of <code>topic</code>/<code>content</code> entries is imported exactly as written.
               </p>
               <div className="flex items-center gap-2">
                 <Button
@@ -617,11 +636,11 @@ export default function AIConfigPage() {
                   <FileText className="h-3.5 w-3.5" />
                   Upload File
                 </Button>
-                <span className="text-xs text-purple-400">Supports .txt, .csv, .md files</span>
+                <span className="text-xs text-purple-400">Supports .txt, .csv, .md, .json files</span>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".txt,.csv,.md,.markdown,.text"
+                  accept=".txt,.csv,.md,.markdown,.text,.json"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
@@ -630,6 +649,29 @@ export default function AIConfigPage() {
                     reader.onload = (ev) => {
                       const text = ev.target?.result as string;
                       if (text) {
+                        // JSON first: an already-structured knowledge base goes
+                        // straight in verbatim, with no generation step to
+                        // paraphrase published fees and form names.
+                        if (file.name.endsWith('.json')) {
+                          try {
+                            const { entries, skipped } = parseKnowledgeEntriesJson(text);
+                            if (entries.length === 0) {
+                              toast(`No usable entries in ${file.name} - each one needs a topic and content`, "error");
+                              return;
+                            }
+                            const next = [...knowledgeBase, ...entries];
+                            setKnowledgeBase(next);
+                            toast(
+                              skipped > 0
+                                ? `Added ${entries.length} knowledge entries from ${file.name} (${skipped} skipped - missing topic or content)`
+                                : `Added ${entries.length} knowledge entries from ${file.name}`
+                            );
+                            warnIfKnowledgeBaseOversized(next);
+                          } catch (err) {
+                            toast(err instanceof Error ? err.message : `Could not read ${file.name}`, "error");
+                          }
+                          return;
+                        }
                         // Check if it's a markdown file
                         if (file.name.endsWith('.md') || file.name.endsWith('.markdown')) {
                           // Parse markdown directly into knowledge entries
@@ -663,6 +705,32 @@ export default function AIConfigPage() {
                   onClick={() => {
                     const text = businessDescription.trim();
                     if (!text) return;
+
+                    // Pasted JSON array - same verbatim import as the file path, so
+                    // pasting a knowledge base doesn't get chopped up as prose.
+                    if (text.startsWith("[")) {
+                      try {
+                        const { entries, skipped } = parseKnowledgeEntriesJson(text);
+                        if (entries.length > 0) {
+                          const next = [...knowledgeBase, ...entries];
+                          setKnowledgeBase(next);
+                          toast(
+                            skipped > 0
+                              ? `Added ${entries.length} knowledge entries (${skipped} skipped - missing topic or content)`
+                              : `Added ${entries.length} knowledge entries`
+                          );
+                          setBusinessDescription("");
+                          setShowBulkImport(false);
+                          warnIfKnowledgeBaseOversized(next);
+                          return;
+                        }
+                        toast("No usable entries in that JSON - each one needs a topic and content", "error");
+                        return;
+                      } catch (err) {
+                        toast(err instanceof Error ? err.message : "Could not read that JSON", "error");
+                        return;
+                      }
+                    }
 
                     // Try to parse as markdown first
                     if (text.includes('#') || text.includes('##')) {

@@ -1,5 +1,63 @@
 import type { KnowledgeEntry } from "@/types";
 
+/**
+ * Import a knowledge base straight from JSON: `[{ topic, content, keywords? }, ...]`.
+ * Extra keys (`source`, and anything else a scrape carried along) are ignored.
+ *
+ * Entries are taken verbatim - no AI pass, no rewriting. These files are source
+ * material (published fees, form names, opening hours) and paraphrasing them is how
+ * a demo ends up quoting a price that does not exist.
+ *
+ * The field rules match `cleanKnowledge` in lib/onboarding/knowledge-input.ts, but
+ * deliberately not its MAX_KB_ENTRIES / FREE_KB_CAP_BYTES caps: those are the
+ * free-tier onboarding cost control, and applying them here would silently drop most
+ * of a real imported knowledge base. Size is warned about at the call site instead.
+ *
+ * Throws on unparseable JSON or a non-array root so the caller can say which.
+ */
+export function parseKnowledgeEntriesJson(
+  jsonContent: string
+): { entries: KnowledgeEntry[]; skipped: number } {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(jsonContent);
+  } catch {
+    throw new Error("That file isn't valid JSON.");
+  }
+
+  if (!Array.isArray(raw)) {
+    throw new Error("Expected a JSON array of entries, each with a topic and content.");
+  }
+
+  const entries: KnowledgeEntry[] = [];
+  let skipped = 0;
+
+  raw.forEach((item, i) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      skipped++;
+      return;
+    }
+    const r = item as Record<string, unknown>;
+    const topic = typeof r.topic === "string" ? r.topic.trim() : "";
+    const content = typeof r.content === "string" ? r.content.trim() : "";
+    if (!topic || !content) {
+      skipped++;
+      return;
+    }
+
+    entries.push({
+      id: typeof r.id === "string" && r.id ? r.id : `kb_${Date.now()}_${i}`,
+      topic: topic.slice(0, 150),
+      content,
+      keywords: Array.isArray(r.keywords)
+        ? (r.keywords as unknown[]).filter((k): k is string => typeof k === "string").slice(0, 12)
+        : [],
+    });
+  });
+
+  return { entries, skipped };
+}
+
 // Utility to create better segmented knowledge base entries from markdown content
 export function parseMarkdownToKnowledgeEntries(markdownContent: string): KnowledgeEntry[] {
   const entries: KnowledgeEntry[] = [];

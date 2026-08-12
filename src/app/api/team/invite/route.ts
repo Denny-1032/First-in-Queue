@@ -77,7 +77,9 @@ export async function POST(request: NextRequest) {
     const token = crypto.randomBytes(48).toString("base64url");
     const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
 
-    await db
+    // Check this before sending: an unchecked failure here mails out a link whose
+    // token was never stored, which reaches the recipient as "invalid invite".
+    const { error: tokenErr } = await db
       .from("agents")
       .update({
         invite_token: token,
@@ -85,6 +87,11 @@ export async function POST(request: NextRequest) {
         invite_accepted_at: null,
       })
       .eq("id", agentId);
+
+    if (tokenErr) {
+      console.error("[Team Invite] Failed to store invite token:", tokenErr);
+      return NextResponse.json({ error: "Failed to create invite" }, { status: 500 });
+    }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://firstinqueue.com";
     const inviteUrl = `${appUrl}/invite/accept?token=${token}`;

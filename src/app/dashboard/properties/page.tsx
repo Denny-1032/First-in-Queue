@@ -80,10 +80,20 @@ function lastSeenLabel(iso: string | null): string | null {
   return `seen ${Math.round(hrs / 24)}d ago`;
 }
 
+// Phrased as a connection, not an installation: the snippet being pasted in is not
+// the thing anyone cares about - whether the widget is talking to us is.
 const STATUS_LABEL: Record<Property["install_status"], string> = {
-  pending: "Not installed yet",
-  verified: "Installed",
-  stale: "Not seen recently",
+  pending: "Not connected",
+  verified: "Connected",
+  stale: "Not connected recently",
+};
+
+// "Connected but gone quiet" is a different problem from "never connected", so it
+// gets amber rather than sharing the grey badge with pending.
+const STATUS_VARIANT: Record<Property["install_status"], "default" | "secondary" | "warning"> = {
+  pending: "secondary",
+  verified: "default",
+  stale: "warning",
 };
 
 function snippetFor(widgetKey: string): string {
@@ -307,7 +317,7 @@ export default function PropertiesPage() {
     <div className="container mx-auto py-8">
       <div className="max-w-3xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Websites</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Website widget</h1>
           <p className="text-gray-600">
             A <strong>property</strong> is one website you install the chat widget on. Each has its
             own key and its own allowed domains.
@@ -388,7 +398,7 @@ export default function PropertiesPage() {
                       <CardDescription>{p.site_url || "No address set"}</CardDescription>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <Badge variant={p.install_status === "verified" ? "default" : "secondary"}>
+                      <Badge variant={STATUS_VARIANT[p.install_status]}>
                         {STATUS_LABEL[p.install_status]}
                       </Badge>
                       {lastSeenLabel(p.last_seen_at) && (

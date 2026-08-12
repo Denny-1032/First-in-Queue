@@ -33,15 +33,16 @@ const navItems = [
   { href: "/dashboard/voice", label: "Voice Agent", icon: Phone },
   { href: "/dashboard/ai-config", label: "Chat Agent", icon: Bot },
   { href: "/dashboard/bookings", label: "Bookings", icon: CalendarDays },
-  { href: "/dashboard/properties", label: "Websites", icon: Globe },
+  { href: "/dashboard/properties", label: "Website widget", icon: Globe },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
-// "Website Widget" used to live here. It configured a separate, voice-only
-// "Call Us" bubble, which the chat widget absorbed - install snippet, colours,
-// welcome message, the call button and the WhatsApp button are all on Websites
-// now. Two entries for one widget only ever sent people to the wrong page.
+// A second "Website Widget" entry used to live here. It configured a separate,
+// voice-only "Call Us" bubble, which the chat widget absorbed - install snippet,
+// colours, welcome message, the call button and the WhatsApp button are all under
+// Website widget now. Two entries for one widget only ever sent people to the
+// wrong page.
 const advancedNavItems = [
   { href: "/dashboard/flows", label: "Flows", icon: Workflow },
   { href: "/dashboard/team", label: "Team", icon: Users },
