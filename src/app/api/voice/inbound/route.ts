@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { withRecordingNotice } from "@/lib/voice/retell-client";
 
 // =============================================
 // Inbound Call Routing API
@@ -62,7 +63,9 @@ export async function POST(request: NextRequest) {
         call_id: call_id,
       },
       // Optional: Override greeting for inbound calls
-      begin_message: `Hello, thank you for calling ${tenant.config?.business_name || "us"}. I'm ${voiceAgent.name}, how can I help you today?`,
+      begin_message: withRecordingNotice(
+        `Hello, thank you for calling ${tenant.config?.business_name || "us"}. I'm ${voiceAgent.name}, how can I help you today?`
+      ),
     };
 
     console.log(`[Inbound Call] Routing call from ${from_number} to ${to_number} -> Agent: ${voiceAgent.retell_agent_id}`);

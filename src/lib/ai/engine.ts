@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import type { AIContext, AIResponse, BookingSettings, BusinessConfig, Industry, OperatingHours } from "@/types";
 import { BOOKING_TOOLS, executeBookingTool, type BookingToolContext } from "@/lib/ai/booking-tools";
 import { nowInTimezone } from "@/lib/booking/availability";
+import { isTemplateDescription } from "@/lib/config/templates";
 
 // --- Industry-Specific Prompt Blocks ---
 
@@ -262,11 +263,19 @@ function buildSystemPrompt(config: BusinessConfig, tenantId?: string): string {
     ? `\n\nFREQUENTLY ASKED QUESTIONS:\n${config.faqs.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join("\n\n")}`
     : "";
 
+  // Same trap as the voice prompt: onboarding seeds `description` from the
+  // industry template and nothing edits it afterwards, so an untouched tenant
+  // leads its prompt with a sentence about a business it is not.
+  const descriptionBlock = isTemplateDescription(config.description)
+    ? ""
+    : `\nBUSINESS DESCRIPTION: ${config.description}\n`;
+
   return `You are ${personality.name}, the AI customer care assistant for ${config.business_name}.
 
 ROLE: You are a dedicated customer care representative. Your ONLY purpose is to help customers of ${config.business_name} with their questions, issues, and needs.
 
-BUSINESS DESCRIPTION: ${config.description}
+GROUNDING: What this organisation does, charges, requires and how long it takes must come from the knowledge base and FAQs below - they are the only description of it you have. Never infer the kind of business from its name. If the answer is not below, say you do not have it rather than guessing.
+${descriptionBlock}
 
 PERSONALITY & STYLE:
 - ${toneMap[personality.tone]}

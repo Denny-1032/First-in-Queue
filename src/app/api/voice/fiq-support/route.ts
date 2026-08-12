@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import Retell from "retell-sdk";
+import { withRecordingNotice } from "@/lib/voice/retell-client";
 
 // =============================================
 // FiQ Support Line - SIP Trunk Handler
@@ -53,7 +54,9 @@ export async function POST(request: NextRequest) {
         call_id: call_id,
         call_type: "fiq_support",
       },
-      begin_message: `Hello, thank you for calling First in Queue support. I'm ${agent.name}, how can I help you today?`,
+      begin_message: withRecordingNotice(
+        `Hello, thank you for calling First in Queue support. I'm ${agent.name}, how can I help you today?`
+      ),
     };
 
     console.log(`[FiQ Support] Routing to agent ${agent.retell_agent_id}`);

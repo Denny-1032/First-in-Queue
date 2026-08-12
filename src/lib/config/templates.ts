@@ -843,6 +843,27 @@ export function getTemplate(industry: string): BusinessConfig | null {
   return templates[industry] || null;
 }
 
+/**
+ * Every description shipped as seed data above.
+ *
+ * Onboarding copies a whole template into the tenant's config, and nothing in
+ * the dashboard edits `description` afterwards - so a tenant that never touched
+ * it still carries the seed sentence. That sentence then leads the AI prompts,
+ * which is how a companies registry ended up introducing itself as an online
+ * store selling quality products with fast delivery.
+ *
+ * Treated as "no description given" rather than deleted, because the templates
+ * are still useful as a starting point in the wizard.
+ */
+const TEMPLATE_DESCRIPTIONS = new Set(
+  Object.values(templates).map((t) => t.description.trim().toLowerCase())
+);
+
+export function isTemplateDescription(description: string | null | undefined): boolean {
+  if (!description) return true;
+  return TEMPLATE_DESCRIPTIONS.has(description.trim().toLowerCase());
+}
+
 export function getAvailableTemplates(): Array<{ id: string; name: string; industry: string }> {
   return Object.entries(templates).map(([key, config]) => ({
     id: key,

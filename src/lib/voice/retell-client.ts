@@ -1,6 +1,7 @@
 import Retell from "retell-sdk";
 import type { BusinessConfig } from "@/types";
 import { nowInTimezone } from "@/lib/booking/availability";
+import { isTemplateDescription } from "@/lib/config/templates";
 
 // =============================================
 // Retell AI Voice Agent Client
@@ -51,6 +52,25 @@ function getRetellClient(): Retell {
 }
 
 /**
+ * Spoken before anything else on every call, inbound or outbound.
+ *
+ * Recording disclosure is a legal requirement in most of the jurisdictions we
+ * operate in, and it only counts if the caller hears it before they say
+ * anything. It therefore belongs in begin_message - not in the system prompt,
+ * where the model may paraphrase it, bury it, or skip it entirely.
+ */
+export const RECORDING_NOTICE = "Please note that this call may be recorded for quality purposes.";
+
+/** Prefix a greeting with the recording notice, without doubling it up. */
+export function withRecordingNotice(greeting: string): string {
+  const trimmed = greeting.trim();
+  if (trimmed.toLowerCase().startsWith(RECORDING_NOTICE.slice(0, 30).toLowerCase())) {
+    return trimmed;
+  }
+  return `${RECORDING_NOTICE} ${trimmed}`;
+}
+
+/**
  * Build a voice-optimised system prompt from BusinessConfig.
  * Similar to the WhatsApp AI prompt but adapted for phone conversations.
  */
@@ -72,6 +92,14 @@ export function buildVoiceSystemPrompt(config: BusinessConfig, transferNumber?: 
     ? `\n\nBUSINESS KNOWLEDGE BASE:\n${config.knowledge_base.map((k) => `- ${k.topic}: ${k.content}`).join("\n")}`
     : "";
 
+  // Drop a description the tenant never wrote. The seed sentence from the
+  // industry template outranked the knowledge base in practice - the agent read
+  // "an online store selling quality products" and answered as one, for a
+  // companies registry whose entire knowledge base said otherwise.
+  const descriptionBlock = isTemplateDescription(config.description)
+    ? ""
+    : `\n\nBUSINESS DESCRIPTION: ${config.description}`;
+
   const faqBlock = config.faqs.length > 0
     ? `\n\nFREQUENTLY ASKED QUESTIONS:\n${config.faqs.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join("\n\n")}`
     : "";
@@ -82,7 +110,7 @@ export function buildVoiceSystemPrompt(config: BusinessConfig, transferNumber?: 
 
 ROLE: You are a dedicated customer care representative handling phone calls. Your ONLY purpose is to help customers of ${config.business_name} with their questions, issues, and needs.
 
-BUSINESS DESCRIPTION: ${config.description}
+GROUNDING: Everything you say about ${config.business_name} - what it does, what it charges, what it requires, how long it takes - must come from the knowledge base and FAQs below. They are the only description of this organisation you have. Never infer what kind of business this is from its name or from anything else you know; if the answer is not below, say you do not have it and offer to put the caller through.${descriptionBlock}
 
 PERSONALITY & STYLE:
 - ${toneMap[personality.tone] || toneMap.friendly}
@@ -263,7 +291,9 @@ export async function createRetellAgent(params: {
     voice_id: params.voiceId || "11labs-Adrian",
     agent_name: params.name,
     language: normalizeLanguage(params.language || "en-US"),
-    begin_message: params.greeting || "Hello, thank you for calling. How can I help you today?",
+    begin_message: withRecordingNotice(
+      params.greeting || "Hello, thank you for calling. How can I help you today?"
+    ),
     general_prompt: params.systemPrompt,
     max_call_duration_ms: (params.maxDurationSeconds || 300) * 1000,
     enable_backchannel: true,
@@ -305,7 +335,7 @@ export async function updateRetellAgent(
   if (params.systemPrompt) updatePayload.general_prompt = params.systemPrompt;
   if (params.voiceId) updatePayload.voice_id = params.voiceId;
   if (params.language) updatePayload.language = normalizeLanguage(params.language);
-  if (params.greeting) updatePayload.begin_message = params.greeting;
+  if (params.greeting) updatePayload.begin_message = withRecordingNotice(params.greeting);
   if (params.maxDurationSeconds) updatePayload.max_call_duration_ms = params.maxDurationSeconds * 1000;
   if (params.transferNumber !== undefined) {
     updatePayload.transfer_list = params.transferNumber
