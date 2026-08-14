@@ -37,6 +37,10 @@ if (!NEXT_PUBLIC_SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !RETELL_API_KEY) 
 
 const args = process.argv.slice(2);
 const DRY = args.includes("--dry-run");
+// Repair agent call settings only. Skips prompt/tools/KB, so re-running to fix
+// webhook or silence settings does not build a second knowledge base and orphan
+// the one the LLM is already using.
+const AGENTS_ONLY = args.includes("--agents-only");
 const only = args.filter((a) => !a.startsWith("--"));
 
 // The landing-page demo and the FiQ support line run on this agent and still
@@ -49,6 +53,39 @@ const retell = new Retell({ apiKey: RETELL_API_KEY });
 
 const MAX_KB_TEXTS = 45;
 const MAX_TEXT_CHARS = 20000;
+
+// Mirrors the constants in src/lib/voice/retell-client.ts.
+const END_CALL_AFTER_SILENCE_MS = 15000;
+const WEBHOOK_URL = process.env.NEXT_PUBLIC_APP_URL
+  ? `${process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/api/voice/webhook`
+  : null;
+if (!WEBHOOK_URL) {
+  console.warn("NEXT_PUBLIC_APP_URL not set - agents will not report call events, so calls and minutes stay unrecorded.");
+}
+
+/**
+ * The booking custom functions live on the LLM. A freshly created LLM has none,
+ * so tenants moved off the shared LLM would silently lose booking-by-voice.
+ */
+function bookingToolDefs() {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const secret = process.env.RETELL_FUNCTION_SECRET;
+  if (!appUrl || !secret) return null;
+  const url = `${appUrl.replace(/\/$/, "")}/api/voice/tools?secret=${encodeURIComponent(secret)}`;
+  const base = { type: "custom", url, speak_during_execution: true, speak_after_execution: true };
+  return [
+    { ...base, name: "check_availability", description: "Check open appointment slots for a date.",
+      parameters: { type: "object", properties: { date: { type: "string" }, service: { type: "string" } }, required: ["date"] } },
+    { ...base, name: "create_booking", description: "Book an appointment once the caller confirms.",
+      parameters: { type: "object", properties: { date: { type: "string" }, time: { type: "string" }, name: { type: "string" }, phone: { type: "string" }, service: { type: "string" } }, required: ["date", "time", "name"] } },
+    { ...base, name: "find_my_bookings", description: "Look up the caller's existing bookings.",
+      parameters: { type: "object", properties: { phone: { type: "string" }, name: { type: "string" } }, required: [] } },
+    { ...base, name: "reschedule_booking", description: "Move an existing booking. Get booking_id from find_my_bookings.",
+      parameters: { type: "object", properties: { booking_id: { type: "string" }, date: { type: "string" }, time: { type: "string" } }, required: ["booking_id", "date", "time"] } },
+    { ...base, name: "cancel_booking", description: "Cancel an existing booking. Get booking_id from find_my_bookings.",
+      parameters: { type: "object", properties: { booking_id: { type: "string" }, reason: { type: "string" } }, required: ["booking_id"] } },
+  ];
+}
 
 /** Mirrors packBlocksIntoTexts() in src/lib/voice/retell-client.ts. */
 function packBlocks(blocks) {
@@ -138,6 +175,7 @@ for (const [tenantId, tenantAgents] of byTenant) {
   }
 
   // 2. Prompt onto the LLM - the step that was never happening.
+  if (!AGENTS_ONLY) {
   const prompt = tenantAgents[0]?.system_prompt || null;
   const { data: agentRow } = await db
     .from("voice_agents")
@@ -164,7 +202,19 @@ for (const [tenantId, tenantAgents] of byTenant) {
     console.log(`  prompt         : pushed ${systemPrompt.length} chars`);
   }
 
-  // 3. Knowledge base, packed under Retell's 50-text limit.
+  // 3. Booking tools onto the tenant LLM. A new LLM starts with none, and the
+  //    shared one these tenants used to point at had them.
+  const tools = bookingToolDefs();
+  if (!tools) {
+    console.log("  booking tools  : SKIPPED - NEXT_PUBLIC_APP_URL or RETELL_FUNCTION_SECRET not set");
+  } else if (DRY) {
+    console.log(`  booking tools  : would register ${tools.length}`);
+  } else {
+    await retell.llm.update(llmId, { general_tools: tools });
+    console.log(`  booking tools  : registered ${tools.length}`);
+  }
+
+  // 4. Knowledge base, packed under Retell's 50-text limit.
   const blocks = buildBlocks(config);
   if (blocks.length === 0) {
     console.log("  knowledge base : none to sync");
@@ -186,7 +236,9 @@ for (const [tenantId, tenantAgents] of byTenant) {
     }
   }
 
-  // 4. Point the tenant's agents at their own LLM.
+  } // end !AGENTS_ONLY
+
+  // 5. Point the tenant's agents at their own LLM.
   for (const a of tenantAgents) {
     if (DEMO_AGENT_ID && a.retell_agent_id === DEMO_AGENT_ID) {
       console.log(`  agent ${a.name}: SKIPPED (landing-page demo / support line)`);
@@ -196,10 +248,18 @@ for (const [tenantId, tenantAgents] of byTenant) {
       console.log(`  agent ${a.name}: would re-point to ${llmId || "the tenant's new LLM"}`);
       continue;
     }
+    // Re-point at the tenant LLM AND repair the call settings that
+    // createRetellAgent never used to send. Without end_call_after_silence_ms
+    // the agent holds a silent line open until max_call_duration_ms; without
+    // webhook_url Retell never reports call_ended, so every call stays
+    // "registered" at 0:00 and no voice minutes are ever metered.
     await retell.agent.update(a.retell_agent_id, {
       response_engine: { type: "retell-llm", llm_id: llmId },
+      end_call_after_silence_ms: END_CALL_AFTER_SILENCE_MS,
+      voicemail_option: { action: { type: "hangup" } },
+      ...(WEBHOOK_URL ? { webhook_url: WEBHOOK_URL } : {}),
     });
-    console.log(`  agent ${a.name}: -> ${llmId}`);
+    console.log(`  agent ${a.name}: -> ${llmId} (silence ${END_CALL_AFTER_SILENCE_MS}ms, webhook ${WEBHOOK_URL ? "set" : "MISSING"})`);
   }
 }
 

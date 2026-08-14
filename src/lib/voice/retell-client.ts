@@ -271,6 +271,33 @@ export async function registerBookingToolsOnLLM(llmId: string): Promise<void> {
 }
 
 /**
+ * Hang up once the caller has said nothing for this long.
+ *
+ * Without it the agent waits out `max_call_duration_ms` against a silent line -
+ * five minutes of billed voice minutes for a caller who has already walked away.
+ * Only agents configured by hand in the Retell dashboard had this set, because
+ * createRetellAgent never sent it.
+ */
+const END_CALL_AFTER_SILENCE_MS = 15000;
+
+/**
+ * Where Retell reports call lifecycle events.
+ *
+ * `call_ended` is what writes the duration and the tenant's voice minutes
+ * (see /api/voice/webhook -> recordVoiceUsage). An agent created without this
+ * leaves every call stuck at "registered" with a 0:00 duration and no metered
+ * usage, however many calls it actually took.
+ */
+function voiceWebhookUrl(): string | null {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) {
+    console.warn("[Retell] NEXT_PUBLIC_APP_URL not set - agent will not report call events, so calls and minutes will not be recorded");
+    return null;
+  }
+  return `${appUrl.replace(/\/$/, "")}/api/voice/webhook`;
+}
+
+/**
  * The Retell LLM belonging to one tenant, created on first use.
  *
  * In Retell the LLM - not the agent - holds `general_prompt` and the attached
@@ -367,6 +394,9 @@ export async function createRetellAgent(params: {
     ),
     max_call_duration_ms: (params.maxDurationSeconds || 300) * 1000,
     enable_backchannel: true,
+    end_call_after_silence_ms: END_CALL_AFTER_SILENCE_MS,
+    voicemail_option: { action: { type: "hangup" } },
+    ...(voiceWebhookUrl() ? { webhook_url: voiceWebhookUrl() } : {}),
     ...(params.transferNumber ? { transfer_list: { default: { number: params.transferNumber } } } : {}),
   };
 
