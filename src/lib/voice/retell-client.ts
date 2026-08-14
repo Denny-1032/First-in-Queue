@@ -2,6 +2,7 @@ import Retell from "retell-sdk";
 import type { BusinessConfig } from "@/types";
 import { nowInTimezone } from "@/lib/booking/availability";
 import { isTemplateDescription } from "@/lib/config/templates";
+import { getSupabaseAdmin } from "@/lib/supabase/server";
 
 // =============================================
 // Retell AI Voice Agent Client
@@ -270,11 +271,72 @@ export async function registerBookingToolsOnLLM(llmId: string): Promise<void> {
 }
 
 /**
+ * The Retell LLM belonging to one tenant, created on first use.
+ *
+ * In Retell the LLM - not the agent - holds `general_prompt` and the attached
+ * knowledge bases. A shared LLM therefore means a shared prompt AND a shared
+ * knowledge base: every tenant pointed at RETELL_LLM_ID could retrieve every
+ * other tenant's material. One LLM per tenant is what makes voice isolated.
+ *
+ * Idempotent: the id is stored on `tenants.retell_llm_id` (migration 026) and
+ * reused forever after.
+ */
+export async function ensureTenantLlm(tenantId: string): Promise<string> {
+  const db = getSupabaseAdmin();
+
+  const { data: tenant, error } = await db
+    .from("tenants")
+    .select("retell_llm_id")
+    .eq("id", tenantId)
+    .single();
+  if (error) throw new Error(`[Retell] Could not read tenant ${tenantId}: ${error.message}`);
+  if (tenant?.retell_llm_id) return tenant.retell_llm_id as string;
+
+  const client = getRetellClient();
+  console.log(`[Retell LLM] Creating a dedicated LLM for tenant ${tenantId}`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const llm = await client.llm.create({} as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const llmId = (llm as any).llm_id as string;
+  if (!llmId) throw new Error("[Retell] llm.create returned no llm_id");
+
+  const { error: saveError } = await db
+    .from("tenants")
+    .update({ retell_llm_id: llmId })
+    .eq("id", tenantId);
+  if (saveError) {
+    // The LLM exists but we could not record it. Failing here is better than
+    // returning it: the next call would create ANOTHER one and orphan this.
+    throw new Error(`[Retell] Created LLM ${llmId} but failed to save it: ${saveError.message}`);
+  }
+
+  console.log(`[Retell LLM] Tenant ${tenantId} -> ${llmId}`);
+  return llmId;
+}
+
+/**
+ * Push the system prompt onto the tenant's LLM.
+ *
+ * This is where the voice prompt actually takes effect. It used to be sent as
+ * `general_prompt` on the AGENT, which Retell accepts and silently discards -
+ * agents have no such field - so every voice agent ran with an empty prompt
+ * while the dashboard cheerfully previewed the text we thought we had sent.
+ * Do not move this back onto the agent.
+ */
+export async function pushLlmPrompt(llmId: string, systemPrompt: string): Promise<void> {
+  const client = getRetellClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await client.llm.update(llmId, { general_prompt: systemPrompt } as any);
+  console.log(`[Retell LLM] Prompt pushed to ${llmId} (${systemPrompt.length} chars)`);
+}
+
+/**
  * Create a new voice agent in Retell AI.
  */
 export async function createRetellAgent(params: {
   name: string;
-  systemPrompt: string;
+  /** The tenant's own LLM, from ensureTenantLlm(). Never the shared env one. */
+  llmId: string;
   voiceId?: string;
   language?: string;
   greeting?: string;
@@ -283,13 +345,14 @@ export async function createRetellAgent(params: {
 }) {
   const client = getRetellClient();
 
-  const llmId = process.env.RETELL_LLM_ID;
-  if (!llmId) {
-    throw new Error("[Retell] RETELL_LLM_ID is not configured. Create an LLM in the Retell dashboard first.");
-  }
+  const { llmId } = params;
+  if (!llmId) throw new Error("[Retell] createRetellAgent requires a tenant llmId");
 
-  // The Retell REST API accepts fields like begin_message and general_prompt
-  // that the SDK type definitions don't expose, so we cast to any.
+  // The Retell REST API accepts fields like begin_message that the SDK type
+  // definitions don't expose, so we cast to any.
+  //
+  // NOTE: no `general_prompt` here. It belongs on the LLM (see pushLlmPrompt);
+  // the agent object has no such field and Retell drops it without complaint.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const createParams: any = {
     response_engine: {
@@ -302,7 +365,6 @@ export async function createRetellAgent(params: {
     begin_message: withRecordingNotice(
       params.greeting || "Hello, thank you for calling. How can I help you today?"
     ),
-    general_prompt: params.systemPrompt,
     max_call_duration_ms: (params.maxDurationSeconds || 300) * 1000,
     enable_backchannel: true,
     ...(params.transferNumber ? { transfer_list: { default: { number: params.transferNumber } } } : {}),
@@ -310,7 +372,7 @@ export async function createRetellAgent(params: {
 
   const agentResponse = await client.agent.create(createParams);
 
-  // Ensure the shared LLM has the booking custom functions (idempotent, non-fatal).
+  // Booking functions live on the tenant's LLM (idempotent, non-fatal).
   try {
     await registerBookingToolsOnLLM(llmId);
   } catch (err) {
@@ -327,7 +389,6 @@ export async function updateRetellAgent(
   agentId: string,
   params: {
     name?: string;
-    systemPrompt?: string;
     voiceId?: string;
     language?: string;
     greeting?: string;
@@ -337,10 +398,12 @@ export async function updateRetellAgent(
 ) {
   const client = getRetellClient();
 
+  // NOTE: the system prompt is deliberately absent. It goes to the LLM via
+  // pushLlmPrompt() - Retell agents have no `general_prompt` field and drop it
+  // silently, which is why voice ran ungrounded for so long.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updatePayload: any = {};
   if (params.name) updatePayload.agent_name = params.name;
-  if (params.systemPrompt) updatePayload.general_prompt = params.systemPrompt;
   if (params.voiceId) updatePayload.voice_id = params.voiceId;
   if (params.language) updatePayload.language = normalizeLanguage(params.language);
   if (params.greeting) updatePayload.begin_message = withRecordingNotice(params.greeting);
@@ -351,10 +414,7 @@ export async function updateRetellAgent(
       : {};
   }
 
-  console.log(`[Retell] Updating agent ${agentId} with payload:`, {
-    ...updatePayload,
-    general_prompt: updatePayload.general_prompt ? `${updatePayload.general_prompt.slice(0, 100)}... (${updatePayload.general_prompt.length} chars)` : undefined
-  });
+  console.log(`[Retell] Updating agent ${agentId} with payload:`, updatePayload);
 
   try {
     const agentResponse = await client.agent.update(agentId, updatePayload);
@@ -451,6 +511,57 @@ export async function listVoices() {
 // =============================================
 
 /**
+ * Retell rejects a knowledge base with 50 or more texts:
+ *
+ *   400 too many texts, please reduce the number of texts to below 50
+ *
+ * One text per knowledge entry therefore stopped working the moment a tenant had
+ * a real knowledge base - PACRA has 218 entries, ZRA 171 - and every voice sync
+ * had been failing silently because of it.
+ *
+ * 45 rather than 49: the description and the FAQs share this array, and a tenant
+ * that later adds entries should not walk straight back into the same 400.
+ */
+const MAX_KB_TEXTS = 45;
+
+/** Roughly the size at which a single text is still comfortably indexed. */
+const MAX_TEXT_CHARS = 20000;
+
+/**
+ * Pack per-entry blocks into at most MAX_KB_TEXTS Retell texts.
+ *
+ * Nothing is dropped and nothing is summarised: Retell chunks and embeds each
+ * text internally, so several topics living in one text retrieve just as well as
+ * one topic per text. Blocks keep their `## <topic>` heading so the boundary
+ * between them survives inside a shared text.
+ */
+function packBlocksIntoTexts(blocks: string[]): { title: string; text: string }[] {
+  const perText = Math.max(1, Math.ceil(blocks.length / MAX_KB_TEXTS));
+  const texts: { title: string; text: string }[] = [];
+  let current: string[] = [];
+
+  const flush = () => {
+    if (current.length === 0) return;
+    texts.push({
+      // Titles are only labels in the Retell console; the content carries the
+      // per-topic headings that actually matter at retrieval time.
+      title: `Knowledge ${texts.length + 1}`,
+      text: current.join("\n\n"),
+    });
+    current = [];
+  };
+
+  for (const block of blocks) {
+    const wouldBeChars = current.reduce((n, b) => n + b.length + 2, 0) + block.length;
+    if (current.length >= perText || (current.length > 0 && wouldBeChars > MAX_TEXT_CHARS)) flush();
+    current.push(block);
+  }
+  flush();
+
+  return texts;
+}
+
+/**
  * Create a Retell Knowledge Base from FiQ knowledge entries and FAQs.
  * Returns the knowledge_base_id which can then be attached to an LLM.
  */
@@ -462,45 +573,38 @@ export async function createRetellKnowledgeBase(params: {
 }) {
   const client = getRetellClient();
 
-  // Convert FiQ knowledge entries to Retell text items
-  const texts: { title: string; text: string }[] = [];
+  // One block per entry, exactly as before - the difference is that blocks are
+  // PACKED into a small number of Retell texts below rather than sent one each.
+  const blocks: string[] = [];
 
-  // Add business description as first entry if available
   if (params.businessDescription) {
-    texts.push({
-      title: "Business Overview",
-      text: params.businessDescription,
-    });
+    blocks.push(`## Business Overview\n${params.businessDescription}`);
   }
 
-  // Add knowledge base entries
   for (const entry of params.knowledgeBase) {
     if (!entry.content) continue;
     const title = (entry.topic || "General Information").slice(0, 100);
     const keywords = entry.keywords?.length ? `\nKeywords: ${entry.keywords.join(", ")}` : "";
-    texts.push({
-      title,
-      text: `${entry.content}${keywords}`,
-    });
+    blocks.push(`## ${title}\n${entry.content}${keywords}`);
   }
 
-  // Add FAQs as text entries
   for (const faq of params.faqs) {
     if (!faq.question || !faq.answer) continue;
-    texts.push({
-      title: `FAQ: ${faq.question.slice(0, 90)}`,
-      text: `Question: ${faq.question}\nAnswer: ${faq.answer}`,
-    });
+    blocks.push(`## FAQ: ${faq.question.slice(0, 90)}\nQuestion: ${faq.question}\nAnswer: ${faq.answer}`);
   }
 
-  if (texts.length === 0) {
+  if (blocks.length === 0) {
     throw new Error("No knowledge base content to sync. Add knowledge entries or FAQs first.");
   }
+
+  const texts = packBlocksIntoTexts(blocks);
 
   // Retell KB name limit is 40 chars
   const kbName = params.name.slice(0, 40);
 
-  console.log(`[Retell KB] Creating knowledge base "${kbName}" with ${texts.length} text entries`);
+  console.log(
+    `[Retell KB] Creating knowledge base "${kbName}" with ${texts.length} texts packed from ${blocks.length} entries`
+  );
 
   const kbResponse = await client.knowledgeBase.create({
     knowledge_base_name: kbName,
@@ -556,14 +660,13 @@ export async function updateRetellLLMKnowledgeBase(llmId: string, knowledgeBaseI
 export async function syncKnowledgeBaseToRetell(params: {
   config: BusinessConfig;
   tenantName: string;
+  /** The tenant's own LLM, from ensureTenantLlm(). */
+  llmId: string;
   existingKbId?: string | null;
 }): Promise<{ knowledgeBaseId: string }> {
-  const llmId = process.env.RETELL_LLM_ID;
-  console.log(`[Retell KB Sync] Starting sync. LLM_ID: ${llmId ? 'set' : 'NOT SET'}`);
-  
-  if (!llmId) {
-    throw new Error("RETELL_LLM_ID is not configured. Set it in your .env file.");
-  }
+  const { llmId } = params;
+  if (!llmId) throw new Error("[Retell] syncKnowledgeBaseToRetell requires a tenant llmId");
+  console.log(`[Retell KB Sync] Starting sync onto tenant LLM ${llmId}`);
 
   // Delete old KB if it exists
   if (params.existingKbId) {
@@ -592,27 +695,16 @@ export async function syncKnowledgeBaseToRetell(params: {
     throw new Error(`Failed to create Knowledge Base: ${err instanceof Error ? err.message : String(err)}`);
   }
 
-  // Get any existing KB IDs on the LLM so we don't remove other tenants' KBs
-  let existingKbIds: string[] = [];
-  try {
-    console.log(`[Retell KB Sync] Retrieving current LLM config: ${llmId}`);
-    const llm = await getRetellClient().llm.retrieve(llmId);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    existingKbIds = ((llm as any).knowledge_base_ids || []).filter(
-      (id: string) => id !== params.existingKbId
-    );
-    console.log(`[Retell KB Sync] Current LLM has ${existingKbIds.length} other KBs`);
-  } catch (err) {
-    console.warn(`[Retell KB Sync] Could not retrieve LLM config:`, err);
-    // If we can't retrieve, just use the new KB alone
-  }
+  // REPLACE, never accumulate. The LLM belongs to this tenant alone, so the only
+  // knowledge base that should ever hang off it is this one. The previous code
+  // merged in whatever was already attached - necessary while every tenant shared
+  // one LLM, and precisely what let one tenant's agent retrieve another's
+  // material. Anything else attached here is a leftover from that arrangement.
+  const kbIds = [kbResponse.knowledge_base_id];
+  console.log(`[Retell KB Sync] Attaching KB ${kbIds[0]} to tenant LLM ${llmId}`);
 
-  // Attach new KB to LLM
-  const allKbIds = [...existingKbIds, kbResponse.knowledge_base_id];
-  console.log(`[Retell KB Sync] Attaching ${allKbIds.length} KBs to LLM: ${allKbIds.join(', ')}`);
-  
   try {
-    await updateRetellLLMKnowledgeBase(llmId, allKbIds);
+    await updateRetellLLMKnowledgeBase(llmId, kbIds);
     console.log(`[Retell KB Sync] LLM updated successfully`);
   } catch (err) {
     console.error(`[Retell KB Sync] LLM update failed:`, err);

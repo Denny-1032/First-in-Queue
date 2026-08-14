@@ -6,6 +6,8 @@ import {
   deleteRetellAgent,
   buildVoiceSystemPrompt,
   syncKnowledgeBaseToRetell,
+  ensureTenantLlm,
+  pushLlmPrompt,
 } from "@/lib/voice/retell-client";
 import { requireSession, AuthError } from "@/lib/auth/session";
 
@@ -71,10 +73,16 @@ export async function POST(request: NextRequest) {
     const systemPrompt = buildVoiceSystemPrompt(tenant.config, transferPhoneNumber || null);
     const agentName = name || `${tenant.config.business_name} Voice Agent`;
 
+    // The tenant's own LLM carries the prompt and the knowledge base. Both of the
+    // calls below are what actually ground a call, so a failure here must fail the
+    // request rather than produce an agent that answers from nothing.
+    const llmId = await ensureTenantLlm(tenantId);
+    await pushLlmPrompt(llmId, systemPrompt);
+
     // Create agent in Retell AI
     const retellAgent = await createRetellAgent({
       name: agentName,
-      systemPrompt,
+      llmId,
       voiceId: voiceId || undefined,
       language: language || tenant.config.default_language || "en",
       greeting: greeting || `Hello, thank you for calling ${tenant.config.business_name}. How can I help you today?`,
@@ -122,6 +130,7 @@ export async function POST(request: NextRequest) {
         const kbResult = await syncKnowledgeBaseToRetell({
           config: tenant.config,
           tenantName: tenant.config.business_name || "FiQ Business",
+          llmId,
           existingKbId: null,
         });
         await supabase
@@ -130,9 +139,9 @@ export async function POST(request: NextRequest) {
           .eq("id", agent.id);
       } catch (kbError) {
         const errorMsg = kbError instanceof Error ? kbError.message : String(kbError);
-        console.error("[Voice Agents] KB sync FAILED on create (non-fatal):", kbError);
+        console.error("[Voice Agents] KB sync FAILED on create:", kbError);
         createWarnings.push(
-          `Voice agent "${agentName}": knowledge base sync failed - ${errorMsg}. The agent will not be able to answer questions about your business until you save it again.`
+          `Voice agent "${agentName}": knowledge base sync failed - ${errorMsg}. The agent cannot answer questions about your business until this succeeds.`
         );
       }
     }
@@ -227,33 +236,40 @@ export async function PATCH(request: NextRequest) {
         .single();
 
       if (tenant) {
-        // 1. Update system prompt on the Retell agent
+        // 1. Push the system prompt to the tenant's OWN LLM. This is the step
+        //    that grounds the call - it used to be sent on the agent, where
+        //    Retell discards it, so the agent answered from nothing.
         const currentTransferNumber = transferPhoneNumber ?? existing.transfer_phone_number ?? null;
         const newPrompt = buildVoiceSystemPrompt(tenant.config, currentTransferNumber);
         console.log(`[Voice Agents] Built new prompt (${newPrompt.length} chars)`);
-        dbUpdates.system_prompt = newPrompt;
-        retellUpdates.systemPrompt = newPrompt;
+        dbUpdates.system_prompt = newPrompt; // mirrored for the dashboard preview
 
-        // 2. Sync Knowledge Base to Retell (create KB + attach to LLM)
+        const llmId = await ensureTenantLlm(tenantId);
+        await pushLlmPrompt(llmId, newPrompt);
+
+        // 2. Sync Knowledge Base onto that same tenant LLM.
         try {
           const existingKbId = existing.retell_kb_id || null;
           console.log(`[Voice Agents] Starting KB sync. Existing KB: ${existingKbId || 'none'}`);
           console.log(`[Voice Agents] Tenant config has ${tenant.config.knowledge_base?.length || 0} KB entries, ${tenant.config.faqs?.length || 0} FAQs`);
-          
+
           const kbResult = await syncKnowledgeBaseToRetell({
             config: tenant.config,
             tenantName: tenant.name || tenant.config.business_name || "FiQ Business",
+            llmId,
             existingKbId,
           });
           dbUpdates.retell_kb_id = kbResult.knowledgeBaseId;
           console.log(`[Voice Agents] KB synced successfully: ${kbResult.knowledgeBaseId}`);
         } catch (kbError) {
-          // Log error but don't fail the save - KB sync is not critical for chat functionality
+          // Surfaced, not buried. This used to be excused as "not critical for
+          // chat functionality" - true when the prompt carried the knowledge.
+          // The knowledge base is now the ONLY thing the agent can answer from,
+          // so a silent failure here is an agent that knows nothing.
           const errorMsg = kbError instanceof Error ? kbError.message : String(kbError);
-          console.error(`[Voice Agents] KB sync FAILED (non-fatal):`, kbError);
-          
-          // Store warning but continue with save
-          warnings.push(`Voice agent "${existing.name}": Knowledge base sync failed - ${errorMsg.includes("RETELL_LLM_ID") ? "RETELL_LLM_ID not configured" : errorMsg.includes("RETELL_API_KEY") ? "RETELL_API_KEY not configured" : "check server logs"}`);
+          console.error(`[Voice Agents] KB sync FAILED:`, kbError);
+
+          warnings.push(`Voice agent "${existing.name}": knowledge base sync failed - ${errorMsg}. The agent cannot answer questions about your business until this succeeds.`);
         }
       } else {
         console.warn(`[Voice Agents] No tenant config found for ID ${tenantId}`);

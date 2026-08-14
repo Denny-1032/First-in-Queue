@@ -32,7 +32,6 @@ export async function POST(request: NextRequest) {
       console.log(`[Debug] Testing update of Retell agent ${agent.retell_agent_id}`);
       const updateResult = await updateRetellAgent(agent.retell_agent_id, {
         name: agent.name,
-        systemPrompt: "This is a test system prompt to verify the Retell API connection is working properly."
       });
       
       return NextResponse.json({
@@ -43,10 +42,10 @@ export async function POST(request: NextRequest) {
         retellAgentData: {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           name: (retellAgent as any)?.agent_name,
+          // The prompt lives on the LLM, never on the agent - reading
+          // agent.general_prompt always reported 0 and hid the real problem.
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          currentPrompt: (retellAgent as any)?.general_prompt?.slice(0, 200) + "...",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          promptLength: (retellAgent as any)?.general_prompt?.length || 0
+          llmId: (retellAgent as any)?.response_engine?.llm_id ?? null,
         },
         updateResult: "Success"
       });
