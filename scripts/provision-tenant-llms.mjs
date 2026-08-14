@@ -145,8 +145,18 @@ for (const [tenantId, tenantAgents] of byTenant) {
     .eq("id", tenantAgents[0].id)
     .single();
   const systemPrompt = agentRow?.system_prompt || prompt;
+  // A prompt built before the knowledge base moved onto the LLM still has every
+  // entry inlined. Pushing it would duplicate the whole knowledge base into the
+  // prompt - the exact bloat this change exists to remove - so refuse it and let
+  // the dashboard rebuild it instead.
+  const stale = systemPrompt && systemPrompt.includes("BUSINESS KNOWLEDGE BASE:");
   if (!systemPrompt) {
     console.log("  prompt         : SKIPPED - no stored system_prompt; save the agent in the dashboard");
+  } else if (stale) {
+    console.log(
+      `  prompt         : SKIPPED - stored prompt is stale (${systemPrompt.length} chars, knowledge base inlined).` +
+        "\n                   Open this agent in the dashboard and Save to rebuild it."
+    );
   } else if (DRY) {
     console.log(`  prompt         : would push ${systemPrompt.length} chars`);
   } else {
@@ -183,7 +193,7 @@ for (const [tenantId, tenantAgents] of byTenant) {
       continue;
     }
     if (DRY) {
-      console.log(`  agent ${a.name}: would re-point to ${llmId}`);
+      console.log(`  agent ${a.name}: would re-point to ${llmId || "the tenant's new LLM"}`);
       continue;
     }
     await retell.agent.update(a.retell_agent_id, {
