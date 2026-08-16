@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/api/rate-limit";
 import { getAuthSecret } from "@/lib/auth/secret";
 import { frameAncestorsFor } from "@/lib/properties/allowlist";
+import { canonicalDeckPath } from "@/lib/demo/decks";
 
 // Edge-compatible base64url helpers
 function base64urlEncode(buf: ArrayBuffer): string {
@@ -78,6 +79,21 @@ async function lookupAllowedDomains(key: string): Promise<string[]> {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // --- Demo decks: one canonical casing ---
+  //
+  // /ZRA and /Pacra 404 without this: the route is prerendered from an exact
+  // list with dynamicParams disabled. Falls through for everything else, so a
+  // bare "/dashboard" still reaches its auth check below.
+  const rootSegment = pathname.slice(1);
+  if (rootSegment && !rootSegment.includes("/")) {
+    const canonical = canonicalDeckPath(rootSegment);
+    if (canonical && canonical !== rootSegment) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/${canonical}`;
+      return NextResponse.redirect(url, 308);
+    }
+  }
 
   // --- Widget documents: framable, but only by the property's own domains ---
   //
@@ -185,6 +201,9 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    // Root-level single segment, so a miscased deck path reaches the redirect
+    // above. Anything that is not a deck falls straight through.
+    "/:segment",
     "/dashboard/:path*",
     "/admin/:path*",
     "/onboarding/:path*",

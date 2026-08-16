@@ -139,6 +139,21 @@ export function findDeck(path: string): DemoDeck | undefined {
   return DEMO_DECKS.find((d) => d.path === path);
 }
 
+/**
+ * The canonical path for a segment typed in any casing, or undefined when the
+ * segment is not a deck at all.
+ *
+ * Deck links are read aloud, retyped and pasted by hand, usually in the casing
+ * the institution writes its own name in (/ZRA, /PACRA). The route is
+ * prerendered from an exact list with dynamicParams off, so every other casing
+ * 404s. Middleware uses this to redirect to the canonical path rather than show
+ * a prospect a page-not-found.
+ */
+export function canonicalDeckPath(segment: string): string | undefined {
+  const lower = segment.toLowerCase();
+  return DEMO_DECKS.find((d) => d.path === lower)?.path;
+}
+
 /** Past its expiry a deck stops serving; see the module comment. */
 export function isExpired(deck: DemoDeck, now = new Date()): boolean {
   return now > new Date(`${deck.expiresOn}T23:59:59Z`);
