@@ -156,12 +156,17 @@ export async function processIncomingMessage(
     await transport.markAsRead(msg.externalId);
 
     // Get or create conversation - isNew only true for brand-new customers
-    const { conversation, isNew } = await getOrCreateConversation(
+    const created = await getOrCreateConversation(
       tenant.id,
       transport.channel,
       msg.customerRef,
       customerName
     );
+    const isNew = created.isNew;
+    // Rebound when an active flow is abandoned mid-turn, so that everything
+    // downstream (the AI context especially) sees the cleared metadata rather
+    // than the flow the visitor just walked away from.
+    let conversation = created.conversation;
 
     console.log(`[Handler] Conversation ${conversation.id}: isNew=${isNew}, status=${conversation.status}, ai_enabled=${conversation.ai_enabled}`);
 
@@ -317,22 +322,33 @@ export async function processIncomingMessage(
     }
 
     // --- Active flow: progress through steps ---
+    // A flow abandoned on this message must not be restarted by the same
+    // message a few lines below, which would put the visitor straight back in
+    // the script they just stepped out of.
+    let abandonedFlowId: string | null = null;
     const flowState = getFlowState(conversation);
     if (flowState) {
       const flow = tenant.config.flows.find((f) => f.id === flowState.flow_id);
-      if (flow) {
+      if (flow && !isFlowInterruption(msg, content, flow, flowState)) {
         await processFlowStep(tenant, conversation, msg, content, flow, flowState, transport);
         return;
       }
-      // Flow no longer exists - clear stale state
+      // Either the flow was deleted under us, or the visitor asked something
+      // else. Drop the state and let the message be answered on its merits -
+      // falling through is the whole point, so this must not return.
       await updateConversation(conversation.id, {
         metadata: buildFlowMetadata(null, conversation.metadata as Record<string, unknown>),
       });
+      conversation = {
+        ...conversation,
+        metadata: buildFlowMetadata(null, conversation.metadata as Record<string, unknown>),
+      };
+      abandonedFlowId = flowState.flow_id;
     }
 
     // --- Check if this triggers a new flow (button reply or text match) ---
     const flowMatch = matchFlowTrigger(tenant, msg, content);
-    if (flowMatch) {
+    if (flowMatch && flowMatch.flow.id !== abandonedFlowId) {
       // Initialize flow state and send first step
       const newFlowState: FlowState = {
         flow_id: flowMatch.flow.id,
@@ -584,7 +600,7 @@ async function handleAIResponse(
     
     // Construct web call URL with tenant and specific voice agent
     const webCallUrl = `${appUrl}/widget/iframe?tenantId=${tenant.id}&agentId=${agentId}`;
-    const linkBody = "🎙️ Tap the button below to start a voice call with us.";
+    const linkBody = "Tap the button below to start a voice call with us.";
     const linkMsgId = transport.sendCtaUrlButton
       ? await transport.sendCtaUrlButton(msg.customerRef, linkBody, "Start Voice Call", webCallUrl)
       : await transport.sendText(msg.customerRef, `${linkBody}\n${webCallUrl}`);
@@ -898,6 +914,8 @@ function matchBookingButton(
   const pendingId = meta?.pending_booking_id;
   if (typeof pendingId === "string" && pendingId) {
     const text = (msg.templateButton?.text || content.text || "").trim().toLowerCase();
+    // The emoji forms are the titles this bot used to send. Buttons already
+    // sitting in a customer's chat still carry them, so both stay accepted.
     if (text === "confirm" || text === "✅ confirm" || text === "yes") {
       return { action: "confirm", bookingId: pendingId };
     }
@@ -924,7 +942,7 @@ async function handleBookingButton(
   } else if (button.action === "confirm") {
     if (booking.status === "pending") {
       await updateBooking(booking.id, { status: "confirmed", confirmed_at: new Date().toISOString() });
-      reply = `✅ Your booking on ${formatBookingDateTime(booking)} is confirmed. See you then!`;
+      reply = `Your booking on ${formatBookingDateTime(booking)} is confirmed. See you then!`;
     } else if (booking.status === "confirmed") {
       reply = `Your booking on ${formatBookingDateTime(booking)} is already confirmed. See you then!`;
     } else {
@@ -966,10 +984,10 @@ async function sendBookingConfirmButtons(
   booking: Booking,
   transport: ChannelTransport
 ): Promise<void> {
-  const body = `📅 Booking request: ${formatBookingDateTime(booking)}${booking.customer_name ? ` for ${booking.customer_name}` : ""}.\nPlease confirm:`;
+  const body = `Booking request: ${formatBookingDateTime(booking)}${booking.customer_name ? ` for ${booking.customer_name}` : ""}.\nPlease confirm:`;
   const buttons = [
-    { id: `booking_confirm_${booking.id}`, title: "✅ Confirm" },
-    { id: `booking_cancel_${booking.id}`, title: "❌ Cancel" },
+    { id: `booking_confirm_${booking.id}`, title: "Confirm" },
+    { id: `booking_cancel_${booking.id}`, title: "Cancel" },
   ];
   const waMessageId = await transport.sendButtons(to, body, buttons);
   await persistOutbound(transport, {
@@ -1041,6 +1059,59 @@ async function createBookingFromFlow(
   }
 }
 
+/**
+ * `haystack` contains `needle` as a whole word (or whole phrase).
+ *
+ * Triggers are author-supplied, so the needle is escaped before it reaches the
+ * expression. Boundaries are non-word characters rather than \b so that a
+ * multi-word trigger ("track order") still matches inside a sentence.
+ */
+function containsWord(haystack: string, needle: string): boolean {
+  if (!needle) return false;
+  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}([^\\p{L}\\p{N}]|$)`, "u").test(haystack);
+}
+
+/**
+ * The visitor has changed the subject rather than answered the step in front
+ * of them.
+ *
+ * Without this, an active flow swallowed every later message: each one was
+ * filed as the answer to the current question and advanced the script, so
+ * "I mean tax returns" and "who are you?" were both recorded as order numbers.
+ * Only a literal "cancel" got out. A question is not an answer, so the flow
+ * yields and the message is handled normally.
+ */
+function isFlowInterruption(
+  msg: NormalizedInboundMessage,
+  content: MessageContent,
+  flow: ConversationFlow,
+  flowState: FlowState
+): boolean {
+  // A button press is always an answer to the step that offered it.
+  if (msg.type === "interactive") return false;
+
+  const text = (content.text || "").trim();
+  if (!text) return false;
+
+  const step = flow.steps[flowState.step_index];
+  // Picking one of the offered options is an answer, however it is phrased.
+  if (
+    step?.options?.some((opt) => text.toLowerCase() === opt.label.toLowerCase() || text.toLowerCase() === opt.value.toLowerCase())
+  ) {
+    return false;
+  }
+
+  const lower = text.toLowerCase();
+  // The trailing guard matters: without it "can" matches the leading three
+  // letters of "cancel", and the visitor's explicit way out of a flow reads as
+  // a change of subject instead.
+  const QUESTION_OPENERS =
+    /^(what|who|why|how|when|where|which|can|could|do|does|did|is|are|am|was|were|should|would|will|tell me|i mean|actually)(?![\p{L}\p{N}'])/u;
+
+  return lower.endsWith("?") || QUESTION_OPENERS.test(lower);
+}
+
 function matchFlowTrigger(
   tenant: Tenant,
   msg: NormalizedInboundMessage,
@@ -1058,11 +1129,17 @@ function matchFlowTrigger(
     }
   }
 
-  // Check for text-based flow trigger
+  // Check for text-based flow trigger.
+  //
+  // Whole words only. A bare substring match had the trigger "return" firing
+  // the returns flow on "when do I have to file my returns?" at a revenue
+  // authority, which then held the conversation in a shopping script for the
+  // rest of the session. A trigger appearing inside a longer word is a
+  // coincidence, not an intent.
   const text = (content.text || "").toLowerCase().trim();
   if (text) {
     for (const flow of tenant.config.flows) {
-      if (flow.trigger && text.includes(flow.trigger.toLowerCase())) {
+      if (flow.trigger && containsWord(text, flow.trigger.trim().toLowerCase())) {
         if (flow.steps?.length > 0) {
           return { flow };
         }
@@ -1104,46 +1181,46 @@ function getUrgentSafetyMessage(industry: string | null, keyword: string): strin
   // Industry-specific immediate safety responses
   const safetyMessages: Record<string, Record<string, string>> = {
     healthcare: {
-      emergency: "🚨 If this is a medical emergency, please call 911 immediately. Do not wait for a chat response. I'm connecting you with our medical team now.",
-      "chest pain": "🚨 CALL 911 IMMEDIATELY for chest pain. Do not drive yourself. I'm alerting our team.",
-      "can't breathe": "🚨 CALL 911 IMMEDIATELY for difficulty breathing. I'm alerting our team now.",
-      bleeding: "🚨 For severe bleeding, call 911 immediately. Apply direct pressure to the wound. I'm connecting you with our medical team.",
-      "allergic reaction": "🚨 For severe allergic reaction, call 911. If you have an EpiPen, use it now. I'm alerting our team.",
-      "medication error": "🚨 Do NOT take any more of the medication. Call Poison Control at 1-800-222-1222 if ingested. I'm connecting you with our medical team immediately.",
-      "wrong medication": "🚨 Do NOT take the medication. Contact Poison Control at 1-800-222-1222 if you've already taken it. I'm escalating this to our medical team immediately.",
+      emergency: "If this is a medical emergency, please call 911 immediately. Do not wait for a chat response. I'm connecting you with our medical team now.",
+      "chest pain": "CALL 911 IMMEDIATELY for chest pain. Do not drive yourself. I'm alerting our team.",
+      "can't breathe": "CALL 911 IMMEDIATELY for difficulty breathing. I'm alerting our team now.",
+      bleeding: "For severe bleeding, call 911 immediately. Apply direct pressure to the wound. I'm connecting you with our medical team.",
+      "allergic reaction": "For severe allergic reaction, call 911. If you have an EpiPen, use it now. I'm alerting our team.",
+      "medication error": "Do NOT take any more of the medication. Call Poison Control at 1-800-222-1222 if ingested. I'm connecting you with our medical team immediately.",
+      "wrong medication": "Do NOT take the medication. Contact Poison Control at 1-800-222-1222 if you've already taken it. I'm escalating this to our medical team immediately.",
       malpractice: "I understand this is a serious concern. I'm connecting you with our patient advocacy team immediately so they can address this properly.",
-      overdose: "🚨 CALL 911 IMMEDIATELY. If available, administer Narcan (naloxone). Stay with the person. I'm alerting our medical team.",
+      overdose: "CALL 911 IMMEDIATELY. If available, administer Narcan (naloxone). Stay with the person. I'm alerting our medical team.",
     },
     finance: {
-      fraud: "🚨 LOCK YOUR CARD NOW: App → Settings → Card Management → Lock Card. Or call our 24/7 fraud hotline: (555) 444-5501. I'm connecting you with our fraud team.",
-      stolen: "🚨 LOCK YOUR CARD IMMEDIATELY in the app or call (555) 444-5501. You have $0 liability for unauthorized transactions. I'm connecting you with our security team.",
-      unauthorized: "🚨 Lock your card NOW in the app as a precaution. Then I'll connect you with our fraud team. You have $0 liability for unauthorized transactions.",
-      hacked: "🚨 Change your password IMMEDIATELY and lock all cards. Call our security hotline: (555) 444-5501. I'm connecting you with our security team now.",
-      scam: "🚨 Do NOT share any more information or send any money. Lock your card in the app. I'm connecting you with our fraud team immediately.",
-      "identity theft": "🚨 Lock all cards immediately. Do NOT respond to any suspicious contacts. I'm connecting you with our identity theft protection team.",
+      fraud: "LOCK YOUR CARD NOW: App → Settings → Card Management → Lock Card. Or call our 24/7 fraud hotline: (555) 444-5501. I'm connecting you with our fraud team.",
+      stolen: "LOCK YOUR CARD IMMEDIATELY in the app or call (555) 444-5501. You have $0 liability for unauthorized transactions. I'm connecting you with our security team.",
+      unauthorized: "Lock your card NOW in the app as a precaution. Then I'll connect you with our fraud team. You have $0 liability for unauthorized transactions.",
+      hacked: "Change your password IMMEDIATELY and lock all cards. Call our security hotline: (555) 444-5501. I'm connecting you with our security team now.",
+      scam: "Do NOT share any more information or send any money. Lock your card in the app. I'm connecting you with our fraud team immediately.",
+      "identity theft": "Lock all cards immediately. Do NOT respond to any suspicious contacts. I'm connecting you with our identity theft protection team.",
     },
     travel: {
-      stranded: "🚨 I'm here to help. Please also call our 24/7 emergency line: (555) 888-7766 for the fastest assistance. I'm connecting you with an agent right now.",
-      emergency: "🚨 If this is a medical emergency, call local emergency services first. Our 24/7 line: (555) 888-7766. I'm escalating this immediately.",
+      stranded: "I'm here to help. Please also call our 24/7 emergency line: (555) 888-7766 for the fastest assistance. I'm connecting you with an agent right now.",
+      emergency: "If this is a medical emergency, call local emergency services first. Our 24/7 line: (555) 888-7766. I'm escalating this immediately.",
       "flight cancelled": "I'm sorry about your flight cancellation. I'm connecting you with our emergency rebooking team right now. Also call (555) 888-7766 for fastest help.",
       "missed flight": "I understand how stressful this is. Head to the airline's transfer desk immediately. I'm also connecting you with our team. Call (555) 888-7766.",
-      "lost passport": "🚨 Contact your nearest embassy/consulate immediately. I'm connecting you with our emergency support team. Also call (555) 888-7766.",
-      stolen: "🚨 File a police report immediately at your current location. I'm connecting you with our emergency team. Call (555) 888-7766 for immediate help.",
-      medical: "🚨 Call local emergency services first. If you have travel insurance, your policy number is in your booking confirmation. I'm connecting you with our emergency team.",
+      "lost passport": "Contact your nearest embassy/consulate immediately. I'm connecting you with our emergency support team. Also call (555) 888-7766.",
+      stolen: "File a police report immediately at your current location. I'm connecting you with our emergency team. Call (555) 888-7766 for immediate help.",
+      medical: "Call local emergency services first. If you have travel insurance, your policy number is in your booking confirmation. I'm connecting you with our emergency team.",
     },
     education: {
       discrimination: "I take this very seriously. I'm connecting you immediately with the Dean of Students office who can properly investigate and address this.",
-      safety: "🚨 If you're in immediate danger, call campus security at (555) 222-3399 or 911. I'm alerting our safety team now.",
+      safety: "If you're in immediate danger, call campus security at (555) 222-3399 or 911. I'm alerting our safety team now.",
       harassment: "I'm sorry you're experiencing this. I'm connecting you immediately with the Dean of Students office. You can also reach campus security at (555) 222-3399.",
       bullying: "I'm sorry you're going through this. I'm connecting you with the Dean of Students office immediately to address this properly.",
-      suicide: "🚨 Please reach out to the 988 Suicide & Crisis Lifeline - call or text 988. Campus counseling is available at (555) 222-3345. You are not alone. I'm connecting you with support now.",
-      "self-harm": "🚨 Please contact the 988 Suicide & Crisis Lifeline (call or text 988). Campus counseling: (555) 222-3345. I'm connecting you with our support team immediately.",
+      suicide: "Please reach out to the 988 Suicide & Crisis Lifeline - call or text 988. Campus counseling is available at (555) 222-3345. You are not alone. I'm connecting you with support now.",
+      "self-harm": "Please contact the 988 Suicide & Crisis Lifeline (call or text 988). Campus counseling: (555) 222-3345. I'm connecting you with our support team immediately.",
     },
     saas: {
       outage: "We're aware of the issue. Check status.cloudsync.io for real-time updates. I'm connecting you with our engineering team for direct assistance.",
-      "data loss": "🚨 I'm escalating this to our engineering team immediately. Do NOT make any changes to your account. We'll investigate and help recover your data.",
-      "data deleted": "🚨 I'm connecting you with our engineering team right now. We maintain backups and will work to recover your data. Do NOT make any changes.",
-      "security breach": "🚨 Change your password immediately. Enable 2FA if not already active. I'm connecting you with our security team for a full investigation.",
+      "data loss": "I'm escalating this to our engineering team immediately. Do NOT make any changes to your account. We'll investigate and help recover your data.",
+      "data deleted": "I'm connecting you with our engineering team right now. We maintain backups and will work to recover your data. Do NOT make any changes.",
+      "security breach": "Change your password immediately. Enable 2FA if not already active. I'm connecting you with our security team for a full investigation.",
       down: "We're investigating the issue. Check status.cloudsync.io for updates. I'm connecting you with our support team for assistance.",
     },
   };
@@ -1522,7 +1599,7 @@ async function handleVoiceCallbackRequest(
     const usage = await checkVoiceMinutes(tenant.id);
     if (!usage.allowed) {
       console.log(`[VoiceCallback] Voice minutes exhausted for tenant ${tenant.id}: ${usage.used}/${usage.limit}`);
-      const limitMsg = "Sorry, we've used all our voice call minutes for this month. Please continue chatting here and we'll help you right away! 💬";
+      const limitMsg = "Sorry, we've used all our voice call minutes for this month. Please continue chatting here and we'll help you right away!";
       const limitId = await transport.sendText(customerPhone, limitMsg);
       await persistOutbound(transport, {
         conversation_id: conversation.id,
@@ -1593,7 +1670,7 @@ async function handleVoiceCallbackRequest(
     if (voiceProvider === "web" || voiceProvider === "none") {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.firstinqueue.com";
       const webCallUrl = `${appUrl}/widget/iframe?tenantId=${tenant.id}&agentId=${voiceAgentId}`;
-      const webCallBody = "🎙️ Tap the button below to start a voice call with us.";
+      const webCallBody = "Tap the button below to start a voice call with us.";
       const webCallId = transport.sendCtaUrlButton
         ? await transport.sendCtaUrlButton(customerPhone, webCallBody, "Start Voice Call", webCallUrl)
         : await transport.sendText(customerPhone, `${webCallBody}\n${webCallUrl}`);
@@ -1659,7 +1736,7 @@ async function handleVoiceCallbackRequest(
     const toNumber = customerPhone.startsWith("+") ? customerPhone : "+" + customerPhone;
 
     // Send confirmation BEFORE placing the call
-    const confirmMsg = "Sure! I'll call you right now - please keep your phone ready. 📞";
+    const confirmMsg = "Sure! I'll call you right now - please keep your phone ready.";
     const waMessageId = await transport.sendText(customerPhone, confirmMsg);
     await persistOutbound(transport, {
       conversation_id: conversation.id,
@@ -1735,7 +1812,7 @@ async function handleVoiceCallbackRequest(
     });
 
     // Follow-up message
-    const followUpMsg = `Calling you now from ${fromNumber}! Please answer - you'll be connected to our AI assistant. 🤖📞`;
+    const followUpMsg = `Calling you now from ${fromNumber}! Please answer - you'll be connected to our AI assistant.`;
     const followUpId = await transport.sendText(customerPhone, followUpMsg);
     await persistOutbound(transport, {
       conversation_id: conversation.id,

@@ -431,6 +431,59 @@ describe("conversation flows (WhatsApp)", () => {
     );
     expect(cleared).toBeDefined();
   });
+
+  it("does not start a flow when the trigger only appears inside a longer word", async () => {
+    arrange({ tenant: makeTenant({ flows: [{ ...bookingFlow, trigger: "book" }] }) });
+
+    await handleWebhook(makePayload(makeTextMessage("how do I update my bookkeeping records?")));
+
+    expect(transport.sendButtons).not.toHaveBeenCalled();
+    expect(ai.generateResponse).toHaveBeenCalled();
+  });
+
+  it("abandons an active flow when the visitor asks something else, and answers the question", async () => {
+    arrange({
+      tenant: makeTenant({ flows: [bookingFlow] }),
+      conversation: makeConversation({
+        metadata: {
+          active_flow: { flow_id: "book", step_index: 0, collected_data: {}, started_at: "2026-01-01T00:00:00Z" },
+        },
+      }),
+    });
+
+    await handleWebhook(makePayload(makeTextMessage("who are you?")));
+
+    // The question is answered rather than filed as the answer to "Which service?"
+    expect(ai.generateResponse).toHaveBeenCalled();
+    const cleared = db.updateConversation.mock.calls.find(
+      (c: unknown[]) => !(c[1] as { metadata?: Record<string, unknown> }).metadata?.active_flow
+    );
+    expect(cleared).toBeDefined();
+    expect(db.updateConversation).not.toHaveBeenCalledWith(
+      "conv-1",
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          active_flow: expect.objectContaining({ step_index: 1 }),
+        }),
+      })
+    );
+  });
+
+  it("still treats a chosen option as an answer, not an interruption", async () => {
+    arrange({
+      tenant: makeTenant({ flows: [bookingFlow] }),
+      conversation: makeConversation({
+        metadata: {
+          active_flow: { flow_id: "book", step_index: 0, collected_data: {}, started_at: "2026-01-01T00:00:00Z" },
+        },
+      }),
+    });
+
+    await handleWebhook(makePayload(makeTextMessage("Shave")));
+
+    expect(transport.sendText).toHaveBeenCalledWith("260970000000", "What date suits you?");
+    expect(ai.generateResponse).not.toHaveBeenCalled();
+  });
 });
 
 describe("booking confirm/cancel buttons (WhatsApp)", () => {
