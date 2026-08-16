@@ -1219,14 +1219,16 @@ function BotTestChat({
         personality.tone === "friendly" ? "Great question! " :
         personality.tone === "casual" ? "Sure thing! " :
         personality.tone === "formal" ? "Thank you for your inquiry. " : "";
-      const emojiSuffix = personality.emoji_usage === "heavy" ? " 😊" : personality.emoji_usage === "moderate" ? " 🙂" : "";
+      // No trailing emoji here: the live prompt forbids decorative sign-offs
+      // (see EMOJI DISCIPLINE in buildSystemPrompt), and a preview that adds one
+      // teaches the operator to expect behaviour they will not get.
 
       // ── 1. Greeting detection ──
       if (/^(hi|hello|hey|howdy|good\s*(morning|afternoon|evening)|yo)\b/.test(lower)) {
         const greetings: Record<string, string> = {
           professional: `Hello! I'm ${personality.name}. How may I assist you today?`,
-          friendly: `Hey there! 👋 I'm ${personality.name}. How can I help you today?`,
-          casual: `Hey! I'm ${personality.name} 😊 What can I do for you?`,
+          friendly: `Hey there! I'm ${personality.name}. How can I help you today?`,
+          casual: `Hey! I'm ${personality.name}. What can I do for you?`,
           formal: `Good day. I am ${personality.name}. How may I be of service?`,
         };
         return greetings[personality.tone] || greetings.friendly;
@@ -1235,7 +1237,7 @@ function BotTestChat({
       // ── 2. Escalation detection ──
       const escalationPhrases = ["speak to a human", "talk to a person", "real person", "human agent", "speak to someone", "talk to agent", "transfer me", "escalate", "manager", "supervisor", "real agent", "human help"];
       if (escalationPhrases.some((p) => lower.includes(p))) {
-        return `I understand you'd like to speak with a human agent. Let me connect you right away. 🤝\n\nA team member will be with you shortly. Your conversation history will be shared so you won't need to repeat yourself.`;
+        return `I understand you'd like to speak with a human agent. Let me connect you right away.\n\nA team member will be with you shortly. Your conversation history will be shared so you won't need to repeat yourself.`;
       }
 
       // ── 3. Intent detection - map common question patterns to search terms ──
@@ -1276,7 +1278,7 @@ function BotTestChat({
         const faqLower = faq.question.toLowerCase();
         // Direct substring match is very strong
         if (lower.length > 5 && faqLower.includes(lower)) {
-          return `${tonePrefix}${faq.answer}${emojiSuffix}`;
+          return `${tonePrefix}${faq.answer}`;
         }
         const faqWords = faqLower.split(/\s+/).filter((w) => w.length > 2 && !stopWords.has(w));
         // Count only words the USER actually typed (intent-expansion terms cause
@@ -1288,7 +1290,7 @@ function BotTestChat({
           bestFaqAnswer = faq.answer;
         }
       }
-      if (bestFaqScore >= 0.5) return `${tonePrefix}${bestFaqAnswer}${emojiSuffix}`;
+      if (bestFaqScore >= 0.5) return `${tonePrefix}${bestFaqAnswer}`;
 
       // ── 6. Score knowledge base entries ──
       const scored: { entry: KnowledgeEntry; score: number }[] = [];
@@ -1328,18 +1330,18 @@ function BotTestChat({
           excerpt = cut > 100 ? excerpt.slice(0, cut + 1) : excerpt.slice(0, 300) + "…";
         }
         const topicLabel = best.topic ? `**${best.topic}**\n\n` : "";
-        return `${tonePrefix}${topicLabel}${excerpt}${emojiSuffix}`;
+        return `${tonePrefix}${topicLabel}${excerpt}`;
       }
 
       // Low-confidence partial match
       if (scored.length > 0 && scored[0].score >= 1) {
         const partialContent = scored[0].entry.content || "";
         const shortExcerpt = partialContent.length > 200 ? partialContent.slice(0, partialContent.lastIndexOf(".", 200) + 1 || 200) + "…" : partialContent;
-        return `${tonePrefix}${shortExcerpt}${emojiSuffix}\n\nWould you like to know more about this?`;
+        return `${tonePrefix}${shortExcerpt}\n\nWould you like to know more about this?`;
       }
 
       // If FAQ had a weaker match, use it
-      if (bestFaqAnswer) return `${tonePrefix}${bestFaqAnswer}${emojiSuffix}`;
+      if (bestFaqAnswer) return `${tonePrefix}${bestFaqAnswer}`;
 
       // ── 8. Fallback - list available topics ──
       if (knowledgeBase.length > 0) {
@@ -1354,7 +1356,7 @@ function BotTestChat({
         const topicList = uniqueTopics.join(", ");
         const noMatch: Record<string, string> = {
           professional: `I'd be happy to help! I can assist with: ${topicList}. Which topic would you like to know more about?`,
-          friendly: `I'd love to help! 😊 I can tell you about: ${topicList}. What interests you?`,
+          friendly: `I'd love to help! I can tell you about: ${topicList}. What interests you?`,
           casual: `Hmm, let me think... I know about: ${topicList}. What are you looking for?`,
           formal: `I would be pleased to assist. My areas of knowledge include: ${topicList}. How may I help?`,
         };
@@ -1364,8 +1366,8 @@ function BotTestChat({
       // Truly empty knowledge base
       const generic: Record<string, string> = {
         professional: "Thank you for reaching out. I don't have specific information on that yet, but our team can help. Would you like me to connect you with someone?",
-        friendly: "Hmm, I don't have info on that yet - my knowledge base is still being set up! Want me to connect you with a team member? 😊",
-        casual: "Oops, I don't know about that yet! My brain is still loading 😅 Want to talk to a human instead?",
+        friendly: "Hmm, I don't have info on that yet - my knowledge base is still being set up! Want me to connect you with a team member?",
+        casual: "Oops, I don't know about that yet! My brain is still loading. Want to talk to a human instead?",
         formal: "I regret that I do not yet have information pertaining to that matter. Shall I arrange for a team member to assist you?",
       };
 

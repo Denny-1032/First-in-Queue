@@ -32,13 +32,16 @@ function formatBookingDate(booking: Booking): string {
 function buildReminderText(booking: Booking, tenant: Tenant): string {
   const businessName = tenant.config?.business_name || tenant.name;
   const typeLabel = booking.booking_type === "custom" ? "booking" : booking.booking_type;
+  // No emoji: this is an appointment time going out unprompted, and it is sent
+  // whatever the tenant's emoji setting says. See EMOJI DISCIPLINE in
+  // buildSystemPrompt - the same rule the model is held to.
   const lines = [
-    `⏰ Reminder from ${businessName}`,
+    `Reminder from ${businessName}`,
     "",
     `Hi${booking.customer_name ? " " + booking.customer_name : ""}! You have a ${typeLabel} scheduled for ${formatBookingDate(booking)}.`,
   ];
-  if (booking.location) lines.push(`📍 ${booking.location}`);
-  if (booking.notes) lines.push(`📝 ${booking.notes}`);
+  if (booking.location) lines.push(`Location: ${booking.location}`);
+  if (booking.notes) lines.push(`Notes: ${booking.notes}`);
   lines.push("", "If you need to reschedule or cancel, just reply to this message.");
   return lines.join("\n");
 }

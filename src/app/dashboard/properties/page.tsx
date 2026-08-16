@@ -36,7 +36,7 @@ function brandingDraft(p: Property): BrandingValue {
   return {
     primary_color: HEX_RE.test(String(b.primary_color)) ? String(b.primary_color) : "#03A84E",
     title: typeof b.title === "string" ? b.title : "Chat with us",
-    welcome_message: typeof b.welcome_message === "string" ? b.welcome_message : "👋 Hi! How can we help?",
+    welcome_message: typeof b.welcome_message === "string" ? b.welcome_message : "Hi! How can we help?",
     suggested_messages: Array.isArray(b.suggested_messages)
       ? (b.suggested_messages as string[])
       : ["I have a question", "Tell me more"],

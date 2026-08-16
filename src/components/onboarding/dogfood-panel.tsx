@@ -47,7 +47,7 @@ export function DogfoodPanel() {
             <MessageSquare className="h-4 w-4" /> Chat with us
           </div>
           <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-white/15 px-3 py-2 text-sm">
-            👋 Hi! How can we help?
+            Hi! How can we help?
           </div>
           <div className="ml-auto max-w-[80%] rounded-2xl rounded-tr-sm bg-white px-3 py-2 text-sm text-gray-900">
             What are your opening hours?

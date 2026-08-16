@@ -300,8 +300,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   <div className="bg-white rounded-lg border border-gray-100 p-3">
                     <p className="text-sm text-gray-800">
                       {tone === "professional" && `Hello! I'm ${botName} from ${businessName || "your business"}. How may I assist you today?`}
-                      {tone === "friendly" && `Hey there! 👋 I'm ${botName} from ${businessName || "your business"}. How can I help you today?`}
-                      {tone === "casual" && `Hi! I'm ${botName} 😊 What can I do for you?`}
+                      {tone === "friendly" && `Hey there! I'm ${botName} from ${businessName || "your business"}. How can I help you today?`}
+                      {tone === "casual" && `Hi! I'm ${botName}. What can I do for you?`}
                       {tone === "formal" && `Good day. I am ${botName}, representing ${businessName || "your business"}. How may I be of service?`}
                     </p>
                   </div>

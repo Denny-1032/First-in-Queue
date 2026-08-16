@@ -23,7 +23,7 @@ export default function BrandStep() {
   const [b, setB] = useState<BrandingValue>({
     primary_color: "#03A84E",
     title: "Chat with us",
-    welcome_message: "👋 Hi! How can we help?",
+    welcome_message: "Hi! How can we help?",
     suggested_messages: ["I have a question", "Tell me more"],
   });
 
@@ -43,7 +43,7 @@ export default function BrandStep() {
           primary_color: HEX_RE.test(String(br.primary_color)) ? String(br.primary_color) : "#03A84E",
           title: typeof br.title === "string" ? br.title : "Chat with us",
           welcome_message:
-            typeof br.welcome_message === "string" ? br.welcome_message : "👋 Hi! How can we help?",
+            typeof br.welcome_message === "string" ? br.welcome_message : "Hi! How can we help?",
           suggested_messages: Array.isArray(br.suggested_messages)
             ? (br.suggested_messages as string[])
             : ["I have a question", "Tell me more"],

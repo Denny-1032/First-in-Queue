@@ -166,7 +166,7 @@ export function BrandingEditor({ value, onChange }: Props) {
           </div>
           <div className="space-y-2 bg-gray-50 p-3">
             <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-3 py-2 text-xs text-gray-800 shadow-sm">
-              {value.welcome_message || "👋 Hi! How can we help?"}
+              {value.welcome_message || "Hi! How can we help?"}
             </div>
             <div className="flex flex-wrap gap-1.5 pt-1">
               {value.suggested_messages.map((m, i) => (

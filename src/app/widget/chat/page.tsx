@@ -633,7 +633,7 @@ function ChatContent() {
     primary_color: "#03A84E",
     text_color: "#ffffff",
     title: "Chat with us",
-    welcome_message: "👋 Hi! How can we help?",
+    welcome_message: "Hi! How can we help?",
     suggested_messages: [],
     show_branding: true,
     logo_url: null,

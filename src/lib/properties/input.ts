@@ -26,7 +26,7 @@ export const BRANDING_DEFAULTS = {
   text_color: "#ffffff",
   position: "bottom-right",
   title: "Chat with us",
-  welcome_message: "👋 Hi! How can we help?",
+  welcome_message: "Hi! How can we help?",
   suggested_messages: ["I have a question", "Tell me more"] as string[],
   show_branding: true,
   response_delay_ms: 600,

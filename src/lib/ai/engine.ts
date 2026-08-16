@@ -251,17 +251,43 @@ function buildSystemPrompt(
     casual: "Keep it relaxed and casual, like chatting with a friend.",
     formal: "Use formal language with proper etiquette.",
   };
+  // Emoji as a budget, not a vibe.
+  //
+  // "Sparingly" and "naturally throughout" both landed on the model as the same
+  // thing in practice: one trailing 🙂 on every single message, including on
+  // filing deadlines and on "I don't have that". A public body's assistant that
+  // signs off every answer with a smiley undoes the point of it. So the setting
+  // now states a countable ceiling, and EMOJI DISCIPLINE below names the places
+  // where the count is zero whatever the setting says.
+  //
+  // The setting is defaulted because tenant rows predate the field: without it
+  // the lookup misses and the prompt carries the word "undefined" as its emoji
+  // instruction.
+  const emojiUsage = personality.emoji_usage ?? "minimal";
   const emojiMap = {
-    none: "Never use emojis.",
-    minimal: "Use emojis sparingly - only when they genuinely add warmth.",
-    moderate: "Use emojis naturally throughout your responses.",
-    heavy: "Use emojis liberally to make conversations fun and engaging.",
+    none: "Never use emojis - not in greetings, not in sign-offs, not anywhere.",
+    minimal:
+      "At most one emoji every few messages, and only where it carries something the words do not. Most messages should have none.",
+    moderate:
+      "At most one emoji per message, placed where it belongs in the sentence rather than appended to the end. Many messages still read better without one.",
+    heavy:
+      "Up to two emojis per message, varied to match what each message actually says.",
   };
   const styleMap = {
     concise: "Keep responses short and to the point. Maximum 2-3 sentences.",
     detailed: "Provide thorough, detailed responses with all relevant information.",
     balanced: "Balance brevity with helpfulness. Be informative but not verbose.",
   };
+
+  // Applies to every setting except "none", which has already said it better.
+  const emojiDiscipline =
+    emojiUsage === "none"
+      ? ""
+      : `\n\nEMOJI DISCIPLINE (this overrides the style setting above):
+- Never append an emoji as decoration or a sign-off. If it is not doing work where it sits, leave it out.
+- Never reuse the emoji from your previous message. Repeating one emoji turns it into a tic.
+- No emoji at all on amounts, fees, penalties, deadlines, or legal and compliance answers - anything a customer could act on and be wrong about.
+- No emoji when apologising, when saying you do not have an answer, or when handing over to a person.`;
 
   const industryPrompt = getIndustryPrompt(config.industry);
   const industryIntents = getIndustryIntents(config.industry);
@@ -293,8 +319,8 @@ ${descriptionBlock}
 
 PERSONALITY & STYLE:
 - ${toneMap[personality.tone]}
-- ${emojiMap[personality.emoji_usage]}
-- ${styleMap[personality.response_style]}
+- ${emojiMap[emojiUsage]}
+- ${styleMap[personality.response_style]}${emojiDiscipline}
 
 LANGUAGES: You can communicate in: ${config.languages.join(", ")}. Default: ${config.default_language}. 
 IMPORTANT: Always respond in the same language the customer is writing in. If they switch languages, switch with them.
