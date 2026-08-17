@@ -13,7 +13,7 @@ import type { OnboardingState, BusinessConfig } from "@/types";
 // =============================================
 // Onboarding wizard state (§7).
 // ---------------------------------------------
-// Dashboard-authenticated (middleware requires the fiq-auth cookie). tenant_id
+// Dashboard-authenticated (the proxy requires the fiq-auth cookie). tenant_id
 // always comes from the session — the wizard can only ever read and write its
 // OWN tenant's onboarding progress. See src/lib/onboarding/state.ts.
 // =============================================

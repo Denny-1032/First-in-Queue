@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/server";
 // RETIRED (§9 block 15). This was an open single-tenant bootstrap that created a
 // tenant from env WhatsApp creds — a "setup", not a signup, and a standing risk
 // (§1.3). Real multi-tenant signup now lives at /signup → /api/auth/signup, and
-// this route is no longer in middleware's public allow-list (it requires a
+// this route is no longer in the proxy's public allow-list (it requires a
 // signed-in session). POST is gone; GET remains only as the dashboard's authed
 // "is my tenant set up?" status check, scoped to the caller's own tenant.
 

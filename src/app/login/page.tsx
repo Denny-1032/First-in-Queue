@@ -72,7 +72,7 @@ export default function LoginPage() {
       }
 
       toast(isSignUp ? "Account created! Welcome aboard." : "Welcome back!");
-      // Hard navigation so middleware re-runs with the freshly set auth cookie;
+      // Hard navigation so the proxy re-runs with the freshly set auth cookie;
       // a soft router.push can reuse a cached unauthenticated prefetch and
       // bounce back to login (the "had to refresh to get in" bug).
       const redirectParam = new URLSearchParams(window.location.search).get("redirect");
@@ -105,7 +105,7 @@ export default function LoginPage() {
         return;
       }
       toast("Welcome back!");
-      // Hard navigation so middleware re-runs with the freshly set auth cookie;
+      // Hard navigation so the proxy re-runs with the freshly set auth cookie;
       // a soft router.push can reuse a cached unauthenticated prefetch and
       // bounce back to login (the "had to refresh to get in" bug).
       const redirectParam = new URLSearchParams(window.location.search).get("redirect");

@@ -21,7 +21,7 @@ Date: 2026-07-30. Status: draft for review — no code written yet.
 | Web crawler | `src/app/api/knowledge/crawl/route.ts` | **Yes** — becomes the wizard's KB bootstrap |
 | Industry templates | `src/lib/config/templates.ts` | **Yes** — wizard seeds from these |
 | Realtime hook | `src/lib/hooks/use-realtime.ts` | Yes — dashboard inbox live updates |
-| Auth (HMAC signed cookies) | `src/middleware.ts`, `src/lib/auth/` | Yes for dashboard; **not** for widget visitors — see §6 |
+| Auth (HMAC signed cookies) | `src/proxy.ts`, `src/lib/auth/` | Yes for dashboard; **not** for widget visitors — see §6 |
 
 ---
 
@@ -54,7 +54,7 @@ A web-chat-only tenant has neither. Self-serve signup cannot create a tenant row
 
 ### 1.5 `/api/widget/*` bypasses all auth
 
-`src/middleware.ts:80` — `pathname.startsWith("/api/widget/")` is in the `isPublicApi` list. Correct for a public widget, but it means every new widget endpoint is unauthenticated by default and must carry its own authorization. Treated fully in §6.
+`src/proxy.ts` — `pathname.startsWith("/api/widget/")` is in the `isPublicApi` list. Correct for a public widget, but it means every new widget endpoint is unauthenticated by default and must carry its own authorization. Treated fully in §6.
 
 ---
 
@@ -351,7 +351,7 @@ For ZRA and similar buyers, "send instructions" is not a convenience — it is t
 
 ## 6. Security
 
-This section is deliberately written in full prose. The widget endpoints are the only unauthenticated, internet-facing, LLM-cost-incurring surface in the product, and `src/middleware.ts:80` already exempts `/api/widget/*` from the auth check. Everything below must be implemented; none of it is optional.
+This section is deliberately written in full prose. The widget endpoints are the only unauthenticated, internet-facing, LLM-cost-incurring surface in the product, and `src/proxy.ts` already exempts `/api/widget/*` from the auth check. Everything below must be implemented; none of it is optional.
 
 **Never expose secrets to the widget.** `tenants.openai_api_key`, `tenants.whatsapp_access_token` and the Supabase service-role key must never appear in any `/api/widget/*` response, in the iframe's initial HTML, or in any client-side bundle. The `/api/widget/config` response must be an explicit, hand-built allowlist of fields — never a `select('*')` on tenants or properties passed through to the client.
 

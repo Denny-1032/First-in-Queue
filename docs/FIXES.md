@@ -76,7 +76,7 @@ The existing conversation `f9412592-94e2-4f2e-8509-fa8125370091` had 30+ identic
 - `src/lib/db/operations.ts` — Fixed message history ordering (descending + reverse)
 - `src/lib/engine/handler.ts` — Added repetition guard before AI call
 - `src/lib/ai/engine.ts` — Added anti-repetition rules 10-11 to CRITICAL RULES
-- `src/middleware.ts` — Exposed `/api/debug/` as public route for operational tooling
+- `src/proxy.ts` — Exposed `/api/debug/` as public route for operational tooling
 
 ### Prevention
 1. **Always fetch history in descending order then reverse** — `ORDER BY created_at DESC LIMIT N` then reverse gives the N most recent messages in chronological order

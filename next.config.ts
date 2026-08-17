@@ -38,7 +38,7 @@ const nextConfig: NextConfig = {
       // framed by customer sites, so DENY here would make the product
       // unusable — see docs/phase1-spec-widget-and-onboarding.md §6.
       // Their framing is controlled per-property by the
-      // `Content-Security-Policy: frame-ancestors` header set in middleware.ts.
+      // `Content-Security-Policy: frame-ancestors` header set in proxy.ts.
       source: "/((?!widget/).*)",
       headers: [{ key: "X-Frame-Options", value: "DENY" }],
     },

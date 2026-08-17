@@ -1,7 +1,7 @@
 // =============================================
 // Domain allowlisting for widget properties
 // ---------------------------------------------
-// Split out of keys.ts so it stays free of node built-ins: middleware.ts runs
+// Split out of keys.ts so it stays free of node built-ins: proxy.ts runs
 // on the Edge runtime and imports frameAncestorsFor from here. keys.ts (which
 // needs node `crypto` to mint keys) re-exports everything below, so existing
 // import sites are unaffected.

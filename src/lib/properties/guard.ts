@@ -6,7 +6,7 @@ import { verifyVisitorToken, type VisitorTokenPayload } from "./visitor-token";
 // =============================================
 // Widget request guard
 // ---------------------------------------------
-// Every /api/widget/* route is public (src/middleware.ts exempts the prefix),
+// Every /api/widget/* route is public (src/proxy.ts exempts the prefix),
 // so authorization lives here. Two entry points:
 //
 //   resolveByKey()   — widget key + Origin check (config, session, heartbeat)
@@ -83,7 +83,7 @@ export function widgetJson(
  * snippet may point at either.
  *
  * Safe because framing is the real control here — `frame-ancestors` (set in
- * middleware.ts from allowed_domains) means only an allowlisted parent can embed
+ * proxy.ts from allowed_domains) means only an allowlisted parent can embed
  * the widget document at all. Note the Origin check was never a defence against
  * non-browser clients, which can set any Origin they like; per §6 the cost
  * boundary is the per-property AI ceiling plus the rate limits.

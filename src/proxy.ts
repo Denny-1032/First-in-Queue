@@ -77,7 +77,7 @@ async function lookupAllowedDomains(key: string): Promise<string[]> {
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // --- Demo decks: one canonical casing ---

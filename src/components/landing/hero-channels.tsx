@@ -24,7 +24,7 @@ import { useVoiceCall, formatCallTime } from "@/lib/widget/use-voice-call";
 // Website chat is the real product: the same /widget/chat document the launcher
 // loads on a customer's site - not a copy - so it cannot drift from what we
 // sell. The `embed=inline` flag only tells it there is no panel to collapse
-// back into. Framing is allowed by the CSP the middleware sets for /widget/*:
+// back into. Framing is allowed by the CSP the proxy sets for /widget/*:
 // 'self' is always in frame-ancestors.
 //
 // WhatsApp cannot be embedded at all, so it is a finished-conversation preview

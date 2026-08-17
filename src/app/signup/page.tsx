@@ -49,7 +49,7 @@ export default function SignupPage() {
         return;
       }
       toast("Account created! Let's set up your assistant.");
-      // Hard navigation so middleware re-runs with the freshly set auth cookie
+      // Hard navigation so the proxy re-runs with the freshly set auth cookie
       // (the "had to refresh to get in" bug otherwise).
       window.location.assign("/onboarding/site");
     } catch {

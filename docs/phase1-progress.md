@@ -179,7 +179,7 @@ Two smaller notes from the run:
     `gpt-4o-mini` path (open item 2) is not yet wired to real properties.
 
 The property routes are dashboard-authenticated (`fiq-auth` cookie via
-`src/middleware.ts`), **not** public like `/api/widget/*`. Body-supplied
+`src/proxy.ts`), **not** public like `/api/widget/*`. Body-supplied
 `tenant_id` is ignored; rotation authorizes by `.eq("tenant_id", session…)`.
 
 After that: spec §9 blocks 10 → 11 → 12 (signup + wizard), then 9, 13, 14, 15.

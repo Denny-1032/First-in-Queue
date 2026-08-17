@@ -7,7 +7,7 @@ import { parseCreateProperty } from "@/lib/properties/input";
 // =============================================
 // Property CRUD for the signed-in tenant.
 // ---------------------------------------------
-// UNLIKE /api/widget/*, these routes are dashboard-authenticated: middleware.ts
+// UNLIKE /api/widget/*, these routes are dashboard-authenticated: proxy.ts
 // does not exempt /api/properties, so the fiq-auth cookie is already required
 // by the time a handler runs. tenant_id comes from the session — never the
 // body, which would let any signed-in user mint keys against another tenant.

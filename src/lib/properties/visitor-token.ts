@@ -5,7 +5,7 @@ import { getAuthSecret } from "@/lib/auth/secret";
 // Visitor session tokens
 // ---------------------------------------------
 // The widget's endpoints are public and unauthenticated by default
-// (src/middleware.ts exempts /api/widget/*). This token is what authorises a
+// (src/proxy.ts exempts /api/widget/*). This token is what authorises a
 // visitor to read and write ONE conversation.
 //
 // The security property that matters: every widget request derives its

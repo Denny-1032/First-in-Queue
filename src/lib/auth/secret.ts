@@ -10,7 +10,7 @@
 // In production that is now a hard error. Outside production we keep the shared
 // dev constant (so local setup stays frictionless) but warn loudly.
 //
-// Edge-safe: reads process.env only, no node builtins — middleware imports this.
+// Edge-safe: reads process.env only, no node builtins — the proxy imports this.
 // =============================================
 
 const DEV_FALLBACK = "fiq-fallback-secret-change-me";

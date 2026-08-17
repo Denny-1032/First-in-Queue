@@ -76,7 +76,7 @@ existing password. Only set a password when creating a brand-new user.
 
 ### Worth confirming while in there
 
-- `/invite/accept` is outside the middleware matcher and `/api/team/invite/accept` is
+- `/invite/accept` is outside the proxy matcher and `/api/team/invite/accept` is
   in `isPublicApi` — both correct, no change needed.
 - The invite email is sent to `NEXT_PUBLIC_APP_URL` (`app.firstinqueue.com`) while the
   dashboard is being used on `firstinqueue.com`. Both work, but the mismatch is worth

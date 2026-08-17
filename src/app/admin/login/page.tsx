@@ -36,7 +36,7 @@ export default function AdminLoginPage() {
       // Hard navigation (not router.push): the auth cookie was just set by the
       // fetch response. A soft client nav can reuse a cached, unauthenticated
       // RSC prefetch of /admin and bounce straight back to login - which is why
-      // it used to take a manual refresh. A full load re-runs middleware with
+      // it used to take a manual refresh. A full load re-runs the proxy with
       // the new cookie present.
       const params = new URLSearchParams(window.location.search);
       const redirect = params.get("redirect");

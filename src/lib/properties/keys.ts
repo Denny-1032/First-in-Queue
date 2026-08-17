@@ -45,7 +45,7 @@ export function isWidgetKeyShaped(key: string): boolean {
 
 // --- Domain allowlisting -------------------------------------------------
 //
-// These live in ./allowlist so they can be imported by middleware.ts, which
+// These live in ./allowlist so they can be imported by proxy.ts, which
 // runs on the Edge runtime and must not pull in the node `crypto` above.
 // Re-exported here so existing import sites keep working.
 

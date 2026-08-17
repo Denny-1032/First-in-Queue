@@ -8,7 +8,7 @@ import { getTenantById } from "@/lib/db/operations";
 // instead of a guess. The engine swallows its own failures by design - a
 // customer must never see a stack trace - which is exactly why this exists.
 //
-// Admin-only: /api/admin/* is gated by the signed admin cookie in middleware.ts.
+// Admin-only: /api/admin/* is gated by the signed admin cookie in proxy.ts.
 //
 // Pass ?tenant_id=… to test a tenant's own stored key. Without it, the shared
 // environment key is tested - which is what any tenant whose openai_api_key is
