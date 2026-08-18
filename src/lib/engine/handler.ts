@@ -4,6 +4,7 @@ import { normalizeWhatsAppMessage } from "@/lib/channels/whatsapp-adapter";
 import { createAIEngine } from "@/lib/ai/engine";
 import { makeOutboundCallViaTwilio } from "@/lib/voice/twilio-client";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { notifyEscalation } from "@/lib/notifications/escalation";
 import {
   getTenantByPhoneNumberId,
   getOrCreateConversation,
@@ -755,6 +756,16 @@ async function handleEscalation(
       .from("agents")
       .update({ active_chats: agent.active_chats + 1 })
       .eq("id", agent.id);
+    // Tell the team. Awaited but self-swallowing, so a mail failure cannot cost
+    // the customer the handoff message sent immediately below.
+    await notifyEscalation({
+      tenantId: tenant.id,
+      tenantName: tenant.name || tenant.config?.business_name || "Your workspace",
+      conversationId: conversation.id,
+      reason: aiResponse.escalation_reason,
+      customerMessage: msg.content?.text,
+      assignedAgentName: agent.name,
+    });
     const handoffMsg = `I'm connecting you with ${agent.name} from our team right now. They'll be with you shortly!`;
     const waMessageId = await transport.sendText(msg.customerRef, handoffMsg);
     await persistOutbound(transport, {
@@ -775,6 +786,15 @@ async function handleEscalation(
         escalation_reason: aiResponse.escalation_reason,
         escalated_at: new Date().toISOString(),
       },
+    });
+    // Nobody was online, so this is the branch that most needs an email: the
+    // customer has just been promised someone will reach out.
+    await notifyEscalation({
+      tenantId: tenant.id,
+      tenantName: tenant.name || tenant.config?.business_name || "Your workspace",
+      conversationId: conversation.id,
+      reason: aiResponse.escalation_reason,
+      customerMessage: msg.content?.text,
     });
     const waitMsg =
       "I'm connecting you with a team member for the best assistance. Our team will reach out to you very soon. Thank you for your patience!";

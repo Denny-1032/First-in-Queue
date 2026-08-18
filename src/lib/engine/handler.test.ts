@@ -83,6 +83,9 @@ vi.mock("@/lib/whatsapp/client", () => ({
   createWhatsAppClient: vi.fn(() => transport),
   WhatsAppClient: class {},
 }));
+const notify = vi.hoisted(() => ({ notifyEscalation: vi.fn<AnyFn>(async () => ({ notified: 1 })) }));
+vi.mock("@/lib/notifications/escalation", () => notify);
+
 vi.mock("@/lib/db/operations", () => db);
 vi.mock("@/lib/ai/engine", () => ({
   createAIEngine: vi.fn(() => ({ generateResponse: ai.generateResponse })),
@@ -193,6 +196,7 @@ beforeEach(() => {
   // Restore permissive defaults cleared above.
   db.saveMessage.mockResolvedValue({ id: "msg-1" });
   db.getRecentMessageHistory.mockResolvedValue([]);
+  notify.notifyEscalation.mockResolvedValue({ notified: 1 });
   db.getAvailableAgent.mockResolvedValue(null);
   ai.generateResponse.mockResolvedValue({ text: "AI answer", should_escalate: false, confidence: 0.9 });
   usage.consumeConversation.mockResolvedValue({
@@ -338,6 +342,57 @@ describe("processIncomingMessage routing (WhatsApp)", () => {
       expect.objectContaining({ status: "waiting" })
     );
     expect(ai.generateResponse).not.toHaveBeenCalled();
+  });
+
+  // The waiting branch tells the customer "our team will reach out to you very
+  // soon". Nothing used to make that true, so these guard the notification.
+  it("emails the team when nobody is online to take the handoff", async () => {
+    arrange({
+      tenant: makeTenant({
+        industry: "finance",
+        escalation_rules: [{ id: "e1", trigger: "keyword", value: "fraud", priority: "urgent" }],
+      }),
+    });
+
+    await handleWebhook(makePayload(makeTextMessage("I think there's fraud on my card")));
+
+    expect(notify.notifyEscalation).toHaveBeenCalledTimes(1);
+    const notice = notify.notifyEscalation.mock.calls[0][0];
+    expect(notice).toMatchObject({ conversationId: "conv-1" });
+    // No agent was assigned, so the email must not name one.
+    expect(notice.assignedAgentName).toBeUndefined();
+  });
+
+  it("names the assigned agent when one is online", async () => {
+    arrange({
+      tenant: makeTenant({
+        industry: "finance",
+        escalation_rules: [{ id: "e1", trigger: "keyword", value: "fraud", priority: "urgent" }],
+      }),
+    });
+    db.getAvailableAgent.mockResolvedValue({ id: "ag-1", name: "Mwansa", active_chats: 0 });
+
+    await handleWebhook(makePayload(makeTextMessage("I think there's fraud on my card")));
+
+    expect(notify.notifyEscalation).toHaveBeenCalledTimes(1);
+    expect(notify.notifyEscalation.mock.calls[0][0]).toMatchObject({ assignedAgentName: "Mwansa" });
+  });
+
+  it("still answers the customer when the notification fails", async () => {
+    arrange({
+      tenant: makeTenant({
+        industry: "finance",
+        escalation_rules: [{ id: "e1", trigger: "keyword", value: "fraud", priority: "urgent" }],
+      }),
+    });
+    notify.notifyEscalation.mockRejectedValue(new Error("resend is down"));
+
+    await expect(
+      handleWebhook(makePayload(makeTextMessage("I think there's fraud on my card")))
+    ).resolves.not.toThrow();
+
+    // The safety message and the wait message both still reach the customer.
+    expect(transport.sendText).toHaveBeenCalledTimes(2);
   });
 });
 
