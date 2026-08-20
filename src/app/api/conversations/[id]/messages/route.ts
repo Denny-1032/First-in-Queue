@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMessages, saveMessage, getConversation, updateConversation } from "@/lib/db/operations";
+import { getMessages, saveMessage, getTenantConversation, updateConversation } from "@/lib/db/operations";
+import { requireSession, AuthError } from "@/lib/auth/session";
 import { createWhatsAppClient } from "@/lib/whatsapp/client";
 import { getTenantById } from "@/lib/db/operations";
 import { consumeConversation, incrementMessageUsage } from "@/lib/lipila/usage";
@@ -12,13 +13,22 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const session = await requireSession();
     const limit = parseInt(request.nextUrl.searchParams.get("limit") || "50");
     const offset = parseInt(request.nextUrl.searchParams.get("offset") || "0");
+
+    // Ownership check before reading a transcript - without it any signed-in
+    // user could read another business's messages by guessing an id.
+    const conversation = await getTenantConversation(id, session.tenantId);
+    if (!conversation) {
+      return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+    }
     // Widget attachments are stored as private object keys; sign them so the
     // agent's transcript can render the image or offer the download.
     const messages = await withSignedMedia(await getMessages(id, limit, offset));
     return NextResponse.json(messages);
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[API] Error fetching messages:", error);
     return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 });
   }
@@ -31,6 +41,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+    const session = await requireSession();
     const body = await request.json();
     const { text } = body;
 
@@ -38,7 +49,9 @@ export async function POST(
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
-    const conversation = await getConversation(id);
+    // Tenant-scoped: this send spends the owning tenant's WhatsApp allowance
+    // and credit, so only that tenant's agents may reach it.
+    const conversation = await getTenantConversation(id, session.tenantId);
     if (!conversation) {
       return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
     }
@@ -127,6 +140,7 @@ export async function POST(
 
     return NextResponse.json(message);
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[API] Error sending message:", error);
     return NextResponse.json({ error: "Failed to send message" }, { status: 500 });
   }

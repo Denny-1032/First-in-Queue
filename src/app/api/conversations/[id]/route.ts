@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getConversation, updateConversation, getTenantById, saveMessage } from "@/lib/db/operations";
+import { getTenantConversation, updateConversation, getTenantById, saveMessage } from "@/lib/db/operations";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { createWhatsAppClient } from "@/lib/whatsapp/client";
+import { requireSession, AuthError } from "@/lib/auth/session";
 
 export async function GET(
   request: NextRequest,
@@ -9,12 +10,15 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const conversation = await getConversation(id);
+    const session = await requireSession();
+    // Scoped to the caller's tenant - that filter IS the authorization check.
+    const conversation = await getTenantConversation(id, session.tenantId);
     if (!conversation) {
       return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
     }
     return NextResponse.json(conversation);
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[API] Error fetching conversation:", error);
     return NextResponse.json({ error: "Failed to fetch conversation" }, { status: 500 });
   }
@@ -26,6 +30,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
+    const session = await requireSession();
     const body = await request.json();
     const allowedFields = ["status", "ai_enabled", "assigned_agent_id", "sentiment", "tags", "metadata"];
     const sanitized: Record<string, unknown> = {};
@@ -36,13 +41,20 @@ export async function PATCH(
       return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
     }
 
-    // Before updating, fetch current conversation to check if we should decrement active_chats
+    // Before updating, fetch current conversation to check if we should decrement
+    // active_chats. The tenant_id filter doubles as the authorization check: a
+    // conversation owned by another tenant reads as not found.
     const db = getSupabaseAdmin();
     const { data: current } = await db
       .from("conversations")
       .select("status, assigned_agent_id")
       .eq("id", id)
-      .single();
+      .eq("tenant_id", session.tenantId)
+      .maybeSingle();
+
+    if (!current) {
+      return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+    }
 
     const updated = await updateConversation(id, sanitized);
     if (!updated) {
@@ -116,7 +128,69 @@ export async function PATCH(
 
     return NextResponse.json(updated);
   } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("[API] Error updating conversation:", error);
     return NextResponse.json({ error: "Failed to update conversation" }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const session = await requireSession();
+    const db = getSupabaseAdmin();
+
+    // The tenant_id filter IS the authorization check - without it any signed-in
+    // user could delete another business's chats.
+    const { data: current } = await db
+      .from("conversations")
+      .select("id, status, assigned_agent_id")
+      .eq("id", id)
+      .eq("tenant_id", session.tenantId)
+      .maybeSingle();
+
+    if (!current) {
+      return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+    }
+
+    // Free the agent's slot first - once the row is gone the assignment is
+    // unreadable and active_chats would stay inflated forever.
+    if (current.status === "handoff" && current.assigned_agent_id) {
+      const { data: agent } = await db
+        .from("agents")
+        .select("active_chats")
+        .eq("id", current.assigned_agent_id)
+        .single();
+      if (agent && agent.active_chats > 0) {
+        await db
+          .from("agents")
+          .update({ active_chats: agent.active_chats - 1 })
+          .eq("id", current.assigned_agent_id);
+      }
+    }
+
+    // messages cascade (migration 001); bookings/leads keep their history with
+    // conversation_id set to null (migration 002).
+    const { error } = await db
+      .from("conversations")
+      .delete()
+      .eq("id", id)
+      .eq("tenant_id", session.tenantId);
+
+    if (error) {
+      console.error("[API] Error deleting conversation:", error.message);
+      return NextResponse.json({ error: "Failed to delete conversation" }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true, id });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    console.error("[API] Error deleting conversation:", error);
+    return NextResponse.json({ error: "Failed to delete conversation" }, { status: 500 });
   }
 }

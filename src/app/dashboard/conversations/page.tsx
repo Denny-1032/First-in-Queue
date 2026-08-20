@@ -35,8 +35,10 @@ import {
   WifiOff,
   Plus,
   Globe,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { renderTextWithLinks } from "@/lib/conversations/render-links";
 import { timeAgo, truncate } from "@/lib/utils";
 import {
   customerInitials,
@@ -106,6 +108,10 @@ export default function ConversationsPage() {
   const [newConvoName, setNewConvoName] = useState("");
   const [newConvoMessage, setNewConvoMessage] = useState("");
   const [initiating, setInitiating] = useState(false);
+
+  // Delete confirmation state
+  const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Canned responses for agents
   const cannedResponses = [
@@ -409,6 +415,33 @@ export default function ConversationsPage() {
     setInitiating(false);
   };
 
+  const handleDeleteConversation = async () => {
+    if (!deleteTarget || deleting) return;
+    const id = deleteTarget.id;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setConversations((prev) => prev.filter((c) => c.id !== id));
+        // Drop it from the handoff-notification set so a re-created chat with
+        // the same id would still notify.
+        prevHandoffIds.current.delete(id);
+        if (selectedId === id) {
+          setSelectedId(null);
+          setMessages([]);
+        }
+        setDeleteTarget(null);
+        toast("Conversation deleted", "success");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast(data.error || "Failed to delete conversation", "error");
+      }
+    } catch {
+      toast("Failed to delete conversation", "error");
+    }
+    setDeleting(false);
+  };
+
   const getLastMessage = (convoId: string) => {
     if (convoId === selectedId && messages.length > 0) {
       const last = messages[messages.length - 1];
@@ -703,6 +736,16 @@ export default function ConversationsPage() {
                       Resolve
                     </Button>
                   )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={() => setDeleteTarget(selectedConvo)}
+                    title="Delete this conversation"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Delete</span>
+                  </Button>
                 </div>
               </div>
 
@@ -910,6 +953,37 @@ export default function ConversationsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Conversation Confirmation */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open && !deleting) setDeleteTarget(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete this conversation?</DialogTitle>
+            <DialogDescription>
+              {deleteTarget
+                ? `The chat with ${customerLabel(deleteTarget)} and all of its messages will be permanently removed. This cannot be undone.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white gap-1.5"
+              onClick={handleDeleteConversation}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1050,24 +1124,4 @@ function MessageBubbleContent({ msg, isInbound }: { msg: Message; isInbound: boo
       }
       return <span className="text-xs opacity-70">Unsupported message</span>;
   }
-}
-
-/* Render text with clickable links */
-function renderTextWithLinks(text: string) {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const parts = text.split(urlRegex);
-  if (parts.length === 1) return <>{text}</>;
-  return (
-    <>
-      {parts.map((part, i) =>
-        urlRegex.test(part) ? (
-          <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline break-all">
-            {part}
-          </a>
-        ) : (
-          <span key={i}>{part}</span>
-        )
-      )}
-    </>
-  );
 }

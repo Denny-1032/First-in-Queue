@@ -204,6 +204,25 @@ export async function getConversation(conversationId: string): Promise<Conversat
   return data as Conversation | null;
 }
 
+/**
+ * Read a conversation only if it belongs to the given tenant. Dashboard API
+ * routes must use this instead of getConversation() - the tenant_id filter IS
+ * the authorization check, without it any signed-in user could read another
+ * business's chats by guessing an id.
+ */
+export async function getTenantConversation(
+  conversationId: string,
+  tenantId: string
+): Promise<Conversation | null> {
+  const { data } = await getSupabaseAdmin()
+    .from("conversations")
+    .select("*")
+    .eq("id", conversationId)
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  return data as Conversation | null;
+}
+
 export async function getConversations(
   tenantId: string,
   status?: ConversationStatus,
