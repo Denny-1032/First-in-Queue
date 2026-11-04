@@ -134,6 +134,9 @@
       '.panel{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-height:none;border-radius:0}',
       '.wrap{' + (bottom ? 'bottom:16px;' : 'top:16px;') + side + ':16px}',
       '.wrap.open .brand{display:none}',
+      // The fullscreen panel has its own close button; a launcher left on top
+      // of it sits exactly over the composer's send button.
+      '.wrap.open .launcher{display:none}',
       '}',
       '@media (prefers-reduced-motion:reduce){.launcher{transition:none}}'
     ].join('');
